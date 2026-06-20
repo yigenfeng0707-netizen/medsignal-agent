@@ -1,0 +1,152 @@
+# 医保智脑 YiBaoZhiNao v2.1.0
+
+> 基于可信数据空间的个人医保智能体 —— BCI×医保创新版（多智能体协作 + 脑电健康）
+> 参赛：BCI×医保创新场景大赛 / 医保数据应用赛道
+
+## ✨ 核心能力
+
+1 个编排智能体 + 6 个专业智能体：
+- 🛡️ **权益管家** — 医保权益查询、报销测算（多场景对比）
+- 📋 **报销助手** — OCR 票据识别 + 7步分步推导报销计算 + 大病保险
+- ❤️ **健康卫士** — 5维健康评分 + 用药相互作用检测 + 主动预警
+- 📖 **政策参谋** — 用户画像精准匹配政策 + 省钱清单计算
+- 🔒 **安全守门** — 数据授权管理 + 可信数据空间 + 区块链存证
+- 🧠 **脑电卫士** — EEG 脑电健康评估 + 脑电异常→医保政策联动（BCI×医保核心创新）⭐
+
+## 🏆 创新亮点
+
+- **BCI×医保创新**：EEG 脑电采集 → 频域分析 → 健康评估 → 医保政策自动联动（全链路）
+- **脑电健康第 6 维**：4 通道/256Hz/五频段（δθαβγ）→ 压力/注意力/睡眠/认知负荷/情绪五维指标
+- **多智能体协作**：复合意图并行调度（如"脑电压力+政策省钱"→ eeg+policy 并行）
+- **主动式健康预警**：登录即推送，健康预警 + 脑电预警合并展示
+- **可信数据空间可视化**：隐私计算"可用不可见"+ 区块链存证模拟
+- **全链路可解释性**：每个 AI 决策可展开证据链（含脑电指标 evidence）
+- **多用户切换**：10 个画像一键切换，全站数据联动
+
+## 🚀 快速开始
+
+### 后端
+```bash
+cd backend
+python -m venv venv && venv\Scripts\activate  # Windows
+pip install -r requirements.txt
+
+# 配置 API Key（可选，不配也能跑，会自动降级到规则引擎）
+cp .env.example .env
+# 编辑 .env 填入 LLM_API_KEY 等
+
+# 初始化数据库 + 构建知识库（首次）
+python scripts/init_db.py
+python scripts/build_knowledge_base.py
+
+# 启动
+uvicorn app.main:app --reload --port 8000
+# 访问 http://localhost:8000/docs 查看 API
+```
+
+### 前端
+```bash
+cd frontend
+pnpm install
+pnpm dev
+# 访问 http://localhost:3000
+```
+
+### 验证
+```bash
+cd backend
+python -m pytest tests/                    # 92 项单元测试
+python -m scripts.smoke_test               # 60 项端到端冒烟测试
+```
+
+## 🧪 测试
+
+| 测试套件 | 数量 | 说明 |
+|---|---|---|
+| 单元测试 | 92 | 四大算法引擎（报销/健康/政策/脑电） |
+| 端到端冒烟 | 60 | 7 个 Router + AI 对话 + EEG 脑电 + 多用户 |
+
+```bash
+python -m pytest tests/ -v
+```
+
+## 📊 技术栈
+
+| 层级 | 技术 |
+|---|---|
+| 前端 | Next.js 14 + React 18 + TypeScript + TailwindCSS + shadcn/ui + ECharts + Framer Motion |
+| 后端 | FastAPI + SQLAlchemy 2.0 (async) + Pydantic v2 |
+| AI/LLM | OpenAI 兼容 API（商汤 SenseNova 主力 + 阿里 DashScope 备选） |
+| 向量库 | ChromaDB + sentence-transformers（离线嵌入，无网络依赖） |
+| 脑电分析 | numpy（FFT/Welch PSD 频域分析 + 合成 EEG 信号生成） |
+| OCR | OCR.space |
+| 数据库 | SQLite（开发）/ PostgreSQL（生产） |
+| 部署 | Docker Compose / Vercel + Render / nginx |
+
+## 📁 项目结构
+
+```
+yibao-zhinao/
+├── backend/
+│   ├── app/
+│   │   ├── main.py              # FastAPI 入口（v2.1.0）
+│   │   ├── crud.py              # 统一数据访问层
+│   │   ├── auth.py              # 鉴权层
+│   │   ├── models.py / schemas.py
+│   │   ├── routers/             # 7 个 Router（含 eeg 脑电健康）
+│   │   ├── services/
+│   │   │   ├── orchestrator.py  # 编排器（多意图 + 融合 + 脑电卫士）
+│   │   │   ├── claims_engine.py # 报销计算引擎 ⭐
+│   │   │   ├── health_engine.py # 健康风险评分引擎 ⭐
+│   │   │   ├── policy_matcher.py# 政策匹配引擎 ⭐
+│   │   │   ├── eeg/engine.py    # 脑电健康引擎（BCI×医保创新）⭐⭐
+│   │   │   ├── llm_service.py / knowledge_base.py / ocr_service.py
+│   │   └── prompts/agent_prompts.py  # 6 个 Agent 提示词（含脑电卫士）
+│   ├── data/                    # 仿真数据 + 政策库 + 规则库 + 脑电政策联动
+│   ├── tests/                   # 92 项单元测试（含 EEG 引擎 55 项）
+│   └── scripts/                 # 数据生成/初始化/冒烟测试
+├── frontend/
+│   └── src/
+│       ├── app/                 # 9 个页面（首页+5业务+脑电健康+数据空间）
+│       ├── components/          # UserSwitcher / EvidencePanel / ProactiveAlertBanner
+│       └── lib/                 # api.ts / mock-data.ts / user-context.tsx
+├── docs/                        # 升级计划/完成报告/API契约/PPT大纲/路演稿
+├── docker-compose.yml / nginx.conf / render.yaml
+└── .github/workflows/deploy.yml
+```
+
+## 📖 文档
+
+- [升级完成报告](docs/升级完成报告.md) — 完整改动记录与验收结果
+- [升级改造计划 v2](docs/升级改造计划_v2.md) — 原始升级计划
+- [API 契约](docs/api_contract.md) — 前后端接口真理源
+- [PPT 大纲](docs/ppt_outline.md) — 16 页路演 PPT
+- [路演逐字稿](docs/roadshow_script.md) — 8 分钟脚本 + Q&A
+
+## 🔐 环境变量
+
+见 `.env.example`。关键项：
+- `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` — 主力 LLM（商汤）
+- `DASHSCOPE_API_KEY` / `DASHSCOPE_MODEL` — 备选 LLM（阿里）
+- `OCR_API_KEY` — OCR.space
+- `YIBAO_API_KEY` — API 鉴权（可选，不配则开放）
+
+> 💡 不配置任何 API Key 也能运行：所有功能会自动降级到规则引擎 + mock 数据，保证 Demo 不翻车。
+
+## 🛡️ 容错降级
+
+三级降级保证 Demo 绝不翻车：
+1. **LLM**：SenseNova → DashScope → 关键词匹配 + 规则引擎
+2. **知识库**：API Embedding → ChromaDB 默认嵌入 → mock
+3. **前端**：后端 API → 本地 mock-data.ts
+
+## 🐳 Docker 部署
+
+```bash
+docker-compose up -d
+# 前端 :3000 / 后端 :8000 / postgres :5432 / redis :6379 / chromadb :8001
+```
+
+---
+
+**让数据多跑路，让群众少跑腿，让健康早一步。** 🏆

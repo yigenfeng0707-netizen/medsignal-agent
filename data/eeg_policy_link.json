@@ -1,0 +1,71 @@
+{
+  "description": "脑电异常 → 医保政策联动规则库（BCI×医保核心创新）",
+  "version": "1.0",
+  "links": [
+    {
+      "trigger": "high_stress",
+      "condition": {"stress_index_min": 70},
+      "title": "持续高压力状态",
+      "policy_hint": "心理科门诊报销政策",
+      "description": "检测到持续高压力脑电模式（α/β 比值偏低），长期压力可能影响心血管和心理健康。",
+      "suggestion": "建议关注心理健康，可咨询心理科门诊。多地已将心理治疗纳入医保统筹。",
+      "related_policies": [
+        "心理治疗医保报销",
+        "门诊慢病待遇（抑郁/焦虑症）",
+        "职工医保个人账户家庭共济"
+      ]
+    },
+    {
+      "trigger": "poor_sleep",
+      "condition": {"sleep_quality_max": 40},
+      "title": "睡眠质量持续下降",
+      "policy_hint": "睡眠障碍相关检查报销政策",
+      "description": "脑电 δ/θ 波比例异常，提示睡眠质量不佳，可能存在睡眠障碍。",
+      "suggestion": "建议进行睡眠监测（多导睡眠图），部分城市已纳入医保报销。",
+      "related_policies": [
+        "睡眠监测医保报销",
+        "门诊特殊病种（睡眠障碍）",
+        "慢病康复治疗报销"
+      ]
+    },
+    {
+      "trigger": "cognitive_overload",
+      "condition": {"cognitive_load_min": 75},
+      "title": "认知负荷过高",
+      "policy_hint": "认知功能评估相关医保政策",
+      "description": "脑电 β/γ 波持续偏高，提示认知负荷过重，需关注脑健康。",
+      "suggestion": "建议进行认知功能筛查，65 岁以上可享受老年认知评估医保待遇。",
+      "related_policies": [
+        "老年认知功能筛查",
+        "门诊慢病待遇（阿尔茨海默病）",
+        "神经内科门诊报销"
+      ]
+    },
+    {
+      "trigger": "attention_low",
+      "condition": {"attention_index_max": 40},
+      "title": "注意力持续偏低",
+      "policy_hint": "注意力评估相关医保政策",
+      "description": "θ/β 比值偏高，提示注意力水平下降，可能影响日常生活。",
+      "suggestion": "建议关注注意力变化，必要时进行神经内科评估。",
+      "related_policies": [
+        "神经内科门诊报销",
+        "儿童注意力评估（学生医保）",
+        "门诊统筹报销"
+      ]
+    },
+    {
+      "trigger": "emotion_abnormal",
+      "condition": {"emotion_valence_max": 40},
+      "title": "情绪状态异常",
+      "policy_hint": "心理健康医保政策",
+      "description": "脑电情绪评估显示效价偏低，提示可能存在焦虑或低落倾向。",
+      "suggestion": "建议关注情绪健康，持续异常可咨询心理科。多地心理治疗已纳入医保。",
+      "related_policies": [
+        "心理治疗医保报销",
+        "门诊慢病待遇（抑郁症）",
+        "精神卫生专科报销"
+      ]
+    }
+  ]
+}
