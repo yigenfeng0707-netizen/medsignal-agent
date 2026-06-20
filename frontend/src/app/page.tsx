@@ -132,7 +132,7 @@ export default function HomePage() {
         : await sendChatMessage({ message: content, user_id: userId });
 
       const agentsInvoked = isMulti
-        ? (res.agents_invoked ?? []).map((a) => agentLabelMap[a] || a)
+        ? (((res as unknown as Record<string, unknown>).agents_invoked as string[]) ?? []).map((a: string) => agentLabelMap[a] || a)
         : undefined;
 
       const assistantMsg: Message = {
@@ -146,7 +146,7 @@ export default function HomePage() {
         timestamp: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }),
         evidence: res.evidence as Evidence[] | undefined,
         userProfile: res.user_profile,
-        multiAgent: isMulti && (res.multi_agent || (agentsInvoked?.length ?? 0) > 0),
+        multiAgent: isMulti && (((res as unknown as Record<string, unknown>).multi_agent as boolean) || (agentsInvoked?.length ?? 0) > 0),
         agentsInvoked: agentsInvoked && agentsInvoked.length > 0 ? agentsInvoked : undefined,
       };
 

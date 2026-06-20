@@ -105,7 +105,7 @@ function MetricRing({
 }: {
   score: number;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   reverse?: boolean;
   unit?: string;
 }) {

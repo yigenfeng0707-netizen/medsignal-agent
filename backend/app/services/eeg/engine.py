@@ -59,8 +59,10 @@ MENTAL_STATES = {
 }
 
 # 脑电异常 → 医保政策联动映射
+# engine.py 位于 backend/app/services/eeg/，数据文件在 yibao-eeg/data/
+# 向上 5 层：eeg/ → services/ → app/ → backend/ → yibao-eeg/
 _EEG_POLICY_LINK_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))),
     "data", "eeg_policy_link.json",
 )
 _EEG_POLICY_LINK_CACHE: Optional[dict] = None
