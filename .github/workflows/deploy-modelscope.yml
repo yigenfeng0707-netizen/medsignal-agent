@@ -74,26 +74,27 @@ jobs:
           cp README.md "$PKG/README.md"
 
           # 注入 LLM/Step/Vision Token：从 GitHub Secret 替换占位符，密钥永不进入 git 历史
-          python3 -c "
+          # bash 单引号包裹整个 python -c，python 内部全用双引号，避开 YAML/bash/python 三层引号嵌套
+          python3 -c '
           import json, os, pathlib
-          p = pathlib.Path('/tmp/mscope/ms_deploy.json')
-          d = json.loads(p.read_text(encoding='utf-8'))
+          p = pathlib.Path("/tmp/mscope/ms_deploy.json")
+          d = json.loads(p.read_text(encoding="utf-8"))
           secrets_to_inject = [
-              ('LLM_API_KEY', os.environ.get('LLM_API_KEY', '')),
-              ('STEP_API_KEY', os.environ.get('STEP_API_KEY', '')),
-              ('SENSENOVA_VISION_API_KEY', os.environ.get('SENSENOVA_VISION_API_KEY', '')),
+              ("LLM_API_KEY", os.environ.get("LLM_API_KEY", "")),
+              ("STEP_API_KEY", os.environ.get("STEP_API_KEY", "")),
+              ("SENSENOVA_VISION_API_KEY", os.environ.get("SENSENOVA_VISION_API_KEY", "")),
           ]
           injected = []
           for key, val in secrets_to_inject:
               if val:
-                  d['env'][key] = val
+                  d["env"][key] = val
                   injected.append(key)
-          p.write_text(json.dumps(d, ensure_ascii=False, indent=2) + chr(10), encoding='utf-8')
+          p.write_text(json.dumps(d, ensure_ascii=False, indent=2) + chr(10), encoding="utf-8")
           if injected:
-              print(f\"::notice::已从 GitHub Secret 注入: {', '.join(injected)}\")
+              print("::notice::已从 GitHub Secret 注入:", ", ".join(injected))
           else:
-              print('::warning::未配置任何 LLM/Step/Vision Secret，部署包保留占位符；请在魔搭创空间页面手工设置环境变量后才能调用真实 AI\")
-          "
+              print("::warning::未配置任何 LLM/Step/Vision Secret，部署包保留占位符；请在魔搭创空间页面手工设置环境变量后才能调用真实 AI")
+          '
 
           echo "--- 部署包内容 ---"
           find "$PKG" -maxdepth 2 -type f | sort | head -40
