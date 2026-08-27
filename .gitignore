@@ -108,7 +108,13 @@ data/real_imaging/raw/
 data/real_eeg/raw/
 
 # ==================== AI 助手 / IDE skills 配置（本地工具链，不入库） ====================
-.agents/
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/digital-human-body-archive/
+!.agents/skills/digital-human-body-archive/**
+.agents/skills/digital-human-body-archive/**/__pycache__/
+.agents/skills/digital-human-body-archive/**/*.py[cod]
 .claude/
 .codeartsdoer/
 .codebuddy/

@@ -15,6 +15,8 @@ from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
+    BodyArchiveMaterial,
+    BodyArchiveRecord,
     DataAuthorization,
     EEGRecord,
     ImagingRecord,
@@ -129,6 +131,58 @@ async def get_medication_records(
         .limit(limit)
     )
     return list(result.scalars().all())
+
+
+# ============================================================
+# 数字人体档案（append-only）
+# ============================================================
+
+async def get_body_archive_records(
+    db: AsyncSession, user_id: str | int, limit: int = 500
+) -> list[BodyArchiveRecord]:
+    uid = _normalize_user_id(user_id)
+    result = await db.execute(
+        select(BodyArchiveRecord)
+        .where(BodyArchiveRecord.user_id == uid)
+        .order_by(desc(BodyArchiveRecord.created_at))
+        .limit(limit)
+    )
+    return list(result.scalars().all())
+
+
+async def create_body_archive_record(
+    db: AsyncSession, user_id: str | int, **values
+) -> BodyArchiveRecord:
+    record = BodyArchiveRecord(user_id=_normalize_user_id(user_id), **values)
+    db.add(record)
+    await db.commit()
+    await db.refresh(record)
+    return record
+
+
+async def get_body_archive_materials(
+    db: AsyncSession, user_id: str | int, limit: int = 200
+) -> list[BodyArchiveMaterial]:
+    uid = _normalize_user_id(user_id)
+    result = await db.execute(
+        select(BodyArchiveMaterial)
+        .where(BodyArchiveMaterial.user_id == uid)
+        .order_by(desc(BodyArchiveMaterial.uploaded_at))
+        .limit(limit)
+    )
+    return list(result.scalars().all())
+
+
+async def create_body_archive_material(
+    db: AsyncSession, user_id: str | int, filename: str, note: str = ""
+) -> BodyArchiveMaterial:
+    material = BodyArchiveMaterial(
+        user_id=_normalize_user_id(user_id), filename=filename, note=note
+    )
+    db.add(material)
+    await db.commit()
+    await db.refresh(material)
+    return material
 
 
 # ============================================================

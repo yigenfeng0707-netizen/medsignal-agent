@@ -13,12 +13,14 @@ import {
   Network,
   Brain,
   ScanLine,
+  Accessibility,
 } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "首页", icon: Home },
   { href: "/coverage", label: "权益全景", icon: Shield },
   { href: "/health", label: "健康画像", icon: Heart },
+  { href: "/body-archive", label: "数字人体档案", icon: Accessibility },
   { href: "/eeg", label: "脑电健康", icon: Brain },
   { href: "/imaging", label: "影像标注", icon: ScanLine },
   { href: "/claims", label: "报销预审", icon: FileText },

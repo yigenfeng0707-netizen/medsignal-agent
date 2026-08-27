@@ -174,7 +174,38 @@
 
 ---
 
-## 7. 健康检查
+## 7. 数字人体档案
+
+### GET `/api/body-archive/patients`
+返回可在 3D 查看器切换的 MedSignal 用户索引。
+
+### GET `/api/body-archive/patients/{user_id}`
+返回患者基本信息、资料元数据，以及由既有就诊记录和数字人体追加记录合并得到的 `records`。`organ` 使用 `.agents/skills/digital-human-body-archive/references/taxonomy.md` 中的 key。
+
+### POST `/api/body-archive/patients/{user_id}/records`
+仅追加记录；配置 `YIBAO_API_KEY` 后需携带 `X-API-Key`。
+
+```json
+{
+  "organ": "lungs",
+  "event_date": "2026-02",
+  "source_type": "chat",
+  "source_label": "对话输入",
+  "source_ref": "",
+  "description": "查出肺部小结节",
+  "raw_excerpt": "我2026年2月查出肺部小结节"
+}
+```
+
+### POST `/api/body-archive/patients/{user_id}/materials`
+只登记文件名与备注，不上传或保存原文件：`{"filename":"胸部CT.pdf","note":"复查资料"}`。
+
+### GET `/digital-body/index.html?patient=user_001`
+3D 查看器静态入口。前端页面入口为 `/body-archive`。
+
+---
+
+## 8. 健康检查
 
 ### GET `/api/health` → `{ "status": "ok", "service": "MedSignal" }`
 

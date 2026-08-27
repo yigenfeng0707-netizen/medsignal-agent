@@ -40,7 +40,7 @@ import {
 //  - 显式空字符串（魔搭同域部署）→ 相对路径 /api，由 Next rewrites 代理到后端
 //  - 绝对 URL（Render/Vercel/docker-compose）→ 直接使用
 const _rawApiBase = process.env.NEXT_PUBLIC_API_URL;
-const API_BASE =
+export const API_BASE =
   _rawApiBase === undefined || _rawApiBase === ""
     ? _rawApiBase === undefined
       ? "http://localhost:8000"

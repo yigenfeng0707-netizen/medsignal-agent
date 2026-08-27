@@ -35,6 +35,8 @@ class User(Base):
     authorizations = relationship("DataAuthorization", back_populates="user")
     eeg_records = relationship("EEGRecord", back_populates="user")
     imaging_records = relationship("ImagingRecord", back_populates="user")
+    body_archive_records = relationship("BodyArchiveRecord", back_populates="user")
+    body_archive_materials = relationship("BodyArchiveMaterial", back_populates="user")
 
 
 class InsuranceRecord(Base):
@@ -80,6 +82,39 @@ class MedicationRecord(Base):
     is_chronic = Column(Boolean, default=False)
 
     user = relationship("User", back_populates="medication_records")
+
+
+class BodyArchiveRecord(Base):
+    """按解剖部位追加保存的数字人体档案记录。"""
+
+    __tablename__ = "body_archive_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    organ = Column(String(32), nullable=False, index=True)
+    event_date = Column(String(10), nullable=False, default="")
+    source_type = Column(String(30), nullable=False, default="upload")
+    source_label = Column(String(80), nullable=False, default="其他")
+    source_ref = Column(String(300), nullable=False, default="")
+    description = Column(Text, nullable=False)
+    raw_excerpt = Column(Text, nullable=False, default="")
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+
+    user = relationship("User", back_populates="body_archive_records")
+
+
+class BodyArchiveMaterial(Base):
+    """患者资料的元数据；原始医疗文件不直接保存在数据库中。"""
+
+    __tablename__ = "body_archive_materials"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    filename = Column(String(255), nullable=False)
+    note = Column(String(500), nullable=False, default="")
+    uploaded_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+
+    user = relationship("User", back_populates="body_archive_materials")
 
 
 class PolicyDocument(Base):
