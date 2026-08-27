@@ -36,36 +36,14 @@ jobs:
           BASE="${EP}/studios/${SPACE_OWNER}/${SPACE_NAME}"
 
           echo "========== Studio 详情 =========="
-          curl -sf -H "${AUTH}" "${BASE}" | python3 -c "
-          import json,sys
-          d = json.load(sys.stdin)
-          data = d.get('Data') or {}
-          for k in ('Status','RunStatus','BuildStatus','SdkType','Visibility'):
-              if k in data: print(f'{k}: {data[k]}')
-          " || echo "(详情获取失败)"
+          curl -sf -H "${AUTH}" "${BASE}" | python3 -c "import json,sys; data = (json.load(sys.stdin).get('Data') or {}); [print(f'{k}: {data[k]}') for k in ('Status','RunStatus','BuildStatus','SdkType','Visibility') if k in data]" || echo "(详情获取失败)"
 
           fetch_log() {
             local kind="$1"
             echo ""
             echo "========== ${kind} 日志（尾部 ${TAIL_LINES} 行） =========="
             if curl -sf -H "${AUTH}" "${BASE}/logs/${kind}" -o "/tmp/${kind}.json"; then
-              python3 -c "
-import json
-
-d = json.load(open('/tmp/${kind}.json'))
-text = ''
-data = d.get('Data') or {}
-if isinstance(data, dict):
-    text = data.get('logs') or data.get('Logs') or ''
-    if not text and 'content' in data:
-        text = data['content']
-elif isinstance(data, str):
-    text = data
-if not text:
-    text = json.dumps(d, ensure_ascii=False)
-lines = text.splitlines()
-print('\n'.join(lines[-${TAIL_LINES}:]))
-"
+              python3 -c "import json; d = json.load(open('/tmp/${kind}.json')); data = d.get('Data') or {}; text = (data.get('logs') or data.get('Logs') or data.get('content') or '') if isinstance(data, dict) else (data if isinstance(data, str) else ''); text = text or json.dumps(d, ensure_ascii=False); print('\n'.join(text.splitlines()[-${TAIL_LINES}:]))"
             else
               echo "(${kind} 日志获取失败)"
             fi
