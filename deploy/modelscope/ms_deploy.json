@@ -1,4 +1,4 @@
-﻿{
+{
   "sdk_type": "docker",
   "port": 7860,
   "env": {
