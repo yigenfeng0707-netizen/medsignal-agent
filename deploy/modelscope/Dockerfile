@@ -45,8 +45,9 @@ RUN pip install -r requirements-modelscope.txt
 
 # 预下载 ChromaDB 默认 ONNX 嵌入模型（~79MB）到镜像缓存。
 # 若不预烘，运行时首个 KB 检索请求会触发从 S3 下载（国外源，慢且不可控），
-# 曾导致线上 chat 请求超时 504。
-RUN python -c "from chromadb.utils import embedding_functions as ef; ef.DefaultEmbeddingFunction()(['预热'])"
+# 曾导致线上 chat 请求超时 504。加 timeout + 容错：失败不阻塞构建（运行时有超时降级）。
+RUN timeout 240 python -c "from chromadb.utils import embedding_functions as ef; ef.DefaultEmbeddingFunction()(['预热'])" \
+    || echo "[warn] ONNX 预烘失败/超时，运行时将按需下载（有超时降级保护）"
 
 # 后端源码
 COPY backend/ ./backend/
@@ -57,7 +58,9 @@ COPY data/ ./data/
 # 预构建知识库索引（policy_knowledge.json → chroma seed，仅索引不跑测试查询）。
 # 运行时 entrypoint 将 seed 播种到 /mnt/workspace 持久化目录，
 # 保证 RAG 检索开箱即用，且重启不丢。
-RUN cd /app/backend && python -c "import asyncio, json; from pathlib import Path; from app.services.knowledge_base import KnowledgeBase; docs = json.loads(Path('/app/data/policy_knowledge.json').read_text(encoding='utf-8')); kb = KnowledgeBase(embedding_api_key='', embedding_base_url='', embedding_model=''); asyncio.run(kb.initialize(persist_dir='/app/chroma_seed')); n = asyncio.run(kb.index_documents(docs)); print('KB seed indexed chunks:', n)"
+# 加 timeout + 容错：依赖嵌入模型可用，失败不阻塞构建（运行时 KB 为空走降级）。
+RUN cd /app/backend && timeout 300 python -c "import asyncio, json; from pathlib import Path; from app.services.knowledge_base import KnowledgeBase; docs = json.loads(Path('/app/data/policy_knowledge.json').read_text(encoding='utf-8')); kb = KnowledgeBase(embedding_api_key='', embedding_base_url='', embedding_model=''); asyncio.run(kb.initialize(persist_dir='/app/chroma_seed')); n = asyncio.run(kb.index_documents(docs)); print('KB seed indexed chunks:', n)" \
+    || echo "[warn] KB seed 构建失败/超时，运行时 KB 为空将走降级"
 
 # 持久化目录：/mnt/workspace 为魔搭创空间持久化挂载点（重启/迁移不丢数据）
 RUN mkdir -p /app/backend/data /mnt/workspace/data
