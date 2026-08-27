@@ -103,3 +103,6 @@ docker-compose.override.yml
 
 # ==================== 真实影像数据集（原始下载不入库；标准化 PNG + manifest 入库随镜像部署） ====================
 data/real_imaging/raw/
+
+# ==================== 真实 EEG 数据集（原始 EDF 下载不入库；manifest 入库随镜像部署） ====================
+data/real_eeg/raw/

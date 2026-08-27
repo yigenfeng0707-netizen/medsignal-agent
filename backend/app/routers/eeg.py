@@ -8,10 +8,14 @@ BCI×医保创新模块的 API 入口
 - GET  /api/eeg/{user_id}/realtime：实时数据块（前端轮询模拟实时采集）
 - GET  /api/eeg/{user_id}/policy-links：脑电异常 → 医保政策联动推荐
 - GET  /api/eeg/states：支持的心理状态列表（前端场景选择用）
+- GET  /api/eeg/real/list：真实公开数据集 EEG 评估列表（eegmmidb 等）
+- GET  /api/eeg/real/{record_id}：单条真实 EEG 评估详情
 """
 
+import json
 import logging
 import os
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,6 +26,21 @@ from app.services.eeg import engine as eeg_engine
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/eeg", tags=["脑电健康"])
+
+# 真实公开数据集 manifest（scripts/ingest_real_eeg.py 产出）
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+_REAL_MANIFEST = _PROJECT_ROOT / "data" / "real_eeg" / "manifest.json"
+
+
+def _load_real_manifest() -> dict:
+    """读取真实 EEG 数据集 manifest（不存在时返回空结构，不报错）。"""
+    try:
+        return json.loads(_REAL_MANIFEST.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {"version": "1.0", "datasets": {}, "sessions": []}
+    except Exception as e:
+        logger.warning("读取真实 EEG manifest 失败: %s", e)
+        return {"version": "1.0", "datasets": {}, "sessions": []}
 
 
 @router.get("/states")
@@ -38,6 +57,59 @@ async def list_mental_states():
             "cognitive": meta["cognitive"],
         })
     return {"states": states, "channels": eeg_engine.CHANNELS, "sample_rate": eeg_engine.SAMPLE_RATE}
+
+
+@router.get("/real/list")
+async def list_real_eeg_sessions(
+    source: str = Query(None, description="按数据源过滤（demo/eegmmidb/local）"),
+    limit: int = Query(20, ge=1, le=100),
+):
+    """真实公开数据集 EEG 评估列表（PhysioNet eegmmidb 等）。
+
+    数据由 scripts/ingest_real_eeg.py 接入，manifest 位于
+    data/real_eeg/manifest.json。返回概览（含五维健康指标）。
+    """
+    m = _load_real_manifest()
+    sessions = m.get("sessions", [])
+    if source:
+        sessions = [s for s in sessions if s.get("source") == source]
+    sessions = sessions[:limit]
+    return {
+        "total": len(m.get("sessions", [])),
+        "returned": len(sessions),
+        "datasets": m.get("datasets", {}),
+        "sessions": [
+            {
+                "record_id": s.get("record_id"),
+                "source": s.get("source"),
+                "mental_state": s.get("mental_state"),
+                "mental_state_label": s.get("mental_state_label"),
+                "channels": s.get("channels"),
+                "origin_sample_rate": s.get("origin_sample_rate"),
+                "duration_seconds": s.get("duration_seconds"),
+                "metrics": s.get("metrics"),
+                "alerts_count": len(s.get("alerts") or []),
+                "dataset_meta": s.get("dataset_meta"),
+                "origin_file": s.get("origin_file"),
+            }
+            for s in sessions
+        ],
+        "note": "真实公开数据集 EEG（PhysioNet eegmmidb，ODC-By 许可），指标仅供科研演示，不构成医疗诊断。",
+    }
+
+
+@router.get("/real/{record_id}")
+async def get_real_eeg_session(record_id: str):
+    """单条真实 EEG 评估详情：五维指标 + 频段功率 + 预警 + 医保政策联动。"""
+    m = _load_real_manifest()
+    target = None
+    for s in m.get("sessions", []):
+        if s.get("record_id") == record_id:
+            target = s
+            break
+    if target is None:
+        raise HTTPException(status_code=404, detail=f"真实 EEG 记录不存在: {record_id}")
+    return target
 
 
 @router.post("/{user_id}/session")
