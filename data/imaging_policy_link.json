@@ -1,0 +1,51 @@
+{
+  "description": "医学影像异常发现 → 医保检查/待遇联动规则库（MedSignal Agent 影像引擎）",
+  "version": "1.0",
+  "links": [
+    {
+      "trigger": "finding_high_risk",
+      "condition": {"any_severity": "high"},
+      "title": "检出高危影像异常",
+      "policy_hint": "重点影像检查医保报销政策",
+      "description": "影像检出高危异常，建议尽快专科就诊。CT/核磁等检查可按门诊统筹及大病保险政策报销。",
+      "suggestion": "携带影像资料至三甲医院专科复诊；及时申请门诊慢特病认定。",
+      "related_policies": ["CT/核磁检查医保报销", "门诊慢特病认定"]
+    },
+    {
+      "trigger": "nodule_followup",
+      "condition": {"findings": ["nodule", "ground_glass"]},
+      "title": "结节随访提醒",
+      "policy_hint": "肺结节随访复查报销",
+      "description": "检出结节/磨玻璃影，建议按指南定期复查。随访 CT 属合理检查，可按比例报销。",
+      "suggestion": "6-12 个月后复查；可申请肺癌早筛专项（部分地区免费/低收费）。",
+      "related_policies": ["肺结节随访 CT 报销", "癌症早筛专项"]
+    },
+    {
+      "trigger": "effusion_pneumo",
+      "condition": {"findings": ["effusion", "pneumothorax"]},
+      "title": "积液/气胸急诊提示",
+      "policy_hint": "急诊检查与住院报销",
+      "description": "胸腔积液或气胸需尽快处置，急诊检查费可纳入医保结算。",
+      "suggestion": "立即至急诊科；住院治疗费用按住院统筹报销。",
+      "related_policies": ["急诊检查报销", "住院统筹报销"]
+    },
+    {
+      "trigger": "brain_acute",
+      "condition": {"findings": ["hemorrhage", "tumor"]},
+      "title": "脑部急性病变预警",
+      "policy_hint": "脑部急症绿色通道",
+      "description": "脑出血/占位属急重症，建议启动卒中或肿瘤绿色通道。",
+      "suggestion": "立即就诊神经内外科；相关诊疗费用可按特殊病种报销。",
+      "related_policies": ["卒中救治绿色通道", "特殊病种报销"]
+    },
+    {
+      "trigger": "cardiomegaly_screen",
+      "condition": {"findings": ["cardiomegaly"]},
+      "title": "心脏增大筛查提示",
+      "policy_hint": "心血管专项筛查报销",
+      "description": "心影增大提示心血管风险，建议超声心动等检查进一步评估，相关检查纳入医保报销范围。",
+      "suggestion": "预约心内科门诊；高血压等慢病门诊用药可享统筹报销。",
+      "related_policies": ["超声心动检查报销", "高血压慢病门诊统筹"]
+    }
+  ]
+}

@@ -25,6 +25,7 @@ class User(Base):
     medication_records = relationship("MedicationRecord", back_populates="user")
     authorizations = relationship("DataAuthorization", back_populates="user")
     eeg_records = relationship("EEGRecord", back_populates="user")
+    imaging_records = relationship("ImagingRecord", back_populates="user")
 
 
 class InsuranceRecord(Base):
@@ -125,3 +126,31 @@ class EEGRecord(Base):
     summary = Column(Text, default="")
 
     user = relationship("User", back_populates="eeg_records")
+
+
+class ImagingRecord(Base):
+    """医学影像检查记录（MedSignal 影像引擎）
+
+    存储每次影像 AI 分析会话的结果摘要（影像数据以确定性合成参数
+    study_type + seed + findings 可随时复现，不存大体积 base64）。
+    """
+    __tablename__ = "imaging_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    study_id = Column(String(80), nullable=False, index=True)
+    study_type = Column(String(30), nullable=False)
+    seed = Column(Integer, nullable=False, default=0)
+    recorded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    # AI 检测发现（JSON 字符串）
+    findings = Column(Text, nullable=False)
+    # 医生复核后标注（JSON 字符串）
+    final_findings = Column(Text, nullable=True)
+    # 结构化报告（JSON 字符串）
+    report = Column(Text, nullable=True)
+    # 风险等级（低/中/高/待复核）
+    risk_level = Column(String(20), default="待复核")
+    # 联动政策数量
+    policy_link_count = Column(Integer, default=0)
+
+    user = relationship("User", back_populates="imaging_records")

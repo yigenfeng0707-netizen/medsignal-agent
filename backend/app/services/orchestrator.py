@@ -39,6 +39,9 @@ class Orchestrator:
         "eeg": ["脑电", "EEG", "压力", "睡眠质量", "注意力", "认知负荷", "情绪",
                 "放松", "专注", "疲劳", "焦虑", "心理", "脑机", "BCI", "波形",
                 "脑电健康", "脑电评估", "脑电分析"],
+        "imaging": ["影像", "胸片", "X光", "X 光", "CT", "核磁", "MRI", "肺结节",
+                    "病灶", "影像分析", "影像标注", "影像报告", "肺部扫描",
+                    "脑部扫描", "影像检查", "医学影像"],
     }
 
     # Mock 数据（降级方案）
@@ -66,6 +69,10 @@ class Orchestrator:
         "eeg": {
             "response": "已为您完成脑电健康评估。基于 EEG 五频段功率分析，当前压力指数、注意力、睡眠质量、认知负荷四维指标正常。脑电异常将自动联动医保政策推荐。",
             "data": {"mental_state": "relaxed", "stress_index": 20, "attention_index": 50},
+        },
+        "imaging": {
+            "response": "已为您完成医学影像 AI 分析。AI 引擎对影像进行病灶检测与预标注，结果需由医师复核确认。检测发现将联动医保检查报销政策推荐。",
+            "data": {"study_types": ["chest_xray", "lung_ct", "brain_mri"], "ai_findings": 0},
         },
     }
 
@@ -268,6 +275,7 @@ class Orchestrator:
             "coverage": "权益管家", "claims": "报销助手",
             "health_profile": "健康卫士", "policy": "政策参谋",
             "security": "安全守门", "eeg": "脑电卫士",
+            "imaging": "影像卫士",
         }
         parts = []
         for intent, result in agent_results.items():
@@ -289,6 +297,7 @@ class Orchestrator:
             "coverage": "权益管家", "claims": "报销助手",
             "health_profile": "健康卫士", "policy": "政策参谋",
             "security": "安全守门", "eeg": "脑电卫士",
+            "imaging": "影像卫士",
         }
 
         # 优先用 LLM 融合
@@ -367,6 +376,8 @@ class Orchestrator:
             return await self._handle_coverage_agent(message, user_profile)
         elif agent_type == "eeg":
             return await self._handle_eeg_agent(message, user_id, user_profile)
+        elif agent_type == "imaging":
+            return await self._handle_imaging_agent(message, user_id, user_profile)
         else:
             # claims / security 等暂时使用 LLM 或 mock
             return await self._handle_generic_agent(agent_type, message, user_profile)
@@ -713,6 +724,117 @@ class Orchestrator:
                 for k, v in metrics.items() if isinstance(v, (int, float))
             ] + [
                 {"type": "eeg_policy_link", "policy": p.get("policy_hint")}
+                for p in policy_links[:3]
+            ],
+        }
+
+    async def _handle_imaging_agent(
+        self, message: str, user_id: str | None = None,
+        user_profile: dict | None = None,
+    ) -> dict[str, Any]:
+        """处理医学影像智能体（第 7 个智能体「影像卫士」，多模态核心创新）
+
+        流程：AI 影像分析（合成影像）→ 病灶检测 → 预标注 → 医生复核建议 → 医保联动
+        若用户提到具体检查类型（胸片/CT/MRI），按类型分析；否则默认胸片。
+        """
+        from app.services.imaging import engine as imaging_engine
+
+        # 从消息中识别检查类型
+        study_type = "chest_xray"
+        if any(k in message for k in ["CT", "ct", "肺CT", "肺部CT", "CT扫描"]):
+            study_type = "lung_ct"
+        elif any(k in message for k in ["核磁", "MRI", "mri", "脑MRI", "脑部"]):
+            study_type = "brain_mri"
+        elif any(k in message for k in ["胸片", "X光", "X 光", "X-ray", "x-ray", "胸部"]):
+            study_type = "chest_xray"
+
+        study = imaging_engine.generate_study(
+            study_type=study_type,
+            findings_keys=None,
+            seed=42,
+        )
+        findings = study.findings
+        policy_links = imaging_engine.link_to_imaging_policies(findings)
+
+        # 结构化文本回答
+        study_label = imaging_engine.STUDY_TYPES[study_type]["label"]
+        parts = [
+            f"**医学影像 AI 分析完成**（{study_label}）\n",
+            f"AI 引擎共检出 {len(findings)} 处疑似征象：",
+        ]
+        for i, f in enumerate(findings[:5], 1):
+            label = imaging_engine.FINDINGS_META.get(f.finding_type, {}).get("label", f.finding_type)
+            parts.append(
+                f"{i}. **{label}**（置信度 {f.confidence:.0%}，严重度：{f.severity}）"
+                f"位于影像 {f.x:.2f},{f.y:.2f} 处"
+            )
+
+        parts.append("")
+        parts.append("⚠️ 以上为 AI 预标注，仅供筛查参考，**须由持证医师复核确认**后再出具诊断意见。")
+
+        if policy_links:
+            parts.append(f"\n💡 已为您匹配 {len(policy_links)} 项相关医保政策：")
+            for p in policy_links[:3]:
+                parts.append(f"- **{p.get('policy_hint', '')}**：{p.get('suggestion', '')}")
+
+        structured_response = "\n".join(parts)
+
+        # 若 LLM 可用，用 LLM 润色为更自然的回答
+        if self._llm is not None:
+            try:
+                sys_prompt = (
+                    "你是 MedSignal Agent 的影像卫士智能体（Imaging Agent），负责解读医学影像 AI 分析结果。"
+                    "说明 AI 检测到的病灶征象、置信度与严重度，强调 AI 标注需医师复核，"
+                    "并主动推荐相关医保检查报销政策。回答要专业、严谨、可操作，"
+                    "体现'影像分析→病灶识别→医师复核→医保联动'全链路，同时强调医疗安全边界。"
+                )
+                user_msg = (
+                    f"用户问题：{message}\n\n"
+                    f"影像分析结果（结构化数据）：\n{structured_response}\n\n"
+                    f"发现详情：{[f.to_dict() for f in findings]}\n"
+                    f"联动政策：{policy_links}"
+                )
+                answer = await self._llm.chat(
+                    messages=[
+                        {"role": "system", "content": sys_prompt},
+                        {"role": "user", "content": user_msg},
+                    ],
+                    temperature=0.4,
+                )
+                return {
+                    "response": answer,
+                    "data": {
+                        "study_type": study_type,
+                        "study_label": study_label,
+                        "finding_count": len(findings),
+                        "policy_link_count": len(policy_links),
+                        "study_id": study.study_id,
+                    },
+                    "evidence": [
+                        {"type": "imaging_finding", "finding": f.finding_type, "confidence": f.confidence}
+                        for f in findings[:5]
+                    ] + [
+                        {"type": "imaging_policy_link", "policy": p.get("policy_hint")}
+                        for p in policy_links[:3]
+                    ],
+                }
+            except Exception as e:
+                logger.error("Imaging Agent LLM 解读失败: %s，降级结构化回答", e)
+
+        return {
+            "response": structured_response,
+            "data": {
+                "study_type": study_type,
+                "study_label": study_label,
+                "finding_count": len(findings),
+                "policy_link_count": len(policy_links),
+                "study_id": study.study_id,
+            },
+            "evidence": [
+                {"type": "imaging_finding", "finding": f.finding_type, "confidence": f.confidence}
+                for f in findings[:5]
+            ] + [
+                {"type": "imaging_policy_link", "policy": p.get("policy_hint")}
                 for p in policy_links[:3]
             ],
         }

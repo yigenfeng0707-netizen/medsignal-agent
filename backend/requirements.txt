@@ -1,7 +1,7 @@
 fastapi==0.111.0
 uvicorn[standard]==0.30.1
 sqlalchemy==2.0.31
-psycopg2-binary==2.9.9
+# psycopg2-binary==2.9.9  # PostgreSQL 驱动（生产环境按需启用；本地 Demo 使用 SQLite）
 redis==5.0.7
 pydantic==2.8.2
 pydantic-settings==2.3.4
@@ -15,8 +15,8 @@ python-multipart==0.0.9
 aiosqlite==0.20.0
 numpy>=1.26.0
 
-# EEG 真实设备接入（可选，按需安装）
+# EEG 真实设备接入（可选，按需安装；Demo/比赛环境可跳过）
 # Muse 头环：pip install pylsl muselsl bleak
 # EDF 文件：pip install pyedflib
-pylsl>=1.16.0          # LSL 协议（Muse/Emotiv/OpenBCI 实时流）
-pyedflib>=0.1.38       # EDF 文件解析（临床标准格式）
+# pylsl>=1.16.0          # LSL 协议（Muse/Emotiv/OpenBCI 实时流）
+# pyedflib>=0.1.38       # EDF 文件解析（临床标准格式）

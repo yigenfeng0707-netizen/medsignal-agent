@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth import generate_session_token
 from app.database import init_db
-from app.routers import agents, claims, coverage, eeg, health_profile, policy, security
+from app.routers import agents, claims, coverage, eeg, health_profile, imaging, policy, security
 from app.services import orchestrator
 
 
@@ -18,9 +18,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="医保智脑",
-    description="基于可信数据空间的个人医保智能体（BCI×医保创新版）",
-    version="2.1.0",
+    title="MedSignal Agent · 多模态医疗信号识别智能体",
+    description="VentureD Hackathon HEALTHCARE 医疗赛道：脑电（EEG）健康分析 + 医学影像 AI 标注 + 可信数据空间，"
+                "实现关键医疗信号识别与主动健康守护闭环",
+    version="3.0.0",
     lifespan=lifespan,
 )
 
@@ -49,12 +50,13 @@ app.include_router(health_profile.router)
 app.include_router(policy.router)
 app.include_router(security.router)
 app.include_router(eeg.router)
+app.include_router(imaging.router)
 
 
 @app.get("/api/health")
 async def health_check():
     """基础健康检查"""
-    return {"status": "ok", "service": "医保智脑", "version": "2.1.0"}
+    return {"status": "ok", "service": "MedSignal Agent", "version": "3.0.0"}
 
 
 @app.get("/api/health/detailed")
@@ -89,7 +91,7 @@ async def detailed_health_check():
     # OCR
     deps["ocr"] = {"available": True, "provider": "ocr.space"}
 
-    # EEG 脑电引擎（BCI×医保创新模块）
+    # EEG 脑电引擎（脑电信号识别模块）
     try:
         import numpy as np  # noqa: F401
         eeg_ok = True
@@ -102,10 +104,23 @@ async def detailed_health_check():
         "bands": ["delta", "theta", "alpha", "beta", "gamma"],
     }
 
+    # 医学影像 AI 标注引擎（影像信号识别模块）
+    try:
+        from app.services.imaging import STUDY_TYPES  # noqa: F401
+        imaging_ok = True
+    except Exception:
+        imaging_ok = False
+    deps["imaging_engine"] = {
+        "available": imaging_ok,
+        "study_types": list(STUDY_TYPES) if imaging_ok else [],
+        "image_size": 512,
+        "pipeline": "预处理 → 局部对比度增强 → 连通域分析 → 形态学特征分类",
+    }
+
     all_ok = all(d.get("available", False) for d in deps.values())
     return {
         "status": "ok" if all_ok else "degraded",
-        "version": "2.1.0",
+        "version": "3.0.0",
         "dependencies": deps,
         "demo_mode": orchestrator._llm is None,  # LLM 不可用时进入降级演示模式
     }

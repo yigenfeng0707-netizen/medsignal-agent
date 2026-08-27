@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import (
     DataAuthorization,
     EEGRecord,
+    ImagingRecord,
     InsuranceRecord,
     MedicalRecord,
     MedicationRecord,
@@ -356,4 +357,102 @@ def eeg_record_to_dict(record: EEGRecord) -> dict:
         "alert_count": record.alert_count,
         "policy_link_count": record.policy_link_count,
         "summary": record.summary or "",
+    }
+
+
+# ============================================================
+# 医学影像检查记录（MedSignal 影像引擎）
+# ============================================================
+
+async def create_imaging_record(
+    db: AsyncSession,
+    user_id: str | int,
+    study_id: str,
+    study_type: str,
+    seed: int,
+    findings: list | dict,
+    final_findings: list | dict | None,
+    report: dict | None,
+    risk_level: str,
+    policy_link_count: int = 0,
+) -> ImagingRecord:
+    """保存一次医学影像 AI 分析会话结果。"""
+    uid = _normalize_user_id(user_id)
+    record = ImagingRecord(
+        user_id=uid,
+        study_id=study_id,
+        study_type=study_type,
+        seed=seed,
+        findings=json.dumps(findings, ensure_ascii=False),
+        final_findings=json.dumps(final_findings, ensure_ascii=False) if final_findings is not None else None,
+        report=json.dumps(report, ensure_ascii=False) if report is not None else None,
+        risk_level=risk_level,
+        policy_link_count=policy_link_count,
+    )
+    db.add(record)
+    await db.commit()
+    await db.refresh(record)
+    return record
+
+
+async def get_imaging_records(
+    db: AsyncSession, user_id: str | int, limit: int = 20
+) -> list[ImagingRecord]:
+    """获取用户医学影像检查历史（按时间倒序）。"""
+    uid = _normalize_user_id(user_id)
+    result = await db.execute(
+        select(ImagingRecord)
+        .where(ImagingRecord.user_id == uid)
+        .order_by(desc(ImagingRecord.recorded_at))
+        .limit(limit)
+    )
+    return list(result.scalars().all())
+
+
+async def get_imaging_record(
+    db: AsyncSession, record_id: int
+) -> Optional[ImagingRecord]:
+    """根据记录 id 查询医学影像检查记录。"""
+    result = await db.execute(
+        select(ImagingRecord).where(ImagingRecord.id == record_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def update_imaging_record(
+    db: AsyncSession,
+    record: ImagingRecord,
+    final_findings: list | dict | None = None,
+    report: dict | None = None,
+    risk_level: str | None = None,
+    policy_link_count: int | None = None,
+) -> ImagingRecord:
+    """更新影像记录（医生复核后覆盖最终标注/报告）。"""
+    if final_findings is not None:
+        record.final_findings = json.dumps(final_findings, ensure_ascii=False)
+    if report is not None:
+        record.report = json.dumps(report, ensure_ascii=False)
+    if risk_level is not None:
+        record.risk_level = risk_level
+    if policy_link_count is not None:
+        record.policy_link_count = policy_link_count
+    await db.commit()
+    await db.refresh(record)
+    return record
+
+
+def imaging_record_to_dict(record: ImagingRecord) -> dict:
+    """把 ImagingRecord ORM 转为 dict（含反序列化的 JSON 字段）。"""
+    return {
+        "id": record.id,
+        "user_id": record.user_id,
+        "study_id": record.study_id,
+        "study_type": record.study_type,
+        "seed": record.seed,
+        "recorded_at": record.recorded_at.isoformat() if record.recorded_at else None,
+        "findings": json.loads(record.findings) if record.findings else [],
+        "final_findings": json.loads(record.final_findings) if record.final_findings else None,
+        "report": json.loads(record.report) if record.report else None,
+        "risk_level": record.risk_level,
+        "policy_link_count": record.policy_link_count,
     }

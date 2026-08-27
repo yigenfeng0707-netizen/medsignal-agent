@@ -12,6 +12,7 @@ import {
   Lock,
   Network,
   Brain,
+  ScanLine,
 } from "lucide-react";
 
 const navItems = [
@@ -19,6 +20,7 @@ const navItems = [
   { href: "/coverage", label: "权益全景", icon: Shield },
   { href: "/health", label: "健康画像", icon: Heart },
   { href: "/eeg", label: "脑电健康", icon: Brain },
+  { href: "/imaging", label: "影像标注", icon: ScanLine },
   { href: "/claims", label: "报销预审", icon: FileText },
   { href: "/policy", label: "政策匹配", icon: BookOpen },
   { href: "/security", label: "数据授权", icon: Lock },
