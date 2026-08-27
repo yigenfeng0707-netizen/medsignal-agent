@@ -53,8 +53,14 @@ COPY backend/ ./backend/
 # 数据文件：所有引擎用 /app/data/*.json 规则库（claims/health/policy/eeg/imaging）
 # init_db.py 默认从 /app/data/mock_data.json 读取种子数据
 COPY data/ ./data/
+
+# 预构建知识库索引（policy_knowledge.json → chroma seed，仅索引不跑测试查询）。
+# 运行时 entrypoint 将 seed 播种到 /mnt/workspace 持久化目录，
+# 保证 RAG 检索开箱即用，且重启不丢。
+RUN cd /app/backend && python -c "import asyncio, json; from pathlib import Path; from app.services.knowledge_base import KnowledgeBase; docs = json.loads(Path('/app/data/policy_knowledge.json').read_text(encoding='utf-8')); kb = KnowledgeBase(embedding_api_key='', embedding_base_url='', embedding_model=''); asyncio.run(kb.initialize(persist_dir='/app/chroma_seed')); n = asyncio.run(kb.index_documents(docs)); print('KB seed indexed chunks:', n)"
+
 # 持久化目录：/mnt/workspace 为魔搭创空间持久化挂载点（重启/迁移不丢数据）
-RUN mkdir -p /app/backend/data /app/backend/chroma_data /mnt/workspace/data
+RUN mkdir -p /app/backend/data /mnt/workspace/data
 
 # 前端 standalone 产物（本项目无 frontend/public，故不复制静态资源）
 COPY --from=frontend-builder /build/frontend/.next/standalone ./frontend

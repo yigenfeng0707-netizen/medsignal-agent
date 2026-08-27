@@ -16,6 +16,13 @@ export YIBAO_SESSION_SECRET="${YIBAO_SESSION_SECRET:-medsignal-modelscope-demo-s
 # 持久化目录（魔搭 /mnt/workspace 挂载点，重启不丢）
 mkdir -p /mnt/workspace/data /mnt/workspace/chroma_data
 
+# 知识库索引播种：workspace 索引为空时从镜像 seed 拷贝（幂等，重启不重复拷贝）
+# 保证 RAG 检索开箱即用，免现场构建
+if [ ! -f /mnt/workspace/chroma_data/chroma.sqlite3 ] && [ -d /app/chroma_seed ]; then
+  cp -r /app/chroma_seed/. /mnt/workspace/chroma_data/
+  echo "[entrypoint] 已播种知识库索引 seed -> /mnt/workspace/chroma_data"
+fi
+
 # 数据库初始化（幂等：users 表已有数据则跳过）
 # - init_db.py 默认读取 /app/data/mock_data.json（Dockerfile 已 COPY data/ → /app/data/）
 # - DATABASE_URL 指向 /mnt/workspace/data/yibao.db（持久化，重启不丢）
