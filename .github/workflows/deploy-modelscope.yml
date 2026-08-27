@@ -36,6 +36,8 @@ jobs:
 
       - name: Assemble deploy package
         shell: bash
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
         run: |
           set -euo pipefail
           PKG=/tmp/mscope
@@ -63,6 +65,14 @@ jobs:
           cp deploy/modelscope/requirements-modelscope.txt "$PKG/requirements-modelscope.txt"
           cp README.md "$PKG/README.md"
 
+          # 注入 LLM_API_KEY：从 GitHub Secret 替换占位符，密钥永不进入 git 历史
+          if [ -n "${LLM_API_KEY:-}" ]; then
+            python3 -c "import json,os,pathlib; p=pathlib.Path('/tmp/mscope/ms_deploy.json'); d=json.loads(p.read_text(encoding='utf-8')); d['env']['LLM_API_KEY']=os.environ['LLM_API_KEY']; p.write_text(json.dumps(d,ensure_ascii=False,indent=2)+chr(10),encoding='utf-8')"
+            echo "::notice::已从 GitHub Secret 注入 LLM_API_KEY 到部署包"
+          else
+            echo "::warning::未配置 secrets.LLM_API_KEY，部署包将保留占位符；请在魔搭创空间页面设置环境变量 LLM_API_KEY 后线上才能调用真实 LLM"
+          fi
+
           echo "--- 部署包内容 ---"
           find "$PKG" -maxdepth 2 -type f | sort | head -40
 
@@ -88,5 +98,11 @@ jobs:
             exit 0
           }
           git remote add origin "https://${SPACE_OWNER}:${MSCORE_TOKEN}@www.modelscope.cn/studios/${SPACE_OWNER}/${SPACE_NAME}.git"
-          git push -f origin HEAD:main
+          # 魔搭创空间默认分支为 master，且禁止 force push：
+          # 若远程已有初始化文件（README/.gitattributes），先合并再推送，避免 [rejected]
+          git fetch origin master -q 2>/dev/null || true
+          if git rev-parse --verify origin/master >/dev/null 2>&1; then
+            git merge origin/master --allow-unrelated-histories -X ours --no-edit -q
+          fi
+          git push origin HEAD:master 2>&1 | sed "s/${MSCORE_TOKEN}/***/g"
           echo "::notice::已推送至 https://www.modelscope.cn/studios/${SPACE_OWNER}/${SPACE_NAME}"
