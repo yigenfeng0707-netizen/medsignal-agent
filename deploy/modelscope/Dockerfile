@@ -45,12 +45,12 @@ RUN pip install -r requirements-modelscope.txt
 
 # 后端源码
 COPY backend/ ./backend/
-RUN mkdir -p /app/backend/data /app/backend/chroma_data
+# 持久化目录：/mnt/workspace 为魔搭创空间持久化挂载点（重启/迁移不丢数据）
+RUN mkdir -p /app/backend/data /app/backend/chroma_data /mnt/workspace/data
 
-# 前端 standalone 产物
+# 前端 standalone 产物（本项目无 frontend/public，故不复制静态资源）
 COPY --from=frontend-builder /build/frontend/.next/standalone ./frontend
 COPY --from=frontend-builder /build/frontend/.next/static ./frontend/.next/static
-COPY --from=frontend-builder /build/frontend/public ./frontend/public
 
 COPY entrypoint.sh ./
 RUN chmod +x entrypoint.sh

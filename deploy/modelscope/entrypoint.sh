@@ -7,6 +7,15 @@
 # ============================================================
 set -e
 
+# 默认环境变量（优先保留平台注入的 variables/secrets，仅缺省时使用默认值）
+export DEMO_OFFLINE="${DEMO_OFFLINE:-true}"
+export DATABASE_URL="${DATABASE_URL:-sqlite+aiosqlite:////mnt/workspace/data/yibao.db}"
+export CHROMA_PERSIST_DIR="${CHROMA_PERSIST_DIR:-/mnt/workspace/chroma_data}"
+export YIBAO_SESSION_SECRET="${YIBAO_SESSION_SECRET:-medsignal-modelscope-demo-secret-change-me}"
+
+# 持久化目录（魔搭 /mnt/workspace 挂载点，重启不丢）
+mkdir -p /mnt/workspace/data /mnt/workspace/chroma_data
+
 echo "[entrypoint] 启动后端 uvicorn :8000 ..."
 cd /app/backend
 nohup python -m uvicorn app.main:app \

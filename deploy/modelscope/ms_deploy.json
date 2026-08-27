@@ -2,8 +2,11 @@
   "sdk_type": "docker",
   "port": 7860,
   "env": {
-    "DEMO_OFFLINE": "true",
-    "DATABASE_URL": "sqlite+aiosqlite:///./data/yibao.db",
+    "DEMO_OFFLINE": "false",
+    "LLM_API_KEY": "__LLM_API_KEY__",
+    "LLM_BASE_URL": "https://token.sensenova.cn/v1",
+    "LLM_MODEL": "sensenova-6.8-flash-lite",
+    "DATABASE_URL": "sqlite+aiosqlite:////mnt/workspace/data/yibao.db",
     "REDIS_URL": "",
     "CORS_ORIGINS": "*",
     "YIBAO_SESSION_SECRET": "medsignal-modelscope-demo-secret-change-me",
