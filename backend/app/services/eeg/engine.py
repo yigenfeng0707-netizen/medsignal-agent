@@ -16,12 +16,10 @@ from __future__ import annotations
 
 import json
 import logging
-import math
 import os
 import random
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 import numpy as np
 
@@ -65,7 +63,7 @@ _EEG_POLICY_LINK_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))),
     "data", "eeg_policy_link.json",
 )
-_EEG_POLICY_LINK_CACHE: Optional[dict] = None
+_EEG_POLICY_LINK_CACHE: dict | None = None
 
 
 def load_eeg_policy_link() -> dict:
@@ -74,7 +72,7 @@ def load_eeg_policy_link() -> dict:
     if _EEG_POLICY_LINK_CACHE is not None:
         return _EEG_POLICY_LINK_CACHE
     try:
-        with open(_EEG_POLICY_LINK_PATH, "r", encoding="utf-8") as f:
+        with open(_EEG_POLICY_LINK_PATH, encoding="utf-8") as f:
             _EEG_POLICY_LINK_CACHE = json.load(f)
         logger.info("加载脑电-医保政策联动规则库: %s", _EEG_POLICY_LINK_PATH)
     except Exception as e:
@@ -215,7 +213,7 @@ def generate_synthetic_eeg(
     sample_rate: int = SAMPLE_RATE,
     channels: list[str] = None,
     noise_level: float = 0.15,
-    seed: Optional[int] = None,
+    seed: int | None = None,
 ) -> tuple[list[np.ndarray], list[str], int]:
     """生成合成 EEG 信号（模拟 Muse 4 通道采集）。
 
@@ -322,7 +320,7 @@ def _compute_channel_powers(signal: np.ndarray, sample_rate: int) -> dict[str, f
     signal = signal - np.mean(signal)
     n = len(signal)
     if n < 256:
-        return {b: 0.0 for b in BANDS}
+        return dict.fromkeys(BANDS, 0.0)
 
     # Welch 法：分段 FFT 平均，降低方差
     nperseg = min(256, n)
@@ -518,7 +516,7 @@ def compute_health_metrics(avg_powers: dict[str, float]) -> dict:
 def scan_eeg_alerts(metrics: dict, user_profile: dict | None = None) -> list[dict]:
     """扫描脑电健康指标，生成异常预警（带 evidence）。"""
     alerts = []
-    now_iso = datetime.now(timezone.utc).isoformat()
+    now_iso = datetime.now(UTC).isoformat()
     name = (user_profile or {}).get("name", "您")
     age = (user_profile or {}).get("age", 50)
 
@@ -788,7 +786,7 @@ def assess_session(
     mental_state: str = "relaxed",
     duration_seconds: int = WINDOW_SECONDS,
     user_profile: dict | None = None,
-    seed: Optional[int] = None,
+    seed: int | None = None,
 ) -> EEGSession:
     """完整 EEG 会话评估主入口。
 
@@ -838,11 +836,11 @@ def assess_session(
         metrics, alerts, policy_links,
     )
 
-    session_id = f"eeg_{user_id}_{int(datetime.now(timezone.utc).timestamp())}"
+    session_id = f"eeg_{user_id}_{int(datetime.now(UTC).timestamp())}"
     return EEGSession(
         session_id=session_id,
         user_id=str(user_id),
-        timestamp=datetime.now(timezone.utc).isoformat(),
+        timestamp=datetime.now(UTC).isoformat(),
         duration_seconds=duration_seconds,
         channels=channels,
         sample_rate=sr,
@@ -935,11 +933,11 @@ def assess_real_session(
     if device_info and device_info.get("source") in ("file", "csv", "edf"):
         source = "file"
 
-    session_id = f"eeg_{user_id}_{int(datetime.now(timezone.utc).timestamp())}"
+    session_id = f"eeg_{user_id}_{int(datetime.now(UTC).timestamp())}"
     session = EEGSession(
         session_id=session_id,
         user_id=str(user_id),
-        timestamp=datetime.now(timezone.utc).isoformat(),
+        timestamp=datetime.now(UTC).isoformat(),
         duration_seconds=round(len(signals[0]) / sample_rate, 2) if signals else 0,
         channels=channels,
         sample_rate=sample_rate,
@@ -964,7 +962,7 @@ def realtime_stream(
     mental_state: str = "relaxed",
     chunk_seconds: float = 1.0,
     sample_rate: int = SAMPLE_RATE,
-    seed: Optional[int] = None,
+    seed: int | None = None,
 ) -> dict:
     """生成一个实时数据块（前端 SSE/轮询模拟实时采集）。
 
@@ -995,7 +993,7 @@ def realtime_stream(
             "stress_index": metrics["stress_index"],
             "attention_index": metrics["attention_index"],
         },
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
 

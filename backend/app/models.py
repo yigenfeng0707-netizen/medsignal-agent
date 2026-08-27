@@ -1,6 +1,15 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Boolean, Text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 
@@ -92,7 +101,7 @@ class DataAuthorization(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     data_type = Column(String(50), nullable=False)
     authorized_agent = Column(String(100), nullable=False)
-    authorized_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    authorized_at = Column(DateTime, default=lambda: datetime.now(UTC))
     expires_at = Column(DateTime, nullable=False)
     is_active = Column(Boolean, default=True)
 
@@ -110,7 +119,7 @@ class EEGRecord(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     session_id = Column(String(80), nullable=False, index=True)
-    recorded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    recorded_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
     duration_seconds = Column(Integer, nullable=False, default=4)
     mental_state = Column(String(30), nullable=False)
     mental_state_label = Column(String(30), nullable=False)
@@ -141,7 +150,7 @@ class ImagingRecord(Base):
     study_id = Column(String(80), nullable=False, index=True)
     study_type = Column(String(30), nullable=False)
     seed = Column(Integer, nullable=False, default=0)
-    recorded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    recorded_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
     # AI 检测发现（JSON 字符串）
     findings = Column(Text, nullable=False)
     # 医生复核后标注（JSON 字符串）

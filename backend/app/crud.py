@@ -9,10 +9,9 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
-from sqlalchemy import select, func, desc
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
@@ -33,7 +32,7 @@ logger = logging.getLogger(__name__)
 # 用户
 # ============================================================
 
-async def get_user(db: AsyncSession, user_id: str | int) -> Optional[User]:
+async def get_user(db: AsyncSession, user_id: str | int) -> User | None:
     """根据 user_id 查询用户。支持数字 id 或 'user_001' 形式。"""
     uid = _normalize_user_id(user_id)
     result = await db.execute(select(User).where(User.id == uid))
@@ -107,7 +106,7 @@ async def get_medical_records_in_range(
     out = []
     for r in records:
         try:
-            ts = r.date.replace(tzinfo=timezone.utc).timestamp() if r.date.tzinfo is None else r.date.timestamp()
+            ts = r.date.replace(tzinfo=UTC).timestamp() if r.date.tzinfo is None else r.date.timestamp()
         except Exception:
             ts = 0
         if ts >= cutoff:
@@ -142,7 +141,7 @@ async def get_active_authorizations(
     uid = _normalize_user_id(user_id)
     result = await db.execute(
         select(DataAuthorization)
-        .where(DataAuthorization.user_id == uid, DataAuthorization.is_active == True)  # noqa: E712
+        .where(DataAuthorization.user_id == uid, DataAuthorization.is_active.is_(True))
         .order_by(desc(DataAuthorization.authorized_at))
     )
     return list(result.scalars().all())
@@ -156,8 +155,8 @@ async def create_authorization(
     duration_days: int = 365,
 ) -> DataAuthorization:
     uid = _normalize_user_id(user_id)
-    now = datetime.now(timezone.utc)
-    expires_at = datetime.fromtimestamp(now.timestamp() + duration_days * 86400, tz=timezone.utc)
+    now = datetime.now(UTC)
+    expires_at = datetime.fromtimestamp(now.timestamp() + duration_days * 86400, tz=UTC)
     auth = DataAuthorization(
         user_id=uid,
         data_type=data_type,
@@ -189,7 +188,7 @@ async def revoke_authorization(db: AsyncSession, auth_id: int) -> bool:
 # ============================================================
 
 async def get_policy_documents(
-    db: AsyncSession, category: Optional[str] = None, limit: int = 50
+    db: AsyncSession, category: str | None = None, limit: int = 50
 ) -> list[PolicyDocument]:
     stmt = select(PolicyDocument).order_by(desc(PolicyDocument.publish_date)).limit(limit)
     if category:
@@ -198,7 +197,7 @@ async def get_policy_documents(
     return list(result.scalars().all())
 
 
-async def get_policy_document(db: AsyncSession, policy_id: int) -> Optional[PolicyDocument]:
+async def get_policy_document(db: AsyncSession, policy_id: int) -> PolicyDocument | None:
     result = await db.execute(select(PolicyDocument).where(PolicyDocument.id == policy_id))
     return result.scalar_one_or_none()
 
@@ -336,7 +335,7 @@ async def get_eeg_records(
 
 async def get_latest_eeg_record(
     db: AsyncSession, user_id: str | int
-) -> Optional[EEGRecord]:
+) -> EEGRecord | None:
     """获取用户最近一次 EEG 记录。"""
     records = await get_eeg_records(db, user_id, limit=1)
     return records[0] if records else None
@@ -411,7 +410,7 @@ async def get_imaging_records(
 
 async def get_imaging_record(
     db: AsyncSession, record_id: int
-) -> Optional[ImagingRecord]:
+) -> ImagingRecord | None:
     """根据记录 id 查询医学影像检查记录。"""
     result = await db.execute(
         select(ImagingRecord).where(ImagingRecord.id == record_id)

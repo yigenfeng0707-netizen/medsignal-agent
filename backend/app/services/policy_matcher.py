@@ -13,9 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +21,7 @@ _POLICY_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
     "data", "policy_knowledge.json",
 )
-_POLICY_CACHE: Optional[list] = None
+_POLICY_CACHE: list | None = None
 
 
 def load_policies() -> list:
@@ -32,7 +30,7 @@ def load_policies() -> list:
     if _POLICY_CACHE is not None:
         return _POLICY_CACHE
     try:
-        with open(_POLICY_PATH, "r", encoding="utf-8") as f:
+        with open(_POLICY_PATH, encoding="utf-8") as f:
             _POLICY_CACHE = json.load(f)
         logger.info("加载政策知识库: %d 篇", len(_POLICY_CACHE))
     except Exception as e:
@@ -50,7 +48,7 @@ class PolicyMatch:
     annual_savings: int         # 年节省金额（元）
     match_reason: str           # 人话解释
     category: str
-    deadline: Optional[str]
+    deadline: str | None
     steps: list[str]
     evidence: list[dict]        # 数据依据
     source: str = ""
@@ -177,7 +175,7 @@ def match(profile: dict) -> MatchReport:
 # 规则匹配函数
 # ============================================================
 
-def _match_chronic_disease(disease: str, annual_drug: float, ins_type: str, name: str) -> Optional[PolicyMatch]:
+def _match_chronic_disease(disease: str, annual_drug: float, ins_type: str, name: str) -> PolicyMatch | None:
     """门诊慢病待遇匹配（糖尿病/高血压/冠心病等）"""
     chronic_diseases_map = {
         "糖尿病": {"score": 0.95, "base_savings": 3600, "drug_keyword": "降糖"},
@@ -218,7 +216,7 @@ def _match_chronic_disease(disease: str, annual_drug: float, ins_type: str, name
     )
 
 
-def _match_big_insurance(annual_med: float, ins_type: str, name: str) -> Optional[PolicyMatch]:
+def _match_big_insurance(annual_med: float, ins_type: str, name: str) -> PolicyMatch | None:
     """大病保险匹配（年度医疗支出较高的用户）"""
     # 大病起付线 15000，分段报销
     over = max(0, annual_med - 15000)
@@ -368,10 +366,9 @@ def _match_from_knowledge_base(chronic: list, ins_type: str, age: int, annual_me
     return matches
 
 
-def search(query: str, category: Optional[str] = None, top_k: int = 10) -> list[dict]:
+def search(query: str, category: str | None = None, top_k: int = 10) -> list[dict]:
     """政策关键词搜索（供 policy.py:/search 调用，不依赖向量库的兜底）"""
     policies = load_policies()
-    q = query.lower()
     results = []
     for p in policies:
         title = p.get("title", "")

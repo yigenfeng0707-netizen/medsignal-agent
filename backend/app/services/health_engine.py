@@ -16,9 +16,8 @@ from __future__ import annotations
 import json
 import logging
 import os
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Optional
+from dataclasses import dataclass
+from datetime import UTC, datetime
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +25,7 @@ _DRUG_RULES_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
     "data", "drug_interaction_rules.json",
 )
-_DRUG_RULES_CACHE: Optional[dict] = None
+_DRUG_RULES_CACHE: dict | None = None
 
 
 def load_drug_rules() -> dict:
@@ -35,7 +34,7 @@ def load_drug_rules() -> dict:
     if _DRUG_RULES_CACHE is not None:
         return _DRUG_RULES_CACHE
     try:
-        with open(_DRUG_RULES_PATH, "r", encoding="utf-8") as f:
+        with open(_DRUG_RULES_PATH, encoding="utf-8") as f:
             _DRUG_RULES_CACHE = json.load(f)
         logger.info("加载药物相互作用规则库: %s", _DRUG_RULES_PATH)
     except Exception as e:
@@ -252,17 +251,17 @@ def _check_drug_interactions(meds_raw: list, user_name: str) -> list[dict]:
 def _scan_alerts(profile, meds_raw, chronic, visit_6m, visit_total, age, drug_warnings, name) -> list[dict]:
     """扫描所有预警规则，返回带 evidence 的预警列表。"""
     alerts: list[dict] = []
-    now_iso = datetime.now(timezone.utc).isoformat()
+    now_iso = datetime.now(UTC).isoformat()
 
     # 规则 1：多种慢病综合管理（high）
     if len(chronic) >= 2:
         chronic_meds = list({m.get("name") for m in meds_raw if m.get("is_chronic")})
         alerts.append({
             "level": "high", "severity": "high", "icon": "🔴",
-            "title": f"多种慢病综合管理",
+            "title": "多种慢病综合管理",
             "description": f"检测到{name}患有{'、'.join(chronic)}（共{len(chronic)}种慢病），正在服用 {len(chronic_meds)} 种慢病药物。多种慢病并存增加并发症风险。",
             "suggestion": f"建议每月监测{'血糖和血压' if {'糖尿病','高血压'} <= set(chronic) else '相关指标'}，每季度复查肝肾功能",
-            "action": f"建议每月监测相关指标，每季度复查肝肾功能",
+            "action": "建议每月监测相关指标，每季度复查肝肾功能",
             "timestamp": now_iso,
             "evidence": [{"type": "medication", "name": n} for n in chronic_meds[:3]] +
                         [{"type": "diagnosis", "disease": c} for c in chronic],
@@ -346,7 +345,7 @@ def _scan_alerts(profile, meds_raw, chronic, visit_6m, visit_total, age, drug_wa
     return alerts
 
 
-def _check_medication_pattern(meds_raw: list, name: str) -> Optional[dict]:
+def _check_medication_pattern(meds_raw: list, name: str) -> dict | None:
     """检测购药间隔缩短模式（连续购药 + 间隔变短 = 病情可能恶化）。"""
     rules = load_drug_rules().get("chronic_medication_patterns", {})
     cfg = rules.get("shortening_alert", {})
@@ -382,8 +381,8 @@ def _check_medication_pattern(meds_raw: list, name: str) -> Optional[dict]:
                     "level": "high", "severity": "high", "icon": "🔴",
                     "title": f"{drug}购药间隔缩短",
                     "description": f"检测到{name}的{drug}购药间隔从 {prev_gap} 天缩短至 {recent_gap} 天，提示用药量增加或病情可能变化。",
-                    "suggestion": f"建议 2 周内复诊，由医生评估是否需要调整治疗方案",
-                    "action": f"建议 2 周内复诊评估",
+                    "suggestion": "建议 2 周内复诊，由医生评估是否需要调整治疗方案",
+                    "action": "建议 2 周内复诊评估",
                     "evidence": [
                         {"type": "medication", "name": drug, "prev_gap_days": prev_gap, "recent_gap_days": recent_gap},
                     ],
@@ -391,11 +390,11 @@ def _check_medication_pattern(meds_raw: list, name: str) -> Optional[dict]:
     return None
 
 
-def _check_medication_gap(meds_raw: list, name: str) -> Optional[dict]:
+def _check_medication_gap(meds_raw: list, name: str) -> dict | None:
     """检测慢病药用药中断（超期未购）。"""
     rules = load_drug_rules().get("chronic_medication_patterns", {})
     threshold = rules.get("gap_alert", {}).get("threshold_days", 45)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     for m in meds_raw:
         if not m.get("is_chronic"):
@@ -424,7 +423,7 @@ def _count_medication_gaps(meds_raw: list) -> int:
     """统计慢病药用药中断次数（用于评分扣分）。"""
     count = 0
     threshold = 45
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     seen = set()
     for m in meds_raw:
         if not m.get("is_chronic"):
@@ -465,7 +464,7 @@ def _aggregate_medications(meds_raw: list) -> list[dict]:
         try:
             if date_str:
                 d = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
-                days_ago = (datetime.now(timezone.utc) - d).days
+                days_ago = (datetime.now(UTC) - d).days
                 if days_ago > 60 and m.get("is_chronic"):
                     status = "注意"
                     status_class = "text-yellow-600 bg-yellow-50"
@@ -532,9 +531,12 @@ def _build_suggestions(chronic, drug_warnings, age, visit_6m) -> list[dict]:
 
 
 def _score_label(score: int) -> str:
-    if score >= 85: return "优秀"
-    if score >= 70: return "良好"
-    if score >= 60: return "一般"
+    if score >= 85:
+        return "优秀"
+    if score >= 70:
+        return "良好"
+    if score >= 60:
+        return "一般"
     return "需关注"
 
 

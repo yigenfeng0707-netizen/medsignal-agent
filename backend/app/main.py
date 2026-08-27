@@ -1,12 +1,22 @@
-from contextlib import asynccontextmanager
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth import generate_session_token
+from app.config import settings
 from app.database import init_db
-from app.routers import agents, claims, coverage, eeg, health_profile, imaging, policy, security
+from app.routers import (
+    agents,
+    claims,
+    coverage,
+    eeg,
+    health_profile,
+    imaging,
+    policy,
+    security,
+)
 from app.services import orchestrator
 
 
@@ -70,8 +80,21 @@ async def detailed_health_check():
     # LLM 状态
     deps["llm"] = {
         "available": orchestrator._llm is not None and orchestrator._llm.is_available,
-        "primary_model": "sensenova-6.7-flash-lite",
-        "fallback_model": "qwen-plus",
+        "primary_model": settings.LLM_MODEL,
+        "fallback_model": settings.DASHSCOPE_MODEL,
+    }
+
+    # 视觉模型状态（影像解读用，未配置 Key 时自动关闭）
+    try:
+        from app.services.vision_service import get_vision_service
+        _vs = get_vision_service()
+        vision_ok = _vs is not None
+    except Exception:
+        vision_ok = False
+    deps["vision"] = {
+        "available": vision_ok,
+        "model": settings.VISION_MODEL,
+        "purpose": "医学影像自然语言解读（可选能力，降级不影响主流程）",
     }
 
     # 知识库状态
@@ -106,7 +129,7 @@ async def detailed_health_check():
 
     # 医学影像 AI 标注引擎（影像信号识别模块）
     try:
-        from app.services.imaging import STUDY_TYPES  # noqa: F401
+        from app.services.imaging import STUDY_TYPES
         imaging_ok = True
     except Exception:
         imaging_ok = False
@@ -117,7 +140,10 @@ async def detailed_health_check():
         "pipeline": "预处理 → 局部对比度增强 → 连通域分析 → 形态学特征分类",
     }
 
-    all_ok = all(d.get("available", False) for d in deps.values())
+    all_ok = (
+        all(d.get("available", False) for k, d in deps.items() if k != "vision")
+        and deps["llm"].get("available", False)
+    )
     return {
         "status": "ok" if all_ok else "degraded",
         "version": "3.0.0",
@@ -147,8 +173,8 @@ async def list_demo_users():
 
     返回数据库中的演示用户。前端 user-context 也有 mock 兜底。
     """
-    from app.database import async_session
     from app import crud
+    from app.database import async_session
 
     async with async_session() as db:
         users = await crud.get_users(db, limit=20)

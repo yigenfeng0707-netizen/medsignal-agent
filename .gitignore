@@ -106,3 +106,25 @@ data/real_imaging/raw/
 
 # ==================== 真实 EEG 数据集（原始 EDF 下载不入库；manifest 入库随镜像部署） ====================
 data/real_eeg/raw/
+
+# ==================== AI 助手 / IDE skills 配置（本地工具链，不入库） ====================
+.agents/
+.claude/
+.codeartsdoer/
+.codebuddy/
+.iflow/
+.qoder/
+.qwen/
+.trae/
+.zcode/
+skills-lock.json
+
+# ==================== 本地参考资料（比赛资料/含隐私信息，不入库） ====================
+/EEG数据.txt
+/影像数据.txt
+/团队信息.txt
+/魔搭技能.txt
+/比赛说明.txt
+/data-demand.docx
+/医学影像数据集汇总.docx
+docs/项目申报书_new.docx

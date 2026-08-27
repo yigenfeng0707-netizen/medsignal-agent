@@ -711,6 +711,8 @@ export interface ImagingStudyResponse {
   findings: ImagingFindingItem[];
   report: ImagingReportData;
   policy_links: ImagingPolicyLink[];
+  vision_interpretation?: string | null;
+  vision_available?: boolean;
   disclaimer: string;
 }
 

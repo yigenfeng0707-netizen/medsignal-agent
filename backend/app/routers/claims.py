@@ -4,9 +4,10 @@ MedSignal - 理赔助手路由
 P0-2 升级：pre-review 基于入参 + 用户参保类型真实计算（过渡实现，P1-1 接入完整引擎）
 """
 
+import contextlib
 import logging
 
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud
@@ -39,10 +40,8 @@ async def pre_review(request: PreReviewRequest, db: AsyncSession = Depends(get_d
     # 从用户参保类型增强入参
     insurance_type = request.insurance_type or "职工医保"
     user = None
-    try:
+    with contextlib.suppress(Exception):
         user = await crud.get_user(db, request.user_id) if hasattr(request, "user_id") and request.user_id else None
-    except Exception:
-        pass
     if user is not None:
         insurance_type = user.insurance_type
 

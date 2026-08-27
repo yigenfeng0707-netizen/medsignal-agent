@@ -3,8 +3,8 @@
 覆盖：慢病匹配/省钱计算/年龄差异化/知识库关键词匹配
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

@@ -48,7 +48,7 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
         agent_type = await asyncio.wait_for(
             orchestrator.intent_recognition(message), timeout=30.0
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning("意图识别超时(30s)，降级关键词匹配")
         agent_type = orchestrator._keyword_intent(message)
     logger.info("对话意图: %s | user_id=%s | message=%s", agent_type, user_id, message[:50])
@@ -59,7 +59,7 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
             orchestrator.route_to_agent(agent_type, message, user_id, user_profile=user_profile),
             timeout=40.0,
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning("Agent 路由超时(40s)，降级 mock")
         result = orchestrator.MOCK_RESPONSES.get(agent_type, {
             "response": "抱歉，AI 服务响应较慢，请稍后重试。",
@@ -124,7 +124,7 @@ async def complex_chat(
             orchestrator.handle_complex_query(message, user_id, user_profile=user_profile),
             timeout=50.0,
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning("complex-chat 总超时(50s)，返回超时提示")
         result = {
             "response": "您的问题涉及多个智能体协同，处理需要稍长时间。建议拆分为单个问题分别提问，或稍后重试。",

@@ -10,8 +10,8 @@
 - 健康检查集成
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -19,7 +19,6 @@ import numpy as np
 import pytest
 
 from app.services.imaging import engine as img
-
 
 # ============================================================
 # 1. 常量与配置

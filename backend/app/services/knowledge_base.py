@@ -14,7 +14,6 @@ import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 import chromadb
 from chromadb.config import Settings as ChromaSettings
@@ -64,7 +63,7 @@ class KnowledgeBase:
         self._embedding_base_url = embedding_base_url.rstrip("/")
         self._embedding_model = embedding_model
 
-        self._client: Optional[chromadb.ClientAPI] = None
+        self._client: chromadb.ClientAPI | None = None
         self._collection = None
         self._openai_client = None
         self._initialized = False
@@ -160,7 +159,7 @@ class KnowledgeBase:
             return embeddings
         except Exception as e:
             logger.error("默认嵌入函数也失败: %s", e)
-            raise RuntimeError(f"无法生成嵌入向量: {e}")
+            raise RuntimeError(f"无法生成嵌入向量: {e}") from e
 
     # ------------------------------------------------------------------
     # 文档分块
@@ -635,7 +634,7 @@ class KnowledgeBase:
         if not path.exists():
             raise FileNotFoundError(f"政策知识文件不存在: {json_path}")
 
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             documents = json.load(f)
 
         logger.info("从 %s 加载了 %d 篇政策文档", json_path, len(documents))

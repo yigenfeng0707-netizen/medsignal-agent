@@ -11,16 +11,14 @@
 - 用户画像推荐心理状态
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import numpy as np
-import pytest
 
 from app.services.eeg import engine as eeg
-
 
 # ============================================================
 # 1. 常量与配置

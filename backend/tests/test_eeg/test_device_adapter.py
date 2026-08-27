@@ -12,9 +12,8 @@
 - 自动心理状态推断（α/β/θ/δ 比值规则）
 """
 
-import sys
 import os
-import tempfile
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -23,7 +22,6 @@ import pytest
 
 from app.services.eeg import device_adapter as da
 from app.services.eeg import engine as eeg
-
 
 # ============================================================
 # 1. DeviceInfo 数据类

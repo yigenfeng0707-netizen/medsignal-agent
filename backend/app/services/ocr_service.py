@@ -8,14 +8,15 @@ MedSignal - OCR 服务封装
 - 降级到 mock 数据
 """
 
-import base64
 import logging
-import re
-from typing import Optional
+from typing import TYPE_CHECKING
 
 import httpx
 
 from app.config import settings
+
+if TYPE_CHECKING:
+    from app.services.llm_service import LLMService
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ class OCRService:
         self._api_key = api_key or settings.OCR_API_KEY
         self._api_url = api_url or settings.OCR_API_URL
         self._initialized = bool(self._api_key)
-        self._llm: Optional["LLMService"] = None
+        self._llm: LLMService | None = None
 
         if self._initialized:
             logger.info("OCR 服务初始化成功 (url=%s)", self._api_url)
@@ -185,7 +186,7 @@ class OCRService:
 
 
 # 全局 OCR 服务实例
-_ocr_service: Optional[OCRService] = None
+_ocr_service: OCRService | None = None
 
 
 def get_ocr_service() -> OCRService:

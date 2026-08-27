@@ -39,8 +39,7 @@ jobs:
         shell: bash
         env:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-          STEP_API_KEY: ${{ secrets.STEP_API_KEY }}
-          SENSENOVA_VISION_API_KEY: ${{ secrets.SENSENOVA_VISION_API_KEY }}
+          VISION_API_KEY: ${{ secrets.VISION_API_KEY }}
           DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
         run: |
           set -euo pipefail
@@ -75,7 +74,7 @@ jobs:
           cp deploy/modelscope/requirements-modelscope.txt "$PKG/requirements-modelscope.txt"
           cp README.md "$PKG/README.md"
 
-          # 注入 LLM/Step/Vision Token：从 GitHub Secret 替换占位符，密钥永不进入 git 历史
+          # 注入 LLM/Vision Token：从 GitHub Secret 替换占位符，密钥永不进入 git 历史
           # bash 单引号包裹整个 python -c，python 内部全用双引号，避开 YAML/bash/python 三层引号嵌套
           python3 -c '
           import json, os, pathlib
@@ -83,8 +82,7 @@ jobs:
           d = json.loads(p.read_text(encoding="utf-8"))
           secrets_to_inject = [
               ("LLM_API_KEY", os.environ.get("LLM_API_KEY", "")),
-              ("STEP_API_KEY", os.environ.get("STEP_API_KEY", "")),
-              ("SENSENOVA_VISION_API_KEY", os.environ.get("SENSENOVA_VISION_API_KEY", "")),
+              ("VISION_API_KEY", os.environ.get("VISION_API_KEY", "")),
               ("DASHSCOPE_API_KEY", os.environ.get("DASHSCOPE_API_KEY", "")),
           ]
           injected = []
@@ -96,7 +94,7 @@ jobs:
           if injected:
               print("::notice::已从 GitHub Secret 注入:", ", ".join(injected))
           else:
-              print("::warning::未配置任何 LLM/Step/Vision Secret，部署包保留占位符；请在魔搭创空间页面手工设置环境变量后才能调用真实 AI")
+              print("::warning::未配置任何 LLM/Vision Secret，部署包保留占位符；请在魔搭创空间页面手工设置环境变量后才能调用真实 AI")
           '
 
           echo "--- 部署包内容 ---"

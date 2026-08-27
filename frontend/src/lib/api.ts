@@ -566,12 +566,13 @@ export async function getImagingStudyTypes(): Promise<Record<string, ImagingStud
   return mockImagingStudyTypes;
 }
 
-/** 发起一次影像 AI 分析（合成影像 → 病灶检测 → AI 预标注） */
+/** 发起一次影像 AI 分析（合成影像 → 病灶检测 → AI 预标注，可选视觉大模型解读） */
 export async function analyzeImaging(
   userId: string,
   studyType: string,
   findingsKeys?: string[],
   seed?: number,
+  withVision?: boolean,
 ): Promise<ImagingStudyResponse | null> {
   const data = await apiFetch<ImagingStudyResponse>(`/api/imaging/${userId}/analyze`, {
     method: "POST",
@@ -579,6 +580,7 @@ export async function analyzeImaging(
       study_type: studyType,
       findings_keys: findingsKeys,
       seed,
+      with_vision: withVision ?? false,
     }),
   });
   if (data) return data;
@@ -768,6 +770,8 @@ export interface RealImagingDetail {
   gt_findings: Array<{ finding_type: string; x: number; y: number; w: number; h: number }> | null;
   metrics: Record<string, number> | null;
   policy_links: ImagingPolicyLink[];
+  vision_interpretation?: string | null;
+  vision_available?: boolean;
   disclaimer: string;
 }
 
@@ -783,7 +787,11 @@ export async function getRealImagingStudies(
   return apiFetch<RealImagingListResponse>(`/api/imaging/real/list?${params.join("&")}`);
 }
 
-/** 获取单条真实影像详情 */
-export async function getRealImagingDetail(studyId: string): Promise<RealImagingDetail | null> {
-  return apiFetch<RealImagingDetail>(`/api/imaging/real/${encodeURIComponent(studyId)}`);
+/** 获取单条真实影像详情（可选视觉大模型解读） */
+export async function getRealImagingDetail(
+  studyId: string,
+  withVision?: boolean,
+): Promise<RealImagingDetail | null> {
+  const q = withVision ? "?with_vision=true" : "";
+  return apiFetch<RealImagingDetail>(`/api/imaging/real/${encodeURIComponent(studyId)}${q}`);
 }

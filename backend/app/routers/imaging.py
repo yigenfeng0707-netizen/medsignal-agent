@@ -11,9 +11,8 @@ import base64
 import json
 import logging
 from pathlib import Path
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from app.database import async_session
@@ -25,9 +24,42 @@ from app.services.imaging import (
     generate_study,
     link_to_imaging_policies,
 )
+from app.services.vision_service import get_vision_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/imaging", tags=["imaging"])
+
+
+# ============================================================
+# 辅助
+# ============================================================
+
+_SEVERITY_LABEL = {"low": "低危", "medium": "中危", "high": "高危"}
+
+
+def _summarize_findings(findings: list) -> str:
+    """将 Finding 列表压成一句话摘要（供视觉模型解读参考）。"""
+    if not findings:
+        return ""
+    parts = []
+    for f in findings:
+        label = FINDINGS_META.get(f.finding_type, {}).get("label", f.finding_type)
+        sev = _SEVERITY_LABEL.get(getattr(f, "severity", "medium"), "中危")
+        conf = getattr(f, "confidence", 0.8)
+        parts.append(f"{label}（{sev}，置信度{conf:.0%}）")
+    return "；".join(parts)
+
+
+def _vision_interpretation(image_base64: str, study_label: str, findings_summary: str):
+    """调用视觉模型生成影像所见解读（不可用时返回 None，不影响主流程）。"""
+    try:
+        vs = get_vision_service()
+        if vs is None or not image_base64:
+            return None
+        return vs.interpret_imaging_study(image_base64, study_label, findings_summary)
+    except Exception as e:
+        logger.warning("视觉模型解读异常（已降级跳过）: %s", e)
+        return None
 
 
 # ============================================================
@@ -37,16 +69,21 @@ router = APIRouter(prefix="/api/imaging", tags=["imaging"])
 class AnalyzeRequest(BaseModel):
     """发起一次影像 AI 分析。"""
     study_type: str = Field(..., description="检查类型：chest_xray / lung_ct / brain_mri")
-    findings_keys: Optional[list[str]] = Field(
+    findings_keys: list[str] | None = Field(
         default=None, description="植入病灶类别；缺省时使用该类型的全部类别"
     )
-    seed: Optional[int] = Field(default=None, description="确定性种子，缺省时自动生成")
+    seed: int | None = Field(default=None, description="确定性种子，缺省时自动生成")
+    with_vision: bool = Field(
+        default=False,
+        description="是否调用视觉大模型（GLM-4.6V）生成自然语言影像解读；"
+                    "未配置 Key 或调用失败时自动降级跳过",
+    )
 
 
 class DoctorAnnotation(BaseModel):
     """医生复核标注操作。"""
     action: str = Field(..., description="confirm / reject / add / update")
-    index: Optional[int] = Field(default=None, description="AI 发现索引（confirm/reject 用）")
+    index: int | None = Field(default=None, description="AI 发现索引（confirm/reject 用）")
     finding_type: str = Field(default="nodule", description="病灶类别")
     x: float = Field(default=0.5, ge=0, le=1, description="归一化中心 x")
     y: float = Field(default=0.5, ge=0, le=1, description="归一化中心 y")
@@ -112,6 +149,15 @@ async def analyze_image(user_id: str, req: AnalyzeRequest):
     # 医保联动
     policy_links = link_to_imaging_policies(study.findings)
 
+    # 视觉大模型影像解读（可选，降级不影响主流程）
+    vision_interpretation = None
+    if req.with_vision:
+        vision_interpretation = _vision_interpretation(
+            study.image_base64,
+            STUDY_TYPES[study.study_type]["label"],
+            _summarize_findings(study.findings),
+        )
+
     async with async_session() as db:
         from app import crud
         record = await crud.create_imaging_record(
@@ -137,6 +183,8 @@ async def analyze_image(user_id: str, req: AnalyzeRequest):
         "findings": [f.to_dict() for f in study.findings],
         "report": study.report,
         "policy_links": policy_links,
+        "vision_interpretation": vision_interpretation,
+        "vision_available": vision_interpretation is not None,
         "disclaimer": "本结果由 AI 辅助生成，仅供筛查参考，最终诊断须由持证医师复核确认。",
     }
 
@@ -296,8 +344,8 @@ def _load_real_manifest() -> dict:
 
 @router.get("/real/list")
 async def list_real_studies(
-    study_type: Optional[str] = Query(None, description="按检查类型过滤"),
-    source: Optional[str] = Query(None, description="按数据源过滤"),
+    study_type: str | None = Query(None, description="按检查类型过滤"),
+    source: str | None = Query(None, description="按数据源过滤"),
     limit: int = Query(20, ge=1, le=100),
 ):
     """真实公开数据集影像列表（Montgomery/Shenzhen/本地导入等）。
@@ -334,7 +382,7 @@ async def list_real_studies(
 
 
 @router.get("/real/{study_id}")
-async def get_real_study(study_id: str):
+async def get_real_study(study_id: str, with_vision: bool = Query(False, description="是否生成视觉大模型影像解读")):
     """单条真实数据集影像详情：影像 base64 + AI 检测 + GT 标注 + 评估指标 + 医保联动。"""
     m = _load_real_manifest()
     target = None
@@ -369,6 +417,20 @@ async def get_real_study(study_id: str):
     ]
     policy_links = link_to_imaging_policies(f_list)
 
+    # 视觉大模型解读（可选）：真实公开数据集胸片 + GLM-4.6V 多模态解读
+    vision_interpretation = None
+    if with_vision and image_b64:
+        summary_parts = []
+        for f in det:
+            label = FINDINGS_META.get(f.get("finding_type", ""), {}).get("label", f.get("finding_type", "未知"))
+            sev = _SEVERITY_LABEL.get(f.get("severity", "medium"), "中危")
+            summary_parts.append(f"{label}（{sev}，置信度{f.get('confidence', 0.8):.0%}）")
+        vision_interpretation = _vision_interpretation(
+            image_b64,
+            target.get("study_label", target["study_type"]),
+            "；".join(summary_parts),
+        )
+
     return {
         "study_id": target["study_id"],
         "study_type": target["study_type"],
@@ -381,5 +443,7 @@ async def get_real_study(study_id: str):
         "gt_findings": target.get("gt_findings"),
         "metrics": target.get("metrics"),
         "policy_links": policy_links,
+        "vision_interpretation": vision_interpretation,
+        "vision_available": vision_interpretation is not None,
         "disclaimer": "真实公开数据集影像（脱敏科研用途）。AI 检测仅供辅助参考，最终诊断须由持证医师复核。",
     }

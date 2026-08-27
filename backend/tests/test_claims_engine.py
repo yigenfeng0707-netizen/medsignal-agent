@@ -3,8 +3,8 @@
 覆盖：起付线/报销比例/封顶线/乙类自付/大病保险/调整因子/多场景对比
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

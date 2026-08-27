@@ -96,7 +96,7 @@ python -m pytest tests/ -v
 |---|---|
 | 前端 | Next.js 14 + React 18 + TypeScript + TailwindCSS + shadcn/ui + ECharts + Framer Motion |
 | 后端 | FastAPI + SQLAlchemy 2.0 (async) + Pydantic v2 |
-| AI/LLM | OpenAI 兼容 API（商汤 SenseNova 主力 + 阿里 DashScope 备选） |
+| AI/LLM | OpenAI 兼容 API（aiping 网关 Kimi-K3 主力 + 阿里 DashScope 备选 + GLM-4.6V 视觉模型） |
 | 向量库 | ChromaDB + sentence-transformers（离线嵌入，无网络依赖） |
 | 脑电分析 | numpy（FFT/Welch PSD 频域分析 + 合成 EEG 信号生成） |
 | 医学影像 | 确定性病灶生成 + SVG 影像渲染 + bbox 叠加 + 医生复核工作流 |
@@ -148,7 +148,8 @@ medsignal/
 ## 🔐 环境变量
 
 见 `.env.example`。关键项：
-- `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` — 主力 LLM（商汤）
+- `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` — 主力 LLM（aiping 网关 Kimi-K3）
+- `VISION_API_KEY` / `VISION_BASE_URL` / `VISION_MODEL` — 视觉模型（aiping 网关 GLM-4.6V，医学影像解读，可选）
 - `DASHSCOPE_API_KEY` / `DASHSCOPE_MODEL` — 备选 LLM（阿里）
 - `OCR_API_KEY` — OCR.space
 - `YIBAO_API_KEY` — API 鉴权（可选，不配则开放）
@@ -158,7 +159,7 @@ medsignal/
 ## 🛡️ 容错降级
 
 三级降级保证 Demo 绝不翻车：
-1. **LLM**：SenseNova → DashScope → 关键词匹配 + 规则引擎
+1. **LLM**：Kimi-K3 → DashScope → 关键词匹配 + 规则引擎
 2. **知识库**：API Embedding → ChromaDB 默认嵌入 → mock
 3. **前端**：后端 API → 本地 mock-data.ts
 

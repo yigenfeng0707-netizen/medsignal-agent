@@ -1,12 +1,11 @@
+
 from pydantic import BaseModel, Field
-from typing import Optional
-from datetime import datetime
 
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=2000)
     user_id: str = Field(default="user_001")
-    conversation_id: Optional[str] = None
+    conversation_id: str | None = None
 
 
 class PreReviewRequest(BaseModel):
@@ -17,7 +16,7 @@ class PreReviewRequest(BaseModel):
 
 class PolicySearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500)
-    category: Optional[str] = None
+    category: str | None = None
 
 
 class AuthorizationRequest(BaseModel):

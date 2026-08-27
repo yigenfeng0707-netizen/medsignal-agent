@@ -7,7 +7,6 @@ P0-2 升级：从数据库查询真实数据，支持多用户切换
 """
 
 import logging
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -48,7 +47,6 @@ async def get_coverage_summary(user_id: str, db: AsyncSession = Depends(get_db))
 
     # 最近活动（缴费 + 报销）
     recent_activities = _build_activities(records)
-
     return {
         "user": {
             "id": f"user_{user.id:03d}",
@@ -84,7 +82,7 @@ async def get_coverage_summary(user_id: str, db: AsyncSession = Depends(get_db))
                 "desc": a["desc"],
                 "amount": f"+¥{a['amount']:.2f}" if a["type"] == "缴费" else f"-¥{a['amount']:.2f}",
             }
-            for a in _build_activities(records)
+            for a in recent_activities
         ],
     }
 

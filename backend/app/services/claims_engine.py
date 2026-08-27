@@ -18,7 +18,6 @@ import json
 import logging
 import os
 from dataclasses import dataclass, field
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +26,7 @@ _RULES_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
     "data", "reimbursement_rules.json",
 )
-_RULES_CACHE: Optional[dict] = None
+_RULES_CACHE: dict | None = None
 
 
 def load_rules() -> dict:
@@ -36,7 +35,7 @@ def load_rules() -> dict:
     if _RULES_CACHE is not None:
         return _RULES_CACHE
     try:
-        with open(_RULES_PATH, "r", encoding="utf-8") as f:
+        with open(_RULES_PATH, encoding="utf-8") as f:
             _RULES_CACHE = json.load(f)
         logger.info("加载报销规则库: %s", _RULES_PATH)
     except Exception as e:
@@ -189,10 +188,7 @@ def calculate(inp: ClaimsInput) -> ClaimsResult:
         for tier in big_cfg.get("tiers", []):
             tier_max = tier["max"]
             tier_rate = tier["rate"]
-            if tier_max is None:
-                seg = over - prev_cap
-            else:
-                seg = min(over, tier_max) - prev_cap
+            seg = over - prev_cap if tier_max is None else min(over, tier_max) - prev_cap
             if seg > 0:
                 seg_reimb = seg * tier_rate
                 big_insurance += seg_reimb

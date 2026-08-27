@@ -321,11 +321,11 @@ async def create_eeg_session_from_device(
             duration_seconds=duration_seconds,
         )
     except ImportError as e:
-        raise HTTPException(status_code=503, detail=f"依赖未安装: {e}")
+        raise HTTPException(status_code=503, detail=f"依赖未安装: {e}") from e
     except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=f"设备连接失败: {e}")
+        raise HTTPException(status_code=503, detail=f"设备连接失败: {e}") from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"采集失败: {e}")
+        raise HTTPException(status_code=500, detail=f"采集失败: {e}") from e
 
     # 信号质量检查
     if device_info.signal_quality == "poor":
@@ -416,11 +416,11 @@ async def import_eeg_file(
     except HTTPException:
         raise
     except ImportError as e:
-        raise HTTPException(status_code=503, detail=f"依赖未安装: {e}")
+        raise HTTPException(status_code=503, detail=f"依赖未安装: {e}") from e
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"文件解析失败: {e}")
+        raise HTTPException(status_code=400, detail=f"文件解析失败: {e}") from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"导入失败: {e}")
+        raise HTTPException(status_code=500, detail=f"导入失败: {e}") from e
 
     # 完整评估
     session = eeg_engine.assess_real_session(

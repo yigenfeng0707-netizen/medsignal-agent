@@ -24,11 +24,9 @@ import base64
 import io
 import json
 import logging
-import math
 import os
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 import numpy as np
 
@@ -125,7 +123,7 @@ _IMAGING_POLICY_LINK_PATH = os.path.join(
         os.path.abspath(__file__)))))),
     "data", "imaging_policy_link.json",
 )
-_IMAGING_POLICY_LINK_CACHE: Optional[dict] = None
+_IMAGING_POLICY_LINK_CACHE: dict | None = None
 
 
 def load_imaging_policy_link() -> dict:
@@ -134,7 +132,7 @@ def load_imaging_policy_link() -> dict:
     if _IMAGING_POLICY_LINK_CACHE is not None:
         return _IMAGING_POLICY_LINK_CACHE
     try:
-        with open(_IMAGING_POLICY_LINK_PATH, "r", encoding="utf-8") as f:
+        with open(_IMAGING_POLICY_LINK_PATH, encoding="utf-8") as f:
             _IMAGING_POLICY_LINK_CACHE = json.load(f)
         logger.info("加载影像-医保政策联动规则库: %s", _IMAGING_POLICY_LINK_PATH)
     except Exception as e:
@@ -229,7 +227,7 @@ class ImagingStudy:
     study_type: str
     seed: int
     findings: list = field(default_factory=list)   # list[Finding]
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     image_base64: str = ""                         # 渲染 PNG（base64）
     report: dict = field(default_factory=dict)     # 结构化报告
 
@@ -309,7 +307,7 @@ def _render_lung_ct(rng: np.random.Generator, findings: list[Finding], size: int
     img[medi] = 120
 
     # 血管纹理
-    for i in range(18):
+    for _ in range(18):
         px, py = rng.integers(size * 0.15, size * 0.85), rng.integers(size * 0.15, size * 0.85)
         r = rng.integers(6, 18)
         vessel = ((xx - px) / r) ** 2 + ((yy - py) / r) ** 2 < 1
@@ -471,14 +469,14 @@ def _local_contrast_enhance(img: np.ndarray, radius: int = 32) -> np.ndarray:
     pad = np.pad(img, k, mode="edge")  # 尺寸 (h+2k, w+2k)
     # 积分图 S[i,j] = sum(pad[0:i, 0:j])，尺寸 (h+2k+1, w+2k+1)
     cum = np.cumsum(np.cumsum(pad, axis=0), axis=1)
-    S = np.zeros((pad.shape[0] + 1, pad.shape[1] + 1), dtype=float)
-    S[1:, 1:] = cum
+    s = np.zeros((pad.shape[0] + 1, pad.shape[1] + 1), dtype=float)
+    s[1:, 1:] = cum
     h, w = img.shape
     # 输出 (i,j) 对应 pad 窗口 [i, i+2k] × [j, j+2k]
-    a = S[0:h, 0:w]
-    b = S[0:h, 2 * k + 1:2 * k + 1 + w]
-    c = S[2 * k + 1:2 * k + 1 + h, 0:w]
-    d = S[2 * k + 1:2 * k + 1 + h, 2 * k + 1:2 * k + 1 + w]
+    a = s[0:h, 0:w]
+    b = s[0:h, 2 * k + 1:2 * k + 1 + w]
+    c = s[2 * k + 1:2 * k + 1 + h, 0:w]
+    d = s[2 * k + 1:2 * k + 1 + h, 2 * k + 1:2 * k + 1 + w]
     window_sum = d - b - c + a
     box_area = (2 * k + 1) ** 2
     local_mean = window_sum / box_area
@@ -544,7 +542,6 @@ def _classify_region(feats: dict, study_type: str, img_shape: tuple) -> tuple[st
     rel_area = feats["area"] / (h * w)
     norm_x, norm_y = feats["cx"] / w, feats["cy"] / h
     fill = feats["fill_ratio"]
-    sharp = feats["edge_sharpness"]
     bright = feats["mean_intensity"] > 0.6
     dark = feats["mean_intensity"] < 0.35
 
@@ -651,7 +648,7 @@ def _iou(a: Finding, b: Finding) -> float:
 # 会话编排：生成影像 → AI 检测 → 报告 → 医保联动
 # ============================================================
 
-def generate_study(study_type: str, findings_keys: Optional[list[str]] = None,
+def generate_study(study_type: str, findings_keys: list[str] | None = None,
                    seed: int | None = None) -> ImagingStudy:
     """生成一次影像分析会话（确定性合成 + AI 检测）。
 
@@ -664,7 +661,7 @@ def generate_study(study_type: str, findings_keys: Optional[list[str]] = None,
     Returns:
         ImagingStudy：含合成影像、AI 检测发现、结构化报告。
     """
-    seed = seed if seed is not None else int(datetime.now(timezone.utc).timestamp() * 1000) % 1000000
+    seed = seed if seed is not None else int(datetime.now(UTC).timestamp() * 1000) % 1000000
 
     if study_type not in STUDY_TYPES:
         raise ValueError(f"不支持的检查类型: {study_type}，可选 {list(STUDY_TYPES)}")
@@ -676,7 +673,6 @@ def generate_study(study_type: str, findings_keys: Optional[list[str]] = None,
 
     # 1. 由病灶类别反推植入坐标（确定性：按类别 hash 分配位置）
     implanted: list[Finding] = []
-    n = len(findings_keys)
     for i, key in enumerate(findings_keys):
         if key not in FINDINGS_META:
             continue
@@ -730,7 +726,7 @@ def generate_study(study_type: str, findings_keys: Optional[list[str]] = None,
 
 
 def _new_study_id(seed: int) -> str:
-    ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+    ts = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
     return f"ST{ts}{seed % 10000:04d}"
 
 
@@ -769,7 +765,7 @@ def build_report(findings: list[Finding]) -> dict:
         "pending_count": len(pending),
         "rejected_count": len(rejected),
         "findings": findings_dicts,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "disclaimer": "本报告由 AI 辅助生成，仅供筛查参考，最终诊断须由持证医师复核确认。",
     }
 

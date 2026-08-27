@@ -3,8 +3,8 @@
 覆盖：5维评分/用药相互作用/主动预警/慢病推断
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

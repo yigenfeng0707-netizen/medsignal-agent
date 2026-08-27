@@ -22,6 +22,7 @@ import {
   FileText,
   Landmark,
   MousePointerClick,
+  Eye,
 } from "lucide-react";
 import {
   analyzeImaging,
@@ -90,6 +91,8 @@ export default function ImagingPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [notice, setNotice] = useState<string>("");
   const [loadingHistory, setLoadingHistory] = useState(false);
+  // 视觉大模型（GLM-4.6V）影像解读开关：后端未配置 Key 时自动降级跳过
+  const [withVision, setWithVision] = useState(true);
 
   // 新增标注：点击影像定位
   const imageBoxRef = useRef<HTMLDivElement>(null);
@@ -137,7 +140,7 @@ export default function ImagingPage() {
     setFinalLinks([]);
     setPickPos(null);
     setNotice("");
-    const result = await analyzeImaging(userId, selectedType);
+    const result = await analyzeImaging(userId, selectedType, undefined, undefined, withVision);
     setAnalyzing(false);
     if (!result) {
       setNotice("后端未响应，请确认 API 服务已启动。");
@@ -363,6 +366,16 @@ export default function ImagingPage() {
                     ))}
                   </div>
                 </div>
+                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-violet-200 bg-violet-50/60 px-3 py-2 text-sm text-violet-700 transition-colors hover:bg-violet-50 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-300">
+                  <input
+                    type="checkbox"
+                    checked={withVision}
+                    onChange={(e) => setWithVision(e.target.checked)}
+                    className="h-4 w-4 accent-violet-600"
+                  />
+                  <Eye className="h-4 w-4" />
+                  视觉大模型解读
+                </label>
                 <Button onClick={runAnalysis} disabled={analyzing} className="w-full" size="lg">
                   {analyzing ? (
                     <>
@@ -719,6 +732,16 @@ export default function ImagingPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {study?.vision_interpretation && (
+                  <div className="rounded-lg border border-violet-200 bg-violet-50/60 p-3 dark:border-violet-500/30 dark:bg-violet-500/10">
+                    <p className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-violet-700 dark:text-violet-300">
+                      <Eye className="h-4 w-4" /> 视觉大模型影像解读（GLM-4.6V）
+                    </p>
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">
+                      {study.vision_interpretation}
+                    </p>
+                  </div>
+                )}
                 {study && !finalReport && (
                   <>
                     <div className="flex items-center justify-between gap-3">

@@ -11,7 +11,7 @@ P0-2 升级：
 import hashlib
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -144,15 +144,15 @@ async def get_audit_log(user_id: str, db: AsyncSession = Depends(get_db)):
         "user_id": user_id,
         "logs": [
             {
-                "id": l["id"],
-                "action": l["action"],
-                "agent": l["agent"],
-                "data_type": l["data_type"],
-                "timestamp": l["timestamp"],
-                "detail": l["detail"],
-                "proof_hash": l.get("proof_hash", ""),
+                "id": log["id"],
+                "action": log["action"],
+                "agent": log["agent"],
+                "data_type": log["data_type"],
+                "timestamp": log["timestamp"],
+                "detail": log["detail"],
+                "proof_hash": log.get("proof_hash", ""),
             }
-            for l in logs
+            for log in logs
         ],
     }
 
@@ -204,8 +204,8 @@ def _build_audit_log(user_id: str, auths) -> list[dict]:
     logs = []
 
     # 真实授权记录作为"授权事件"
-    for i, a in enumerate(auths):
-        ts = a.authorized_at.isoformat() if a.authorized_at else datetime.now(timezone.utc).isoformat()
+    for a in auths:
+        ts = a.authorized_at.isoformat() if a.authorized_at else datetime.now(UTC).isoformat()
         proof = hashlib.sha256(f"auth|{a.id}|{a.data_type}".encode()).hexdigest()
         logs.append({
             "id": 1000 + a.id,
@@ -225,7 +225,7 @@ def _build_audit_log(user_id: str, auths) -> list[dict]:
     sample_purposes = ["生成健康画像", "权益查询", "政策匹配分析", "报销预审"]
     sample_dts = ["就医记录", "医保缴费记录", "购药记录"]
     for i in range(4):
-        ts_iso = datetime.fromtimestamp(now_ts - i * 3600, tz=timezone.utc).isoformat()
+        ts_iso = datetime.fromtimestamp(now_ts - i * 3600, tz=UTC).isoformat()
         agent = sample_agents[i % len(sample_agents)]
         dt = sample_dts[i % len(sample_dts)]
         purpose = sample_purposes[i % len(sample_purposes)]

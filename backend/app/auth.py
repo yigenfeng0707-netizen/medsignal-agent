@@ -12,7 +12,6 @@ MedSignal - 最小鉴权层（P3-1）
 import hashlib
 import logging
 import os
-from typing import Optional
 
 from fastapi import Header, HTTPException, status
 
@@ -22,7 +21,7 @@ logger = logging.getLogger(__name__)
 API_KEY = os.getenv("YIBAO_API_KEY", "")
 
 
-def require_api_key(x_api_key: Optional[str] = Header(None, alias="X-API-Key")) -> str:
+def require_api_key(x_api_key: str | None = Header(None, alias="X-API-Key")) -> str:
     """API Key 校验依赖。
 
     - 未配置 YIBAO_API_KEY 环境变量时：跳过校验（Demo 模式）
@@ -41,8 +40,8 @@ def require_api_key(x_api_key: Optional[str] = Header(None, alias="X-API-Key")) 
 
 
 def get_current_user(
-    user_id: Optional[str] = None,
-    x_user_token: Optional[str] = Header(None, alias="X-User-Token"),
+    user_id: str | None = None,
+    x_user_token: str | None = Header(None, alias="X-User-Token"),
 ) -> dict:
     """获取当前用户（基于 token 的简易会话）。
 

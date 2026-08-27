@@ -11,7 +11,6 @@ MedSignal - LLM 服务封装
 
 import json
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +84,7 @@ class LLMService:
         """初始化 LLM 服务
 
         Args:
-            api_key: 主力模型 API 密钥（商汤 SenseNova）
+            api_key: 主力模型 API 密钥（aiping 网关 Kimi-K3）
             base_url: 主力模型 API 基础地址
             model: 主力模型名称
             fallback_api_key: 备选模型 API 密钥（阿里云 DashScope）
@@ -110,7 +109,7 @@ class LLMService:
             self._init_fallback_client()
 
     def _init_client(self):
-        """初始化主力模型 OpenAI 客户端（商汤 SenseNova）"""
+        """初始化主力模型 OpenAI 客户端（aiping 网关 Kimi-K3）"""
         try:
             from openai import OpenAI
             self._client = OpenAI(
@@ -157,7 +156,7 @@ class LLMService:
         Returns:
             模型生成的回复文本
         """
-        # 尝试主力模型（商汤 SenseNova，推理模型需较大 max_tokens）
+        # 尝试主力模型（aiping 网关 Kimi-K3，推理模型需较大 max_tokens）
         if self._initialized:
             try:
                 response = self._client.chat.completions.create(
@@ -219,7 +218,7 @@ class LLMService:
         if not self._initialized:
             # 降级：返回基于上下文的简单拼接
             if context:
-                return f"基于检索到的资料：\n\n" + "\n---\n".join(context)
+                return "基于检索到的资料：\n\n" + "\n---\n".join(context)
             return "LLM 服务暂不可用，请检查 API 配置。"
 
         # 将上下文片段拼接并注入系统提示词
@@ -389,7 +388,7 @@ class LLMService:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _parse_json_response(text: str) -> Optional[dict]:
+    def _parse_json_response(text: str) -> dict | None:
         """尝试从 LLM 响应中解析 JSON
 
         处理可能的 markdown 代码块包裹等情况。
@@ -399,7 +398,7 @@ class LLMService:
         if text.startswith("```"):
             # 去除首行 ```json 和末行 ```
             lines = text.split("\n")
-            lines = [l for l in lines if not l.strip().startswith("```")]
+            lines = [ln for ln in lines if not ln.strip().startswith("```")]
             text = "\n".join(lines)
 
         try:

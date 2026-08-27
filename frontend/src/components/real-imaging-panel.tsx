@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   FlaskConical,
   CircleDot,
+  Eye,
 } from "lucide-react";
 import {
   getRealImagingStudies,
@@ -62,7 +63,9 @@ export function RealImagingPanel() {
   const openStudy = useCallback(async (studyId: string) => {
     setDetailLoading(true);
     setSelected(null);
-    const d = await getRealImagingDetail(studyId);
+    // with_vision=true：后端调用视觉大模型（GLM-4.6V）生成自然语言影像解读；
+    // 未配置 Key 时后端自动降级（vision_interpretation=null），不影响弹层打开
+    const d = await getRealImagingDetail(studyId, true);
     setSelected(d);
     setDetailLoading(false);
   }, []);
@@ -354,8 +357,18 @@ export function RealImagingPanel() {
                     </div>
                   </div>
 
-                  {/* 右侧：指标 + 政策联动 */}
+                  {/* 右侧：视觉解读 + 指标 + 政策联动 */}
                   <div className="space-y-4 lg:col-span-2">
+                    {selected.vision_interpretation && (
+                      <div className="rounded-lg border border-violet-500/30 bg-violet-500/5 p-4">
+                        <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-violet-300">
+                          <Eye className="h-4 w-4" /> 视觉大模型影像解读（GLM-4.6V）
+                        </p>
+                        <p className="whitespace-pre-wrap text-xs leading-relaxed text-slate-300">
+                          {selected.vision_interpretation}
+                        </p>
+                      </div>
+                    )}
                     <div className="rounded-lg border border-slate-700/60 bg-slate-900/70 p-4">
                       <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-sky-300">
                         <Target className="h-4 w-4" /> 检测评估指标

@@ -8,7 +8,7 @@ MedSignal - 智能体编排服务
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from app.config import settings
 from app.services.knowledge_base import KnowledgeBase, SearchResult
@@ -78,8 +78,8 @@ class Orchestrator:
 
     def __init__(self):
         """初始化编排器，懒加载 LLM 和知识库服务"""
-        self._llm: Optional[LLMService] = None
-        self._kb: Optional[KnowledgeBase] = None
+        self._llm: LLMService | None = None
+        self._kb: KnowledgeBase | None = None
         self._services_initialized = False
 
     async def initialize_services(self) -> None:
@@ -98,7 +98,7 @@ class Orchestrator:
             self._services_initialized = True
             return
 
-        # 初始化 LLM 服务（主力：商汤 SenseNova，备选：阿里云 DashScope）
+        # 初始化 LLM 服务（主力：aiping 网关 Kimi-K3，备选：阿里云 DashScope）
         try:
             self._llm = LLMService(
                 api_key=settings.LLM_API_KEY,
@@ -227,7 +227,7 @@ class Orchestrator:
                     timeout=20.0,
                 )
                 return intent, r
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.warning("Agent %s 执行超时(20s)，跳过", intent)
                 return intent, None
             except Exception as e:
@@ -257,7 +257,7 @@ class Orchestrator:
                 self._fuse_multi_agent_results(message, intents, agent_results),
                 timeout=20.0,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning("LLM 融合超时(20s)，降级拼接")
             fused = self._fuse_fallback(intents, agent_results)
 

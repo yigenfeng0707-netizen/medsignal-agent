@@ -26,7 +26,6 @@ import logging
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 
@@ -104,7 +103,7 @@ def acquire_from_lsl(
         RuntimeError: 未找到 LSL 流或采集失败
     """
     try:
-        from pylsl import StreamInlet, resolve_byprop, resolve_stream
+        from pylsl import StreamInlet, resolve_byprop
     except ImportError as e:
         raise ImportError(
             "pylsl 未安装。请运行：pip install pylsl\n"
@@ -230,10 +229,8 @@ def load_from_csv(
     Returns:
         (signals, channels, sample_rate, device_info)
     """
-    if isinstance(file_content, bytes):
-        text = file_content.decode("utf-8-sig")  # 兼容 BOM
-    else:
-        text = file_content
+    # 兼容 BOM：字节内容需先解码
+    text = file_content.decode("utf-8-sig") if isinstance(file_content, bytes) else file_content
 
     reader = csv.reader(io.StringIO(text))
     rows = list(reader)
