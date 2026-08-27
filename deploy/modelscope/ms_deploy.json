@@ -1,4 +1,4 @@
-{
+﻿{
   "sdk_type": "docker",
   "port": 7860,
   "env": {
@@ -12,6 +12,9 @@
     "SENSENOVA_VISION_API_KEY": "__SENSENOVA_VISION_API_KEY__",
     "SENSENOVA_VISION_BASE_URL": "https://token.sensenova.cn/v1",
     "SENSENOVA_VISION_MODEL": "sensenova-u1.5-lite",
+    "DASHSCOPE_API_KEY": "__DASHSCOPE_API_KEY__",
+    "DASHSCOPE_BASE_URL": "https://llm-uarugoa0rqgduef5.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+    "DASHSCOPE_MODEL": "qwen-plus",
     "DATABASE_URL": "sqlite+aiosqlite:////mnt/workspace/data/yibao.db",
     "REDIS_URL": "",
     "CORS_ORIGINS": "*",

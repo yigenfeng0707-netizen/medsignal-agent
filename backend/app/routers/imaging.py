@@ -7,8 +7,10 @@ MedSignal Agent - 医学影像 AI 标注路由
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -269,3 +271,115 @@ async def get_policy_links(user_id: str, record_id: int):
             for f in final_findings
         ]
         return {"policy_links": link_to_imaging_policies(f_list)}
+
+
+# ============================================================
+# 真实公开数据集影像（scripts/ingest_real_imaging.py 产出的 manifest）
+# ============================================================
+
+# 项目根目录：backend/app/routers/imaging.py -> 上溯 3 级到项目根
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+_REAL_IMAGING_DIR = _PROJECT_ROOT / "data" / "real_imaging"
+_REAL_MANIFEST = _REAL_IMAGING_DIR / "manifest.json"
+
+
+def _load_real_manifest() -> dict:
+    """读取真实影像数据集 manifest（不存在时返回空结构，不报错）。"""
+    try:
+        return json.loads(_REAL_MANIFEST.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {"version": "1.0", "datasets": {}, "studies": []}
+    except Exception as e:
+        logger.warning("读取真实影像 manifest 失败: %s", e)
+        return {"version": "1.0", "datasets": {}, "studies": []}
+
+
+@router.get("/real/list")
+async def list_real_studies(
+    study_type: Optional[str] = Query(None, description="按检查类型过滤"),
+    source: Optional[str] = Query(None, description="按数据源过滤"),
+    limit: int = Query(20, ge=1, le=100),
+):
+    """真实公开数据集影像列表（Montgomery/Shenzhen/本地导入等）。
+
+    数据由 scripts/ingest_real_imaging.py 接入，manifest 位于
+    data/real_imaging/manifest.json。返回概览（不含大体积 base64）。
+    """
+    m = _load_real_manifest()
+    studies = m.get("studies", [])
+    if study_type:
+        studies = [s for s in studies if s.get("study_type") == study_type]
+    if source:
+        studies = [s for s in studies if s.get("source") == source]
+    studies = studies[:limit]
+    return {
+        "total": len(m.get("studies", [])),
+        "returned": len(studies),
+        "datasets": m.get("datasets", {}),
+        "studies": [
+            {
+                "study_id": s["study_id"],
+                "study_type": s["study_type"],
+                "study_label": s.get("study_label", s["study_type"]),
+                "source": s.get("source"),
+                "origin_file": s.get("origin_file"),
+                "detected_count": len(s.get("detected_findings", [])),
+                "gt_count": len(s.get("gt_findings") or []),
+                "metrics": s.get("metrics"),
+            }
+            for s in studies
+        ],
+        "note": "真实公开数据集影像（脱敏科研用途），AI 检测结果仅供辅助参考，最终诊断须由持证医师复核。",
+    }
+
+
+@router.get("/real/{study_id}")
+async def get_real_study(study_id: str):
+    """单条真实数据集影像详情：影像 base64 + AI 检测 + GT 标注 + 评估指标 + 医保联动。"""
+    m = _load_real_manifest()
+    target = None
+    for s in m.get("studies", []):
+        if s.get("study_id") == study_id:
+            target = s
+            break
+    if target is None:
+        raise HTTPException(status_code=404, detail=f"真实影像研究不存在: {study_id}")
+
+    # 读取标准化影像文件 -> data URI
+    image_b64 = ""
+    img_path = _PROJECT_ROOT / target.get("image_path", "")
+    try:
+        image_b64 = "data:image/png;base64," + base64.b64encode(img_path.read_bytes()).decode("ascii")
+    except Exception as e:
+        logger.warning("读取真实影像文件失败 %s: %s", img_path, e)
+
+    # 医保联动（基于 AI 检测结果）
+    from app.services.imaging import Finding
+    det = target.get("detected_findings", [])
+    f_list = [
+        Finding(
+            finding_type=f["finding_type"],
+            x=f["x"], y=f["y"], w=f["w"], h=f["h"],
+            confidence=f.get("confidence", 0.8),
+            severity=f.get("severity", "medium"),
+            source="ai", status="pending",
+            evidence=f.get("evidence", ""),
+        )
+        for f in det
+    ]
+    policy_links = link_to_imaging_policies(f_list)
+
+    return {
+        "study_id": target["study_id"],
+        "study_type": target["study_type"],
+        "study_label": target.get("study_label", target["study_type"]),
+        "source": target.get("source"),
+        "origin_file": target.get("origin_file"),
+        "origin_shape": target.get("origin_shape"),
+        "image_base64": image_b64,
+        "detected_findings": det,
+        "gt_findings": target.get("gt_findings"),
+        "metrics": target.get("metrics"),
+        "policy_links": policy_links,
+        "disclaimer": "真实公开数据集影像（脱敏科研用途）。AI 检测仅供辅助参考，最终诊断须由持证医师复核。",
+    }

@@ -100,3 +100,6 @@ docker-compose.override.yml
 *.pid
 *.seed
 *.pid.lock
+
+# ==================== 真实影像数据集（原始下载不入库；标准化 PNG + manifest 入库随镜像部署） ====================
+data/real_imaging/raw/

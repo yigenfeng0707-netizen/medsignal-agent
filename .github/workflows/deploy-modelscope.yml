@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # 自动部署 MedSignal Demo 到魔搭创空间（ModelScope Studio）
 #
 # 触发方式：
@@ -23,6 +23,7 @@ on:
       - "backend/**"
       - "frontend/**"
       - "deploy/modelscope/**"
+      - "data/**"
       - ".github/workflows/deploy-modelscope.yml"
 
 jobs:
@@ -40,6 +41,7 @@ jobs:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           STEP_API_KEY: ${{ secrets.STEP_API_KEY }}
           SENSENOVA_VISION_API_KEY: ${{ secrets.SENSENOVA_VISION_API_KEY }}
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
         run: |
           set -euo pipefail
           PKG=/tmp/mscope
@@ -83,6 +85,7 @@ jobs:
               ("LLM_API_KEY", os.environ.get("LLM_API_KEY", "")),
               ("STEP_API_KEY", os.environ.get("STEP_API_KEY", "")),
               ("SENSENOVA_VISION_API_KEY", os.environ.get("SENSENOVA_VISION_API_KEY", "")),
+              ("DASHSCOPE_API_KEY", os.environ.get("DASHSCOPE_API_KEY", "")),
           ]
           injected = []
           for key, val in secrets_to_inject:

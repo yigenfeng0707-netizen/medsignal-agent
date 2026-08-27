@@ -1,0 +1,392 @@
+{
+  "version": "1.0",
+  "generated_at": "2026-08-27T09:17:06.407004+00:00",
+  "datasets": {
+    "demo": {
+      "count": 3,
+      "updated_at": "2026-08-27T09:17:06.406985+00:00"
+    }
+  },
+  "studies": [
+    {
+      "study_id": "demo_0001",
+      "study_type": "chest_xray",
+      "study_label": "胸部 X 光（Chest X-Ray）",
+      "source": "demo",
+      "origin_file": "demo_chest_xray_1.png",
+      "origin_shape": [
+        512,
+        512
+      ],
+      "image_path": "data/real_imaging/images/demo_0001.png",
+      "image_data_uri_len": 56698,
+      "detected_findings": [
+        {
+          "finding_type": "infiltration",
+          "label": "炎性浸润",
+          "x": 0.2696,
+          "y": 0.4966,
+          "w": 0.3145,
+          "h": 0.5547,
+          "confidence": 0.75,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": "区域面积 13795px、填充率 0.30、平均强度 128.71、边缘锐度 87.54；符合炎性浸润影像特征"
+        },
+        {
+          "finding_type": "infiltration",
+          "label": "炎性浸润",
+          "x": 0.6962,
+          "y": 0.5108,
+          "w": 0.3242,
+          "h": 0.5547,
+          "confidence": 0.75,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": "区域面积 14042px、填充率 0.30、平均强度 129.89、边缘锐度 87.42；符合炎性浸润影像特征"
+        },
+        {
+          "finding_type": "infiltration",
+          "label": "炎性浸润",
+          "x": 0.5194,
+          "y": 0.4922,
+          "w": 0.0215,
+          "h": 0.0059,
+          "confidence": 0.75,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": "区域面积 13px、填充率 0.39、平均强度 216.13、边缘锐度 0.00；符合炎性浸润影像特征"
+        },
+        {
+          "finding_type": "infiltration",
+          "label": "炎性浸润",
+          "x": 0.3276,
+          "y": 0.7867,
+          "w": 0.2051,
+          "h": 0.0176,
+          "confidence": 0.75,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": "区域面积 344px、填充率 0.36、平均强度 122.84、边缘锐度 0.00；符合炎性浸润影像特征"
+        },
+        {
+          "finding_type": "infiltration",
+          "label": "炎性浸润",
+          "x": 0.6692,
+          "y": 0.787,
+          "w": 0.2051,
+          "h": 0.0176,
+          "confidence": 0.75,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": "区域面积 373px、填充率 0.39、平均强度 122.84、边缘锐度 0.00；符合炎性浸润影像特征"
+        },
+        {
+          "finding_type": "nodule",
+          "label": "肺结节",
+          "x": 0.5179,
+          "y": 0.4495,
+          "w": 0.0723,
+          "h": 0.0742,
+          "confidence": 0.62,
+          "severity": "low",
+          "source": "ai",
+          "status": "pending",
+          "evidence": "区域面积 704px、填充率 0.50、平均强度 118.45、边缘锐度 26.44；符合肺结节影像特征"
+        }
+      ],
+      "gt_findings": [
+        {
+          "finding_type": "nodule",
+          "label": "肺结节",
+          "x": 0.4,
+          "y": 0.45,
+          "w": 0.08,
+          "h": 0.08,
+          "confidence": 0.8,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": ""
+        },
+        {
+          "finding_type": "infiltration",
+          "label": "炎性浸润",
+          "x": 0.52,
+          "y": 0.45,
+          "w": 0.08,
+          "h": 0.08,
+          "confidence": 0.8,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": ""
+        }
+      ],
+      "metrics": {
+        "gt_count": 2,
+        "det_count": 6,
+        "matched": 1,
+        "precision": 0.167,
+        "recall": 0.5,
+        "mean_iou": 0.838,
+        "iou_threshold": 0.3
+      },
+      "ingested_at": "2026-08-27T09:17:01.497081+00:00"
+    },
+    {
+      "study_id": "demo_0002",
+      "study_type": "lung_ct",
+      "study_label": "肺部 CT 横断面（Lung CT）",
+      "source": "demo",
+      "origin_file": "demo_lung_ct_2.png",
+      "origin_shape": [
+        512,
+        512
+      ],
+      "image_path": "data/real_imaging/images/demo_0002.png",
+      "image_data_uri_len": 97286,
+      "detected_findings": [
+        {
+          "finding_type": "ground_glass",
+          "label": "磨玻璃影",
+          "x": 0.5,
+          "y": 0.5,
+          "w": 0.8418,
+          "h": 0.8418,
+          "confidence": 0.752,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": "区域面积 13544px、填充率 0.07、平均强度 191.90、边缘锐度 3.72；符合磨玻璃影影像特征"
+        },
+        {
+          "finding_type": "ground_glass",
+          "label": "磨玻璃影",
+          "x": 0.3142,
+          "y": 0.4886,
+          "w": 0.3418,
+          "h": 0.7871,
+          "confidence": 0.735,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": "区域面积 9073px、填充率 0.13、平均强度 54.52、边缘锐度 76.05；符合磨玻璃影影像特征"
+        },
+        {
+          "finding_type": "ground_glass",
+          "label": "磨玻璃影",
+          "x": 0.7351,
+          "y": 0.4842,
+          "w": 0.3379,
+          "h": 0.7871,
+          "confidence": 0.722,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": "区域面积 5856px、填充率 0.08、平均强度 25.46、边缘锐度 5.70；符合磨玻璃影影像特征"
+        },
+        {
+          "finding_type": "ground_glass",
+          "label": "磨玻璃影",
+          "x": 0.4473,
+          "y": 0.2637,
+          "w": 0.0098,
+          "h": 0.2656,
+          "confidence": 0.703,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": "区域面积 667px、填充率 0.98、平均强度 123.50、边缘锐度 0.00；符合磨玻璃影影像特征"
+        },
+        {
+          "finding_type": "ground_glass",
+          "label": "磨玻璃影",
+          "x": 0.5524,
+          "y": 0.288,
+          "w": 0.0176,
+          "h": 0.3066,
+          "confidence": 0.703,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": "区域面积 800px、填充率 0.57、平均强度 123.37、边缘锐度 2.10；符合磨玻璃影影像特征"
+        },
+        {
+          "finding_type": "ground_glass",
+          "label": "磨玻璃影",
+          "x": 0.5521,
+          "y": 0.6129,
+          "w": 0.0215,
+          "h": 0.3008,
+          "confidence": 0.703,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": "区域面积 816px、填充率 0.48、平均强度 123.37、边缘锐度 2.08；符合磨玻璃影影像特征"
+        }
+      ],
+      "gt_findings": [
+        {
+          "finding_type": "nodule",
+          "label": "肺结节",
+          "x": 0.4,
+          "y": 0.45,
+          "w": 0.08,
+          "h": 0.08,
+          "confidence": 0.8,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": ""
+        },
+        {
+          "finding_type": "ground_glass",
+          "label": "磨玻璃影",
+          "x": 0.52,
+          "y": 0.45,
+          "w": 0.08,
+          "h": 0.08,
+          "confidence": 0.8,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": ""
+        }
+      ],
+      "metrics": {
+        "gt_count": 2,
+        "det_count": 6,
+        "matched": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "mean_iou": null,
+        "iou_threshold": 0.3
+      },
+      "ingested_at": "2026-08-27T09:17:03.916154+00:00"
+    },
+    {
+      "study_id": "demo_0003",
+      "study_type": "brain_mri",
+      "study_label": "脑部 MRI 轴位（Brain MRI）",
+      "source": "demo",
+      "origin_file": "demo_brain_mri_3.png",
+      "origin_shape": [
+        512,
+        512
+      ],
+      "image_path": "data/real_imaging/images/demo_0003.png",
+      "image_data_uri_len": 63454,
+      "detected_findings": [
+        {
+          "finding_type": "lacunar_infarct",
+          "label": "腔隙性梗死",
+          "x": 0.4277,
+          "y": 0.4617,
+          "w": 0.125,
+          "h": 0.1953,
+          "confidence": 0.742,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": "区域面积 2862px、填充率 0.45、平均强度 96.33、边缘锐度 95.27；符合腔隙性梗死影像特征"
+        },
+        {
+          "finding_type": "lacunar_infarct",
+          "label": "腔隙性梗死",
+          "x": 0.5494,
+          "y": 0.4818,
+          "w": 0.0957,
+          "h": 0.1953,
+          "confidence": 0.728,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": "区域面积 1021px、填充率 0.21、平均强度 23.09、边缘锐度 0.00；符合腔隙性梗死影像特征"
+        },
+        {
+          "finding_type": "lacunar_infarct",
+          "label": "腔隙性梗死",
+          "x": 0.4998,
+          "y": 0.4715,
+          "w": 0.0254,
+          "h": 0.2148,
+          "confidence": 0.727,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": "区域面积 967px、填充率 0.68、平均强度 135.54、边缘锐度 10.01；符合腔隙性梗死影像特征"
+        },
+        {
+          "finding_type": "tumor",
+          "label": "占位病变",
+          "x": 0.5001,
+          "y": 0.1526,
+          "w": 0.0176,
+          "h": 0.0254,
+          "confidence": 0.68,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": "区域面积 96px、填充率 0.82、平均强度 138.52、边缘锐度 0.00；符合占位病变影像特征"
+        },
+        {
+          "finding_type": "tumor",
+          "label": "占位病变",
+          "x": 0.5032,
+          "y": 0.2363,
+          "w": 0.0039,
+          "h": 0.0254,
+          "confidence": 0.68,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": "区域面积 20px、填充率 0.77、平均强度 138.52、边缘锐度 0.00；符合占位病变影像特征"
+        },
+        {
+          "finding_type": "tumor",
+          "label": "占位病变",
+          "x": 0.6098,
+          "y": 0.4389,
+          "w": 0.0176,
+          "h": 0.0742,
+          "confidence": 0.68,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": "区域面积 98px、填充率 0.29、平均强度 104.71、边缘锐度 2.31；符合占位病变影像特征"
+        }
+      ],
+      "gt_findings": [
+        {
+          "finding_type": "tumor",
+          "label": "占位病变",
+          "x": 0.4,
+          "y": 0.45,
+          "w": 0.08,
+          "h": 0.08,
+          "confidence": 0.8,
+          "severity": "medium",
+          "source": "ai",
+          "status": "pending",
+          "evidence": ""
+        }
+      ],
+      "metrics": {
+        "gt_count": 1,
+        "det_count": 6,
+        "matched": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "mean_iou": null,
+        "iou_threshold": 0.3
+      },
+      "ingested_at": "2026-08-27T09:17:06.403625+00:00"
+    }
+  ]
+}
