@@ -748,14 +748,16 @@ def build_report(findings: list[Finding]) -> dict:
         conclusion = "AI 提示候选征象，待医师复核后出具诊断意见。"
         risk_level = "待复核"
 
+    # advice 必须为数组：前端 ImagingReportData.advice: string[] 直接 .map() 渲染，
+    # 字符串会导致 TypeError → Next.js 客户端白屏（线上彩排踩坑）
     if has_high:
-        advice = "建议尽快至专科就诊，完善相关检查并启动医保待遇申请。"
+        advice = ["建议尽快至专科就诊，完善相关检查并启动医保待遇申请。"]
     elif has_medium:
-        advice = "建议 1-3 个月内专科复诊，动态观察。"
+        advice = ["建议 1-3 个月内专科复诊，动态观察。"]
     elif has_low:
-        advice = "建议定期随访，保持健康生活方式。"
+        advice = ["建议定期随访，保持健康生活方式。"]
     else:
-        advice = "建议结合临床症状综合评估。"
+        advice = ["建议结合临床症状综合评估。"]
 
     return {
         "conclusion": conclusion,
