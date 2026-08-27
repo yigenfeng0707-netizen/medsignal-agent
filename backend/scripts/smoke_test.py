@@ -140,7 +140,7 @@ def main():
             check(f"[{msg[:15]}…] 200", False, f"HTTP {r.status_code}: {r.text[:100]}")
 
     # ---------- 9. EEG 脑电健康（BCI×医保创新模块）----------
-    section("9. EEG 脑电健康 — BCI×医保创新")
+    section("9. EEG 脑电健康 — 关键医疗信号")
     # 9.1 心理状态列表
     states = client.get("/api/eeg/states").json()
     check("心理状态列表", len(states.get("states", [])) == 5,
