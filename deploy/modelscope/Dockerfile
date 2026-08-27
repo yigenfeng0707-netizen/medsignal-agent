@@ -43,11 +43,42 @@ WORKDIR /app
 COPY requirements-modelscope.txt ./
 RUN pip install -r requirements-modelscope.txt
 
-# 预下载 ChromaDB 默认 ONNX 嵌入模型（~79MB）到镜像缓存。
-# 若不预烘，运行时首个 KB 检索请求会触发从 S3 下载（国外源，慢且不可控），
-# 曾导致线上 chat 请求超时 504。加 timeout + 容错：失败不阻塞构建（运行时有超时降级）。
-RUN timeout 240 python -c "from chromadb.utils import embedding_functions as ef; ef.DefaultEmbeddingFunction()(['预热'])" \
-    || echo "[warn] ONNX 预烘失败/超时，运行时将按需下载（有超时降级保护）"
+# 预置 ChromaDB 默认 ONNX 嵌入模型（~83MB）到镜像缓存。
+# 若不预置，运行时首个 KB 检索请求会触发从 S3 下载（国外源，慢且不可控），
+# 曾导致线上 chat 请求超时 504。
+# 主源：ModelScope 自托管 HF 镜像（国内构建环境实测 ~7MB/s；
+#       S3 直连仅 ~0.02MB/s，83MB 需 70 分钟，必超时）。
+# 兜底：chromadb 官方 S3 tar.gz（海外 CI runner 走此源更快）。
+# chromadb 检查 onnx/ 下 6 个文件齐全即跳过下载。
+RUN set -e; \
+    CACHE=/root/.cache/chroma/onnx_models/all-MiniLM-L6-v2; \
+    mkdir -p "$CACHE/onnx"; \
+    BASE="https://modelscope.cn/models/sentence-transformers/all-MiniLM-L6-v2/resolve/master"; \
+    ok=1; \
+    for f in config.json special_tokens_map.json tokenizer_config.json tokenizer.json vocab.txt onnx/model.onnx; do \
+        out="$CACHE/onnx/$(basename "$f")"; \
+        if curl -fsSL --retry 3 --connect-timeout 15 -o "$out.tmp" "$BASE/$f"; then \
+            mv "$out.tmp" "$out"; \
+        else \
+            echo "[warn] ModelScope 镜像下载失败: $f"; ok=0; \
+        fi; \
+    done; \
+    if [ "$ok" != "1" ]; then \
+        echo "[info] 尝试 S3 兜底源..."; \
+        if curl -fsSL --retry 2 --connect-timeout 15 -o "$CACHE/onnx.tar.gz" \
+            "https://chroma-onnx-models.s3.amazonaws.com/all-MiniLM-L6-v2/onnx.tar.gz" \
+            && tar -xzf "$CACHE/onnx.tar.gz" -C "$CACHE"; then \
+            rm -f "$CACHE/onnx.tar.gz"; \
+            echo "[info] S3 兕底下载+解压成功"; \
+        else \
+            echo "[warn] ONNX 模型预置失败，运行时将按需下载（有超时降级保护）"; \
+        fi; \
+    fi; \
+    ls -la "$CACHE/onnx" 2>/dev/null || true
+
+# 验证模型可加载（本地缓存直接加载，正常应秒级完成）
+RUN timeout 120 python -c "from chromadb.utils import embedding_functions as ef; ef.DefaultEmbeddingFunction()(['预热'])" \
+    || echo "[warn] ONNX 模型加载验证失败，运行时将按需下载（有超时降级保护）"
 
 # 后端源码
 COPY backend/ ./backend/
