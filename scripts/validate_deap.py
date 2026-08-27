@@ -16,7 +16,7 @@ from sklearn.svm import SVC
 
 ROOT = Path(__file__).resolve().parents[2]
 CHARTS_DIR = ROOT / "charts"
-REPORT_PATH = ROOT / "yibao-eeg" / "docs" / "eeg_validation_report.json"
+REPORT_PATH = ROOT / "medsignal-agent" / "docs" / "eeg_validation_report.json"
 
 plt.rcParams["font.sans-serif"] = ["SimHei", "Microsoft YaHei", "DejaVu Sans"]
 plt.rcParams["axes.unicode_minus"] = False

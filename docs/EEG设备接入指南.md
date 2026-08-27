@@ -1,6 +1,6 @@
 # EEG 设备接入指南
 
-> 医保智脑 v2.1.0 — 真实 EEG 设备接入完整方案
+> MedSignal v2.2.0 — 真实 EEG 设备接入完整方案
 > 支持 Muse / Emotiv / OpenBCI / 通用 CSV/EDF 文件导入
 
 ---

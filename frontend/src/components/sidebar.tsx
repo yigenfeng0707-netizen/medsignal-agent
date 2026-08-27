@@ -37,7 +37,7 @@ export function Sidebar() {
           <Shield className="h-5 w-5 text-primary-foreground" />
         </div>
         <span className="text-lg font-bold text-sidebar-foreground">
-          医保智脑
+          MedSignal
         </span>
       </div>
       <nav className="flex flex-col gap-1 p-3">
@@ -67,10 +67,10 @@ export function Sidebar() {
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-medium text-sidebar-foreground">
-              医保智脑助手
+              MedSignal 助手
             </span>
             <span className="text-xs text-sidebar-foreground/50">
-              AI 驱动的医保服务
+              关键医疗信号识别 × 患者信息连接
             </span>
           </div>
         </div>

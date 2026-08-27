@@ -1,4 +1,4 @@
-# 医保智脑 · 前后端 API 契约（真理源）
+# MedSignal · 前后端 API 契约（真理源）
 
 > 版本：v2.0（P0 升级后）
 > 约定：本文件是所有 API 端点的请求/响应契约真理源。前后端任一方变更需同步更新本文档。
@@ -135,7 +135,7 @@
 
 ---
 
-## 6.5 EEG 脑电健康（BCI×医保创新，赛道7核心）
+## 6.5 EEG 脑电健康（关键医疗信号识别）
 
 ### GET `/api/eeg/states` → `{ states: [...] }`
 
@@ -176,7 +176,7 @@
 
 ## 7. 健康检查
 
-### GET `/api/health` → `{ "status": "ok", "service": "医保智脑" }`
+### GET `/api/health` → `{ "status": "ok", "service": "MedSignal" }`
 
 ---
 

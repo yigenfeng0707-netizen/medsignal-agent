@@ -28,7 +28,7 @@ HEADERS = {
     "Authorization": f"Bearer {TOKEN}",
     "Accept": "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
-    "User-Agent": "yibao-eeg-push",
+    "User-Agent": "medsignal-push",
 }
 
 # 本次变更的文件列表（相对于项目根目录）

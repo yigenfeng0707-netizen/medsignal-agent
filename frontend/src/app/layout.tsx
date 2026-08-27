@@ -19,8 +19,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "医保智脑 - YiBaoZhiNao",
-  description: "基于可信数据空间的个人医保智能体",
+  title: "MedSignal - 多模态医疗信号智能体",
+  description: "关键医疗信号识别 × 患者信息连接 —— 面向真实医疗场景的可运行 AI 智能体",
 };
 
 export default function RootLayout({

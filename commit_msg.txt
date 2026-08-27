@@ -1,8 +1,0 @@
-feat: 医学影像AI标注工作台 + 后端review反序列化修复
-
-- 前端: 新增 /imaging 影像卫士标注工作台页面（检查类型选择/AI分析/bbox叠加/医生复核/新增标注/结构化报告/医保联动/历史记录）
-- 前端: api.ts 新增 imaging API 客户端（study-types/analyze/review/records），mock-data.ts 新增影像 mock 数据与内联SVG影像
-- 前端: sidebar 新增影像标注导航项（ScanLine 图标）
-- 后端: analyze 路由返回 record_id 供前端复核提交
-- 后端: 修复 review/get-record/policy-links 路由对 JSON 字符串字段未反序列化导致的 500
-- 依赖: 补装 greenlet（SQLAlchemy 异步引擎必需）

@@ -1,5 +1,5 @@
 """
-医保智脑 - 政策知识库服务
+MedSignal - 政策知识库服务
 
 基于 ChromaDB 的向量检索知识库，支持：
 - 文档分块索引（按 key_points 和 content 分段）

@@ -116,7 +116,7 @@ export default function HomePage() {
       id: loadingId,
       role: "assistant",
       content: "",
-      agent: "医保智脑",
+      agent: "MedSignal",
       agentColor: "bg-blue-100 text-blue-700",
       timestamp: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }),
       isLoading: true,
@@ -156,7 +156,7 @@ export default function HomePage() {
         id: (Date.now() + 2).toString(),
         role: "assistant",
         content: "抱歉，处理您的请求时出现了问题，请稍后重试。",
-        agent: "医保智脑",
+        agent: "MedSignal",
         agentColor: "bg-blue-100 text-blue-700",
         timestamp: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }),
         error: true,
@@ -185,8 +185,8 @@ export default function HomePage() {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground">医保智脑</h1>
-              <p className="text-xs text-muted-foreground">基于可信数据空间的个人医保智能体</p>
+              <h1 className="text-lg font-bold text-foreground">MedSignal</h1>
+              <p className="text-xs text-muted-foreground">多模态医疗信号智能体 · 关键医疗信号识别 × 患者信息连接</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -235,7 +235,7 @@ export default function HomePage() {
             <button className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
               <Paperclip className="h-4 w-4" />
             </button>
-            <ChatInput onSend={handleSend} placeholder={`为 ${currentUser.name} 解答医保问题...`} disabled={isSending} />
+            <ChatInput onSend={handleSend} placeholder={`为 ${currentUser.name} 识别关键医疗信号、解答医保与健康问题...`} disabled={isSending} />
           </div>
           <div className="mt-2 flex items-center gap-2 px-2">
             <Badge variant="secondary" className="text-xs">
@@ -361,8 +361,8 @@ function WelcomeScreen({ onAction, userName, userConditions }: { onAction: (prom
       <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-xl shadow-blue-500/25 mb-4">
         <Sparkles className="h-8 w-8 text-white" />
       </div>
-      <h2 className="text-2xl font-bold text-foreground mb-1">医保智脑</h2>
-      <p className="text-muted-foreground mb-1">您好，{userName}！我是您的 AI 医保管家</p>
+      <h2 className="text-2xl font-bold text-foreground mb-1">MedSignal</h2>
+      <p className="text-muted-foreground mb-1">您好，{userName}！我是您的多模态医疗信号智能体</p>
       {userConditions.length > 0 && (
         <p className="text-xs text-orange-600 mb-6">
           已关注您的健康状况：{userConditions.join("、")}

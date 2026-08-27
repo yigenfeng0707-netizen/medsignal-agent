@@ -1,5 +1,5 @@
 """
-医保智脑 - 智能体编排服务
+MedSignal - 智能体编排服务
 
 增强版编排器，集成：
 - LLMService：用于意图识别和对话生成
@@ -311,7 +311,7 @@ class Orchestrator:
                     agent_outputs.append(f"【{name}】{resp}")
 
                 fusion_prompt = (
-                    "你是医保智脑的编排智能体。以下是多个专业智能体对同一问题的回答，"
+                    "你是MedSignal的编排智能体。以下是多个专业智能体对同一问题的回答，"
                     "请将它们融合成一段连贯、完整、不重复的回答。"
                     "保留各智能体的关键结论，用【智能体名】标注信息来源。"
                     "如果某些信息重复，合并表述。最后给出 1-2 条综合建议。"
@@ -415,7 +415,7 @@ class Orchestrator:
                 ]
 
                 # 个性化系统提示
-                sys_prompt = "你是医保智脑的政策参谋。请基于政策资料准确回答，结合用户实际情况给出可享受的政策建议，并引用来源。"
+                sys_prompt = "你是MedSignal的政策参谋。请基于政策资料准确回答，结合用户实际情况给出可享受的政策建议，并引用来源。"
                 if user_profile and user_profile.get("found"):
                     sys_prompt += (
                         f"\n\n## 用户情况：{user_profile.get('name', '')}，"
@@ -562,7 +562,7 @@ class Orchestrator:
                         f"来源: {r.source} | 标题: {r.title}\n{r.content}"
                         for r in search_results
                     ]
-                    sys_prompt = "你是医保智脑的权益管家，请根据政策资料准确回答用户的报销比例、起付线、封顶线、个人账户等问题。"
+                    sys_prompt = "你是MedSignal的权益管家，请根据政策资料准确回答用户的报销比例、起付线、封顶线、个人账户等问题。"
                     if user_profile and user_profile.get("found"):
                         sys_prompt += (
                             f"\n\n## 用户情况：{user_profile.get('name', '')}，"
@@ -604,7 +604,7 @@ class Orchestrator:
         self, message: str, user_id: str | None = None,
         user_profile: dict | None = None,
     ) -> dict[str, Any]:
-        """处理脑电健康智能体（第 6 个智能体「脑电卫士」，BCI×医保核心创新）
+        """处理脑电健康智能体（「脑电卫士」，关键医疗信号识别核心）
 
         流程：EEG 采集（合成信号）→ 频域特征提取 → 健康指标 → 异常预警 → 医保政策联动
         若有 LLM，进一步用自然语言解读脑电结果；否则用结构化模板回答。
@@ -663,7 +663,7 @@ class Orchestrator:
         if self._llm is not None:
             try:
                 sys_prompt = (
-                    "你是医保智脑的脑电卫士智能体（EEG Agent），负责解读 EEG 脑电评估结果并给出健康建议。"
+                    "你是MedSignal的脑电卫士智能体（EEG Agent），负责解读 EEG 脑电评估结果并给出健康建议。"
                     "基于五频段功率（δ/θ/α/β/γ）和四维健康指标（压力/注意力/睡眠/认知负荷）解读用户脑电状态，"
                     "并主动推荐相关医保政策。回答要专业、温暖、可操作，体现'脑电采集→健康评估→医保联动'全链路。"
                 )
@@ -849,10 +849,10 @@ class Orchestrator:
             try:
                 # 优先使用 prompts/agent_prompts.py 里的专业系统提示词
                 agent_descriptions = {
-                    "claims": "你是医保智脑的报销助手，帮助用户了解报销流程、准备报销材料、解读报销差额。回答要专业、具体、可操作。",
-                    "security": "你是医保智脑的安全守门，解答用户关于数据授权、隐私保护、审计追溯、可信数据空间的问题。强调'数据可用不可见'理念。",
+                    "claims": "你是MedSignal的报销助手，帮助用户了解报销流程、准备报销材料、解读报销差额。回答要专业、具体、可操作。",
+                    "security": "你是MedSignal的安全守门，解答用户关于数据授权、隐私保护、审计追溯、可信数据空间的问题。强调'数据可用不可见'理念。",
                 }
-                system_prompt = agent_descriptions.get(agent_type, "你是医保智脑的智能助手，请专业、准确地回答用户问题。")
+                system_prompt = agent_descriptions.get(agent_type, "你是MedSignal的智能助手，请专业、准确地回答用户问题。")
 
                 # 注入用户上下文
                 user_msg = message

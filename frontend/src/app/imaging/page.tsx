@@ -290,7 +290,7 @@ export default function ImagingPage() {
             <h1 className="text-2xl font-bold">影像卫士 · AI 医学影像标注工作台</h1>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            AI 病灶检测预标注 → 医师逐框复核 → 生成结构化报告与医保政策联动（本次患者：{currentUser.name}）
+            关键医疗信号识别 · AI 病灶检测预标注 → 医师逐框复核 → 结构化报告与医保政策联动（本次患者：{currentUser.name}）
           </p>
         </div>
         <ApiStatusIndicator />

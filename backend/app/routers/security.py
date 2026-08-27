@@ -1,5 +1,5 @@
 """
-医保智脑 - 数据安全路由
+MedSignal - 数据安全路由
 
 P0-2 升级：
 - 接入真实 DataAuthorization 表

@@ -1,5 +1,5 @@
 """
-医保智脑 - 统一数据访问层 (CRUD)
+MedSignal - 统一数据访问层 (CRUD)
 
 所有 Router / Service 通过本模块查询数据库，避免直接操作 session。
 所有函数均为 async，接收 AsyncSession，返回 ORM 对象或标量。

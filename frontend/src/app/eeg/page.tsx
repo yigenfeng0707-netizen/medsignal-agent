@@ -411,7 +411,7 @@ export default function EEGPage() {
       <div className="p-6 space-y-6">
         <motion.div {...fadeIn}>
           <h1 className="text-2xl font-bold text-foreground">脑电健康</h1>
-          <p className="text-sm text-muted-foreground">BCI×医保创新 · 脑电采集 → 健康评估 → 医保联动</p>
+          <p className="text-sm text-muted-foreground">关键医疗信号识别 · 脑电采集 → 频域分析 → 健康预警</p>
         </motion.div>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -435,7 +435,7 @@ export default function EEGPage() {
               脑电健康
             </h1>
             <p className="text-sm text-muted-foreground">
-              BCI×医保创新 · 脑电采集 → 健康评估 → 医保联动 · {currentUser?.name || "用户"}
+              关键医疗信号识别 · 脑电采集 → 频域分析 → 健康预警 · {currentUser?.name || "用户"}
             </p>
           </div>
           <ApiStatusIndicator />
@@ -847,7 +847,7 @@ export default function EEGPage() {
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-purple-600" />
                 脑电异常 → 医保政策联动
-                <Badge className="bg-purple-600 text-white">BCI×医保核心创新</Badge>
+                <Badge className="bg-purple-600 text-white">脑电信号识别</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>

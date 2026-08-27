@@ -1,5 +1,5 @@
 """
-医保智脑 - 医保待遇路由
+MedSignal - 医保待遇路由
 
 P0-2 升级：从数据库查询真实数据，支持多用户切换
 - get_coverage_summary: 查 User + InsuranceRecord 聚合

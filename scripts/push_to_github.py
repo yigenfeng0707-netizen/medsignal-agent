@@ -15,20 +15,22 @@ import requests
 
 # ==================== 配置 ====================
 REPO_OWNER = "yigenfeng0707-netizen"
-REPO_NAME = "yibao-eeg"
+REPO_NAME = "medsignal-agent"
 API_BASE = "https://api.github.com"
 BRANCH = "main"
-COMMIT_MSG = """feat: 医保智脑 v2.1.0 — BCI×医保创新版
+COMMIT_MSG = """feat: MedSignal v2.3.0 — 多模态医疗信号智能体
 
-基于可信数据空间的个人医保智能体，6 个专业智能体协作 + EEG 脑电健康模块。
+面向 VentureD 医疗赛道"关键医疗信号识别"方向的多模态医疗信号智能体，
+覆盖 EEG 脑电 / 医学影像 / 健康行为三类关键信号 + 患者信息连接。
 
 核心能力：
-- 权益管家/报销助手/健康卫士/政策参谋/安全守门/脑电卫士 6 个智能体
-- BCI×医保创新全链路：EEG 采集 → 频域分析 → 健康评估 → 医保政策自动联动
-- 脑电健康第 6 维：4 通道/256Hz/五频段 → 压力/注意力/睡眠/认知负荷/情绪
-- 多智能体协作 + 主动式健康预警 + 可信数据空间 + 全链路可解释性
+- 1 个编排器 + 7 个专业智能体：eeg/imaging/health/coverage/claims/policy/security
+- 医学影像 AI 预标注工作台：病灶定位 → 医生逐帧审查 → 报告（Human-in-the-Loop）
+- EEG 脑电信号：4 通道/256Hz/五频段 → 压力/注意力/睡眠/认知负荷/情绪
+- 健康行为信号：用药/就诊/指标异常主动预警 + 权益/政策自动匹配
+- 可信数据空间 + 全链路可解释性，医疗安全边界设计
 
-测试：92 项单元测试 + 60 项端到端冒烟测试，全部通过"""
+测试：188 项单元测试全部通过，前端 TypeScript 类型检查通过"""
 
 # 从 gh CLI 获取 token
 TOKEN = os.popen("gh auth token").read().strip() if not os.environ.get("GH_TOKEN") else os.environ["GH_TOKEN"]
@@ -37,17 +39,18 @@ HEADERS = {
     "Authorization": f"Bearer {TOKEN}",
     "Accept": "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
-    "User-Agent": "yibao-eeg-push-script",
+    "User-Agent": "medsignal-push-script",
 }
 
 # ==================== 排除规则（与 .gitignore 一致）====================
 EXCLUDE_DIRS = {
     ".git", "__pycache__", ".pytest_cache", "node_modules", ".next",
     "venv", "env", ".venv", "build", "dist", ".vscode", ".idea",
-    "data/chroma", "data/embeddings",
+    "data/chroma", "data/embeddings", "htmlcov",
 }
 EXCLUDE_FILES = {".env", ".env.local", "yibao.db", "yibao.db-journal",
-                 "next-env.d.ts", "tsconfig.tsbuildinfo", ".DS_Store"}
+                 "next-env.d.ts", "tsconfig.tsbuildinfo", ".DS_Store",
+                 "coverage.xml"}
 EXCLUDE_EXTS = {".pyc", ".pyo", ".pyd", ".so", ".dll", ".exe",
                 ".db", ".sqlite", ".sqlite3", ".log", ".tmp", ".bak"}
 
@@ -149,7 +152,7 @@ def update_ref(sha: str, session: requests.Session) -> dict:
 
 
 def main():
-    root = Path(__file__).resolve().parent.parent  # yibao-eeg 根目录
+    root = Path(__file__).resolve().parent.parent  # medsignal-agent 根目录
     print(f"📦 项目根目录: {root}")
 
     # 1. 收集文件

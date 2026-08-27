@@ -333,7 +333,7 @@ def main():
     args = parser.parse_args()
 
     print("=" * 60)
-    print("  医保智脑 · EEG 设备接入端到端验证")
+    print("  MedSignal · EEG 设备接入端到端验证")
     print("=" * 60)
     print(f"  时间：{time.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"  后端：{args.api_base if not args.engine_only else '（跳过 HTTP）'}")
