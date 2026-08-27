@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     DASHSCOPE_API_KEY: str = ""
     DASHSCOPE_BASE_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     DASHSCOPE_MODEL: str = "qwen-plus"
+    # 阿里云多模态（视觉）模型：档案管家转录上传的报告图片
+    DASHSCOPE_VL_MODEL: str = "qwen-vl-plus"
 
     # 视觉模型：aiping 网关（GLM-4.6V，供影像/图文理解扩展使用）
     VISION_API_KEY: str = ""

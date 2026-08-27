@@ -35,6 +35,8 @@ class User(Base):
     authorizations = relationship("DataAuthorization", back_populates="user")
     eeg_records = relationship("EEGRecord", back_populates="user")
     imaging_records = relationship("ImagingRecord", back_populates="user")
+    body_documents = relationship("BodyDocument", back_populates="user")
+    body_records = relationship("BodyRecord", back_populates="user")
 
 
 class InsuranceRecord(Base):
@@ -163,3 +165,56 @@ class ImagingRecord(Base):
     policy_link_count = Column(Integer, default=0)
 
     user = relationship("User", back_populates="imaging_records")
+
+
+class BodyDocument(Base):
+    """用户上传的医疗资料存档（档案管家）
+
+    只保存解析出的文本（不存文件二进制），用于版本追溯：每条 BodyRecord 可回指来源文档。
+    """
+    __tablename__ = "body_documents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    filename = Column(String(200), nullable=False)
+    mime_type = Column(String(80), default="")
+    # CT报告 / MRI报告 / 病历文本 / 其他
+    doc_kind = Column(String(30), default="其他")
+    extracted_text = Column(Text, default="")
+    uploaded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    user = relationship("User", back_populates="body_documents")
+    records = relationship("BodyRecord", back_populates="document")
+
+
+class BodyRecord(Base):
+    """人体健康档案记录（档案管家）— 只增不删
+
+    每条记录 = 用户在对话/资料中**明确陈述**的一条部位相关信息（原文转述 + 原文片段）。
+    新信息永远追加，不覆盖历史；batch_id 标记同一次归档周期（版本分组）。
+    不含任何推断或诊断字段。
+    """
+    __tablename__ = "body_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    # 器官/部位 key（见 services/body/taxonomy.py）
+    organ = Column(String(40), nullable=False, index=True)
+    # 原文转述
+    description = Column(Text, nullable=False)
+    # 原文片段（逐字）
+    raw_excerpt = Column(Text, default="")
+    # 检查/发生时间，允许不完整："2026-02" / "2026-07-15" / ""
+    event_date = Column(String(10), default="")
+    # chat | upload
+    source_type = Column(String(10), nullable=False)
+    # 对话输入 / CT报告 / MRI报告 / 病历文本 / 其他
+    source_label = Column(String(30), nullable=False)
+    # conversation_id 或 文件名
+    source_ref = Column(String(200), default="")
+    document_id = Column(Integer, ForeignKey("body_documents.id"), nullable=True)
+    batch_id = Column(String(40), default="", index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    user = relationship("User", back_populates="body_records")
+    document = relationship("BodyDocument", back_populates="records")

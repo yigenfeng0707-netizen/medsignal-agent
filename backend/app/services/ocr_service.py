@@ -50,21 +50,14 @@ class OCRService:
             )
         return self._llm
 
-    async def recognize(self, image_bytes: bytes, filename: str = "receipt.jpg") -> dict:
-        """识别医疗发票图片
+    async def recognize_text(self, image_bytes: bytes, filename: str = "image.jpg") -> str:
+        """调用 OCR.space 返回原始识别文本；未配置/失败返回空串（绝不返回 mock 文本）。
 
-        Args:
-            image_bytes: 图片二进制数据
-            filename: 文件名
-
-        Returns:
-            结构化的 OCR 识别结果
+        供档案管家等只需要原文的场景复用。
         """
         if not self._initialized:
-            return self._mock_ocr_result()
-
+            return ""
         try:
-            # 调用 OCR.space API
             async with httpx.AsyncClient(timeout=30) as client:
                 response = await client.post(
                     self._api_url,
@@ -79,33 +72,44 @@ class OCRService:
                 response.raise_for_status()
                 result = response.json()
 
-            # 解析 OCR 结果
             if result.get("IsErroredOnProcessing"):
                 logger.error("OCR 处理错误: %s", result.get("ErrorMessage"))
-                return self._mock_ocr_result()
-
+                return ""
             parsed_results = result.get("ParsedResults", [])
-            if not parsed_results:
-                logger.warning("OCR 未返回识别结果")
-                return self._mock_ocr_result()
-
-            # 提取识别文本
-            text = parsed_results[0].get("ParsedText", "")
-            if not text:
+            text = parsed_results[0].get("ParsedText", "") if parsed_results else ""
+            if text:
+                logger.info("OCR 识别成功，文本长度: %d 字符", len(text))
+            else:
                 logger.warning("OCR 识别文本为空")
-                return self._mock_ocr_result()
-
-            logger.info("OCR 识别成功，文本长度: %d 字符", len(text))
-
-            # 将原始文本交给 LLM 解析为结构化数据
-            return await self._parse_with_llm(text)
-
+            return text
         except httpx.TimeoutException:
             logger.error("OCR 请求超时")
-            return self._mock_ocr_result()
         except httpx.HTTPStatusError as e:
             logger.error("OCR HTTP 错误: %s", e)
+        except Exception as e:
+            logger.error("OCR 处理失败: %s", e)
+        return ""
+
+    async def recognize(self, image_bytes: bytes, filename: str = "receipt.jpg") -> dict:
+        """识别医疗发票图片
+
+        Args:
+            image_bytes: 图片二进制数据
+            filename: 文件名
+
+        Returns:
+            结构化的 OCR 识别结果
+        """
+        if not self._initialized:
             return self._mock_ocr_result()
+
+        text = await self.recognize_text(image_bytes, filename)
+        if not text:
+            return self._mock_ocr_result()
+
+        # 将原始文本交给 LLM 解析为结构化数据
+        try:
+            return await self._parse_with_llm(text)
         except Exception as e:
             logger.error("OCR 处理失败: %s", e)
             return self._mock_ocr_result()

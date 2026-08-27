@@ -7,16 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.auth import generate_session_token
 from app.config import settings
 from app.database import init_db
-from app.routers import (
-    agents,
-    claims,
-    coverage,
-    eeg,
-    health_profile,
-    imaging,
-    policy,
-    security,
-)
+from app.routers import agents, body, claims, coverage, eeg, health_profile, imaging, policy, security
 from app.services import orchestrator
 
 
@@ -61,6 +52,7 @@ app.include_router(policy.router)
 app.include_router(security.router)
 app.include_router(eeg.router)
 app.include_router(imaging.router)
+app.include_router(body.router)
 
 
 @app.get("/api/health")

@@ -15,6 +15,8 @@ from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
+    BodyDocument,
+    BodyRecord,
     DataAuthorization,
     EEGRecord,
     ImagingRecord,
@@ -24,6 +26,7 @@ from app.models import (
     PolicyDocument,
     User,
 )
+from app.services.body.taxonomy import label_of as _organ_label
 
 logger = logging.getLogger(__name__)
 
@@ -232,7 +235,16 @@ async def get_user_health_profile(db: AsyncSession, user_id: str | int) -> dict:
     # 诊断推断（基于就诊记录）
     diagnoses = list({v.diagnosis for v in visits if v.diagnosis})[:10]
 
+    # 档案管家：用户自述/上传资料归档（供各 Agent 上下文与政策匹配共享，原文转述、无推断）
+    body_records = await get_body_records(db, uid, limit=50)
+
     return {
+        "body_record_count": len(body_records),
+        "body_organs": sorted({_organ_label(r.organ) for r in body_records}),
+        "body_recent": [
+            f"[{r.event_date or '日期未注明'}][{r.source_label}] {_organ_label(r.organ)}：{r.description}"
+            for r in body_records[:5]
+        ],
         "user_id": uid,
         "found": True,
         "name": user.name,
@@ -454,4 +466,106 @@ def imaging_record_to_dict(record: ImagingRecord) -> dict:
         "report": json.loads(record.report) if record.report else None,
         "risk_level": record.risk_level,
         "policy_link_count": record.policy_link_count,
+    }
+
+
+# ============================================================
+# 人体健康档案（档案管家）— 只增不删
+# ============================================================
+
+async def create_body_document(
+    db: AsyncSession,
+    user_id: str | int,
+    filename: str,
+    mime_type: str,
+    doc_kind: str,
+    extracted_text: str,
+) -> BodyDocument:
+    """存档一份上传资料（只存解析文本）。"""
+    doc = BodyDocument(
+        user_id=_normalize_user_id(user_id),
+        filename=filename[:200],
+        mime_type=mime_type[:80],
+        doc_kind=doc_kind,
+        extracted_text=extracted_text,
+    )
+    db.add(doc)
+    await db.commit()
+    await db.refresh(doc)
+    return doc
+
+
+async def create_body_records(
+    db: AsyncSession,
+    user_id: str | int,
+    records: list[dict],
+    *,
+    source_type: str,
+    source_label: str,
+    source_ref: str = "",
+    document_id: int | None = None,
+    batch_id: str = "",
+) -> list[BodyRecord]:
+    """追加一批档案记录（同一 batch_id = 同一次归档周期）。永不覆盖旧记录。"""
+    uid = _normalize_user_id(user_id)
+    rows = [
+        BodyRecord(
+            user_id=uid,
+            organ=r["organ"],
+            description=r.get("description") or r.get("raw_excerpt") or "",
+            raw_excerpt=r.get("raw_excerpt") or "",
+            event_date=(r.get("event_date") or "")[:10],
+            source_type=source_type,
+            source_label=source_label,
+            source_ref=(source_ref or "")[:200],
+            document_id=document_id,
+            batch_id=batch_id,
+        )
+        for r in records
+    ]
+    db.add_all(rows)
+    await db.commit()
+    for row in rows:
+        await db.refresh(row)
+    return rows
+
+
+async def get_body_records(
+    db: AsyncSession, user_id: str | int, organ: str | None = None, limit: int = 500
+) -> list[BodyRecord]:
+    """按时间倒序（检查时间优先，其次归档时间）返回档案记录；未注明时间的排最后。"""
+    uid = _normalize_user_id(user_id)
+    stmt = select(BodyRecord).where(BodyRecord.user_id == uid)
+    if organ:
+        stmt = stmt.where(BodyRecord.organ == organ)
+    stmt = stmt.order_by(desc(BodyRecord.event_date), desc(BodyRecord.created_at), desc(BodyRecord.id)).limit(limit)
+    result = await db.execute(stmt)
+    return list(result.scalars().all())
+
+
+async def get_body_organ_summary(db: AsyncSession, user_id: str | int) -> dict:
+    """各器官记录数与最近检查时间：{organ: {label, count, latest_event_date}}。"""
+    summary: dict[str, dict] = {}
+    for r in await get_body_records(db, user_id):
+        s = summary.setdefault(r.organ, {"label": _organ_label(r.organ), "count": 0, "latest_event_date": ""})
+        s["count"] += 1
+        if r.event_date and r.event_date > s["latest_event_date"]:
+            s["latest_event_date"] = r.event_date
+    return summary
+
+
+def body_record_to_dict(r: BodyRecord) -> dict:
+    return {
+        "id": r.id,
+        "organ": r.organ,
+        "organ_label": _organ_label(r.organ),
+        "description": r.description,
+        "raw_excerpt": r.raw_excerpt or "",
+        "event_date": r.event_date or "",
+        "source_type": r.source_type,
+        "source_label": r.source_label,
+        "source_ref": r.source_ref or "",
+        "document_id": r.document_id,
+        "batch_id": r.batch_id or "",
+        "created_at": r.created_at.isoformat() if r.created_at else None,
     }

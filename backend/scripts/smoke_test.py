@@ -218,6 +218,28 @@ def main():
     check("压力状态指标差异", stress_stressed > stress_relaxed,
           f"高压力{stress_stressed} vs 放松{stress_relaxed} ✨")
 
+
+    # ---------- 10. 档案管家（人体健康档案，只增不删）----------
+    section("10. 档案管家 — 对话归档 / 上传归档 / 检索")
+    chat = client.post("/api/agents/chat", json={
+        "message": "我2026年2月查出肺部小结节", "user_id": "user_009"
+    }).json()
+    check("对话触发归档 body_updates", len(chat.get("body_updates", [])) >= 1,
+          f"{[u.get('organ') for u in chat.get('body_updates', [])]}")
+    check("body_focus=lungs", chat.get("body_focus") == "lungs", str(chat.get("body_focus")))
+    up = client.post("/api/body/user_009/upload", files={
+        "file": ("ct_0715.txt", "2026年7月复查CT：肺部结节较前相仿。".encode("utf-8"), "text/plain")
+    }).json()
+    check("上传归档 records_added>=1", up.get("records_added", 0) >= 1, f"{up.get('doc_kind')}")
+    check("上传回复含对比", bool(up.get("comparison")), "同部位自动并列历史记录")
+    recs = client.get("/api/body/user_009/records", params={"organ": "lungs"}).json()
+    check("肺部记录 >= 2 条（只增不删）", recs.get("total", 0) >= 2, f"{recs.get('total')} 条")
+    check("时间倒序", recs["records"][0]["event_date"] >= recs["records"][-1]["event_date"],
+          f"{recs['records'][0]['event_date']} → {recs['records'][-1]['event_date']}")
+    check("每条带来源标签", all(r.get("source_label") for r in recs["records"]))
+    organs = client.get("/api/body/organs").json()
+    check("器官分类表", "lungs" in organs.get("organs", {}))
+
     # ---------- 汇总 ----------
     section("测试汇总")
     print(f"  通过: {results['pass']}  失败: {results['fail']}")

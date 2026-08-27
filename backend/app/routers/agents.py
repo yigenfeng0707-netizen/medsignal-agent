@@ -18,10 +18,32 @@ from app.auth import require_api_key
 from app.database import get_db
 from app.schemas import ChatRequest
 from app.services import orchestrator
+from app.services.body import extractor as body_extractor
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/agents", tags=["智能体编排"])
+
+
+async def _ingest_chat(db: AsyncSession, user_id: str, message: str, conversation_id: str | None) -> list[dict]:
+    """每一轮对话都触发一次归档周期（档案管家常驻钩子）。
+
+    对话即使路由到其他智能体（如权益管家），只要提到身体部位/症状，也追加到健康档案。
+    失败不影响对话回复。
+    """
+    import asyncio
+    try:
+        return await asyncio.wait_for(
+            body_extractor.ingest_text(
+                db, user_id, message,
+                source_type="chat", source_label=body_extractor.SOURCE_CHAT,
+                source_ref=conversation_id or "", llm=orchestrator._llm,
+            ),
+            timeout=15.0,
+        )
+    except Exception as e:
+        logger.warning("对话归档失败(user_id=%s): %s", user_id, e)
+        return []
 
 
 @router.post("/chat")
@@ -69,14 +91,25 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
     # 4. 聚合结果（补充通用建议）
     final = orchestrator.aggregate_results(result, agent_type=agent_type)
 
+    # 5. 档案管家归档周期：body 智能体自己已归档；其他意图走常驻钩子
+    data = final.get("data", {}) or {}
+    body_updates = data.get("body_updates") or []
+    body_focus = data.get("body_focus")
+    if agent_type != "body":
+        body_updates = await _ingest_chat(db, user_id, message, conversation_id)
+        if body_updates and not body_focus:
+            body_focus = body_updates[0]["organ"]
+
     return {
         "agent_type": final.get("agent_type", f"{agent_type}_agent"),
         "response": final["response"],
-        "data": final.get("data", {}),
+        "data": data,
         "evidence": final.get("evidence"),
         "suggestions": final.get("suggestions", []),
         "user_profile": _brief_profile(user_profile),
         "conversation_id": conversation_id,
+        "body_updates": body_updates,
+        "body_focus": body_focus,
     }
 
 
@@ -138,7 +171,18 @@ async def complex_chat(
     multi_agent = result.get("multi_agent", False)
     intent_weights = result.get("intent_weights", [])
 
+    # 档案管家归档周期（复合意图未调度 body 时由钩子兜底）
+    data = result.get("data", {}) or {}
+    body_updates = data.get("body_updates") or []
+    body_focus = data.get("body_focus")
+    if "body" not in agents_invoked:
+        body_updates = await _ingest_chat(db, user_id, message, conversation_id)
+        if body_updates and not body_focus:
+            body_focus = body_updates[0]["organ"]
+
     return {
+        "body_updates": body_updates,
+        "body_focus": body_focus,
         "agent_type": "orchestrator_agent",
         "response": result.get("response", ""),
         "data": {
@@ -170,6 +214,8 @@ def _complex_suggestions(agents: list[str]) -> list[str]:
         suggestions.append("查看您的健康画像和预警")
     if "eeg" in agents:
         suggestions.append("发起脑电采集，查看脑电健康指标")
+    if "body" in agents:
+        suggestions.append("查看或对比您健康档案中的记录")
     if not suggestions:
         suggestions.append("您可以问我医保报销、政策、健康、脑电等任何问题")
     return suggestions[:4]

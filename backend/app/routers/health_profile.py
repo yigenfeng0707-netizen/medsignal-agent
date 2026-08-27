@@ -89,6 +89,20 @@ async def get_proactive_alerts(user_id: str, db: AsyncSession = Depends(get_db))
     except Exception as e:
         logger.warning("合并 EEG 预警失败: %s", e)
 
+    # 档案管家：记录整理类提醒（缺少检查时间 → 无法纵向对比）。只关乎档案完整性，不涉及医疗判断。
+    try:
+        undated = [r for r in await crud.get_body_records(db, user_id) if not r.event_date]
+        if undated:
+            desc = f"有 {len(undated)} 条健康档案记录缺少检查时间，补充后可用于不同时间点的纵向对比"
+            alerts.append({
+                "level": "low", "icon": "📇", "title": "健康档案待补充",
+                "description": desc, "desc": desc,
+                "suggestion": "在对话中告诉档案管家该记录的检查时间即可",
+                "source": "body", "source_label": "档案管家",
+            })
+    except Exception as e:
+        logger.warning("合并档案管家提醒失败: %s", e)
+
     return {
         "user_id": user_id,
         "user_name": profile.get("name"),

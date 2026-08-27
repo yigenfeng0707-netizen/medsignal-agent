@@ -31,6 +31,7 @@ class LLMService:
 - health_profile: 健康画像、体检、慢病管理、预警等
 - policy: 政策查询、规定、通知、异地就医、参保等
 - security: 数据授权、隐私、安全、审计等
+- body: 用户描述自己身体部位的症状/检查结果（如"查出肺结节"、"右肩疼"），或要求记录、查看、对比自己的健康档案
 
 请返回如下 JSON 格式：
 {
@@ -203,6 +204,29 @@ class LLMService:
                 return f"抱歉，AI 服务暂时出现问题：{e}"
 
         return "LLM 服务暂不可用，请检查 API 配置。"
+
+    async def chat_vision(self, messages: list[dict], temperature: float = 0.1) -> str:
+        """多模态（图片）对话：走阿里云 DashScope 视觉模型（qwen-vl-*）。
+
+        messages 的 content 为 OpenAI 兼容多段格式：
+        [{"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,..."}}, {"type": "text", "text": "..."}]
+        无 DashScope 配置时抛 RuntimeError，由调用方降级。
+        """
+        from app.config import settings
+
+        client = self._fallback_client if self._fallback_initialized else None
+        if client is None and self._initialized and "dashscope" in self._base_url:
+            client = self._client
+        if client is None:
+            raise RuntimeError("视觉模型不可用：未配置 DASHSCOPE_API_KEY")
+
+        response = client.chat.completions.create(
+            model=settings.DASHSCOPE_VL_MODEL,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=2048,
+        )
+        return (response.choices[0].message.content or "").strip()
 
     async def chat_with_rag(
         self,
@@ -395,8 +419,8 @@ class LLMService:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _parse_json_response(text: str) -> dict | None:
-        """尝试从 LLM 响应中解析 JSON
+    def _parse_json_response(text: str) -> Optional[dict | list]:
+        """尝试从 LLM 响应中解析 JSON（对象或数组）
 
         处理可能的 markdown 代码块包裹等情况。
         """
@@ -411,14 +435,15 @@ class LLMService:
         try:
             return json.loads(text)
         except json.JSONDecodeError:
-            # 尝试提取 JSON 部分
+            # 尝试提取 JSON 部分（对象优先，其次数组）
             import re
-            json_match = re.search(r"\{[\s\S]*\}", text)
-            if json_match:
-                try:
-                    return json.loads(json_match.group())
-                except json.JSONDecodeError:
-                    pass
+            for pattern in (r"\{[\s\S]*\}", r"\[[\s\S]*\]"):
+                json_match = re.search(pattern, text)
+                if json_match:
+                    try:
+                        return json.loads(json_match.group())
+                    except json.JSONDecodeError:
+                        continue
             logger.warning("JSON 解析失败: %s", text[:100])
             return None
 

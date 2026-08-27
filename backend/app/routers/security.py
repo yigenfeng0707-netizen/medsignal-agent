@@ -31,6 +31,7 @@ AGENTS = [
     ("health_agent", "健康卫士"),
     ("claims_agent", "报销助手"),
     ("policy_agent", "政策参谋"),
+    ("body_agent", "档案管家"),
 ]
 
 

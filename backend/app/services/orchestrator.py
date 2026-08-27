@@ -12,6 +12,7 @@ import logging
 from typing import Any
 
 from app.config import settings
+from app.services.body import taxonomy as body_taxonomy
 from app.services.knowledge_base import KnowledgeBase, SearchResult
 from app.services.llm_service import LLMService
 
@@ -43,6 +44,11 @@ class Orchestrator:
         "imaging": ["影像", "胸片", "X光", "X 光", "CT", "核磁", "MRI", "肺结节",
                     "病灶", "影像分析", "影像标注", "影像报告", "肺部扫描",
                     "脑部扫描", "影像检查", "医学影像"],
+        # 档案管家：用户自述部位/症状/检查结果，或查看/对比自己的健康档案
+        # 只用器官"标签"而非全部别名，避免任何提到部位的句子都压过其他意图（其他意图仍有常驻归档钩子兜底）
+        "body": ["档案", "记录一下", "帮我记", "对比", "复查", "查出", "确诊",
+                 "疼", "痛", "不适", "结节"]
+                + [label for label, _ in body_taxonomy.ORGANS.values() if "/" not in label],
     }
 
     # Mock 数据（降级方案）
@@ -74,6 +80,11 @@ class Orchestrator:
         "imaging": {
             "response": "已为您完成医学影像 AI 分析。AI 引擎对影像进行病灶检测与预标注，结果需由医师复核确认。检测发现将联动医保检查报销政策推荐。",
             "data": {"study_types": ["chest_xray", "lung_ct", "brain_mri"], "ai_findings": 0},
+        },
+        "body": {
+            "response": "档案管家已就绪：您可以直接告诉我身体某个部位的情况（如“2026年2月查出肺结节”），"
+                        "或上传 CT/MRI 报告，我会按部位整理归档，随时可查看、对比。只整理您提供的信息，不做诊断。",
+            "data": {"body_updates": [], "body_focus": None},
         },
     }
 
@@ -281,7 +292,7 @@ class Orchestrator:
             "coverage": "权益管家", "claims": "报销助手",
             "health_profile": "健康卫士", "policy": "政策参谋",
             "security": "安全守门", "eeg": "脑电卫士",
-            "imaging": "影像卫士",
+            "imaging": "影像卫士", "body": "档案管家",
         }
         parts = []
         for intent, result in agent_results.items():
@@ -303,7 +314,7 @@ class Orchestrator:
             "coverage": "权益管家", "claims": "报销助手",
             "health_profile": "健康卫士", "policy": "政策参谋",
             "security": "安全守门", "eeg": "脑电卫士",
-            "imaging": "影像卫士",
+            "imaging": "影像卫士", "body": "档案管家",
         }
 
         # 优先用 LLM 融合
@@ -384,6 +395,8 @@ class Orchestrator:
             return await self._handle_eeg_agent(message, user_id, user_profile)
         elif agent_type == "imaging":
             return await self._handle_imaging_agent(message, user_id, user_profile)
+        elif agent_type == "body":
+            return await self._handle_body_agent(message, user_id, user_profile)
         else:
             # claims / security 等暂时使用 LLM 或 mock
             return await self._handle_generic_agent(agent_type, message, user_profile)
@@ -898,6 +911,354 @@ class Orchestrator:
         return self.MOCK_RESPONSES.get(agent_type, {"response": "暂无法处理该请求", "data": {}})
 
     # ------------------------------------------------------------------
+    # 档案管家（Body Agent）— 第 8 个智能体：人体健康档案
+    #
+    # 规划（LLM → 规则）→ 固定工具（归档/检索/对比/追问/交接）→ 组织回答（结构化 → LLM 润色）
+    # 只整理用户提供的信息，不做任何诊断或推断；档案只增不删，是智能体的跨会话记忆。
+    # ------------------------------------------------------------------
+
+    BODY_TOOLS = ("archive", "retrieve", "compare", "ask_missing", "handoff")
+    _BODY_QUERY_WORDS = ("看看", "查看", "有哪些", "上次", "之前", "怎么样", "查一下", "列出",
+                         "档案里", "有没有记录", "历史记录")
+    _BODY_COMPARE_WORDS = ("对比", "变化", "趋势", "前后", "两次", "比较")
+    _BODY_AGENT_NAMES = {"policy": "政策参谋", "coverage": "权益管家"}
+
+    def _rule_body_plan(self, message: str, summary: dict) -> dict:
+        """规则规划（离线/LLM 失败时）：对比 > 查看 > 归档；报销/权益类问题追加交接。"""
+        organs = body_taxonomy.match_organs(message)
+        focus = organs[0] if organs else None
+        actions: list[dict] = []
+        if any(w in message for w in self._BODY_COMPARE_WORDS):
+            actions.append({"tool": "compare", "args": {"organ": focus}})
+        elif any(w in message for w in self._BODY_QUERY_WORDS):
+            actions.append({"tool": "retrieve", "args": {"organ": focus}})
+        elif body_taxonomy.has_health_signal(message):
+            actions.append({"tool": "archive", "args": {}})
+        else:
+            actions.append({"tool": "retrieve", "args": {"organ": None}})
+        if any(w in message for w in ("报多少", "权益", "账户", "余额", "缴费", "报销比例")):
+            actions.append({"tool": "handoff", "args": {"agent": "coverage"}})
+        elif any(w in message for w in ("报销", "政策", "能报", "待遇", "省钱")):
+            actions.append({"tool": "handoff", "args": {"agent": "policy"}})
+        return {"actions": actions, "focus": focus}
+
+    async def _plan_body_actions(self, message: str, summary: dict) -> dict:
+        """LLM 规划工具序列（10s 超时），失败降级规则规划。"""
+        if self._llm is not None:
+            try:
+                sys_prompt = (
+                    "你是 MedSignal 档案管家的规划模块。根据用户消息和档案概况，决定要执行的工具序列，只返回 JSON。\n"
+                    "可用工具：archive（用户陈述了新的身体部位/症状/检查信息时归档）、"
+                    "retrieve（用户想查看档案，args.organ 可为 null 表示全部）、"
+                    "compare（用户想对比同一部位不同时间的记录，args.organ）、"
+                    "ask_missing（需要用户补充信息，args.questions 列表）、"
+                    "handoff（用户问报销/政策/权益，args.agent ∈ policy|coverage）。\n"
+                    f"organ 只能取：{', '.join(body_taxonomy.ORGANS)}\n"
+                    '格式：{"actions":[{"tool":"archive","args":{}}],"focus":"lungs 或 null"}'
+                )
+                resp = await asyncio.wait_for(
+                    self._llm.chat(
+                        [
+                            {"role": "system", "content": sys_prompt},
+                            {"role": "user", "content": f"档案概况：{summary}\n用户消息：{message}"},
+                        ],
+                        temperature=0.1,
+                    ),
+                    timeout=10.0,
+                )
+                plan = LLMService._parse_json_response(resp)
+                if isinstance(plan, dict) and isinstance(plan.get("actions"), list):
+                    actions = [a for a in plan["actions"]
+                               if isinstance(a, dict) and a.get("tool") in self.BODY_TOOLS]
+                    if actions:
+                        focus = plan.get("focus")
+                        return {"actions": actions, "focus": focus if focus in body_taxonomy.ORGANS else None}
+            except Exception as e:
+                logger.warning("档案管家规划失败: %s，降级规则规划", e)
+        return self._rule_body_plan(message, summary)
+
+    async def _run_body_tools(
+        self, db, plan: dict, message: str, user_id: str, user_profile: dict | None, *,
+        source_type: str, source_label: str, source_ref: str = "",
+        document_id: int | None = None, text: str | None = None,
+    ) -> dict:
+        """按规划顺序执行工具；每个工具失败只记日志不中断。text 为待归档原文（默认为 message）。"""
+        from app import crud
+        from app.services.body import extractor
+
+        state: dict[str, Any] = {
+            "archived": [], "records": [], "queried": None, "comparison": None,
+            "missing_info": [], "handoff": [], "handoff_results": {}, "focus": plan.get("focus"),
+        }
+        text = message if text is None else text
+
+        for action in plan.get("actions", []):
+            tool = action.get("tool")
+            args = action.get("args") if isinstance(action.get("args"), dict) else {}
+            try:
+                if tool == "archive":
+                    new = await extractor.ingest_text(
+                        db, user_id, text, source_type=source_type, source_label=source_label,
+                        source_ref=source_ref, llm=self._llm, document_id=document_id,
+                    )
+                    state["archived"].extend(new)
+                    state["missing_info"].extend(extractor.missing_info(new))
+                    if new and not state["focus"]:
+                        state["focus"] = new[0]["organ"]
+                elif tool == "retrieve":
+                    organ = args.get("organ") if args.get("organ") in body_taxonomy.ORGANS else None
+                    rows = await crud.get_body_records(db, user_id, organ=organ, limit=20)
+                    state["records"] = [crud.body_record_to_dict(r) for r in rows]
+                    state["queried"] = organ or "__all__"
+                    if organ and not state["focus"]:
+                        state["focus"] = organ
+                elif tool == "compare":
+                    organ = args.get("organ") or state["focus"]
+                    if organ not in body_taxonomy.ORGANS:
+                        summary = await crud.get_body_organ_summary(db, user_id)
+                        organ = max(summary, key=lambda k: summary[k]["count"]) if summary else None
+                    if organ:
+                        rows = await crud.get_body_records(db, user_id, organ=organ, limit=2)
+                        dicts = [crud.body_record_to_dict(r) for r in rows]
+                        if len(dicts) >= 2:
+                            state["comparison"] = {
+                                "organ": organ, "organ_label": body_taxonomy.label_of(organ),
+                                "later": dicts[0], "earlier": dicts[1],
+                            }
+                        else:
+                            state["records"], state["queried"] = dicts, organ
+                        state["focus"] = state["focus"] or organ
+                    else:
+                        state["queried"] = "__all__"
+                elif tool == "ask_missing":
+                    state["missing_info"].extend(str(q) for q in (args.get("questions") or []) if q)
+                elif tool == "handoff":
+                    target = args.get("agent")
+                    if target in self._BODY_AGENT_NAMES and target not in state["handoff"]:
+                        state["handoff"].append(target)
+            except Exception as e:
+                logger.error("档案管家工具 %s 执行失败: %s", tool, e)
+        state["missing_info"] = list(dict.fromkeys(state["missing_info"]))
+
+        # 交接：用刷新后的画像（已含本次归档）调用现有专业智能体
+        if state["handoff"]:
+            profile = user_profile
+            if state["archived"] or not profile:
+                try:
+                    profile = await crud.get_user_health_profile(db, user_id)
+                except Exception as e:
+                    logger.warning("刷新用户画像失败: %s", e)
+            for target in state["handoff"]:
+                try:
+                    handler = (self._handle_policy_agent(message, profile) if target == "policy"
+                               else self._handle_coverage_agent(message, profile))
+                    r = await asyncio.wait_for(handler, timeout=15.0)
+                    state["handoff_results"][target] = (r or {}).get("response", "")
+                except Exception as e:
+                    logger.warning("档案管家交接 %s 失败: %s", target, e)
+        return state
+
+    def _compose_body_response(self, state: dict, intro: str | None = None) -> str:
+        """结构化回答：已记录 → 并列对比 → 档案列表 → 交接结果 → 追问 → 固定免责。"""
+        from app.services.body import extractor
+
+        parts: list[str] = [intro] if intro else []
+        if state["archived"]:
+            parts.append(f"✅ 已为您记录 {len(state['archived'])} 条信息到健康档案：")
+            parts.append(extractor.records_to_text(state["archived"]))
+        if state.get("link_note"):
+            parts.append(state["link_note"])
+        c = state.get("comparison")
+        if c:
+            parts.append(f"📋 {c['organ_label']}最近两条记录并列对比（仅并列原文，是否变化请以医生判断为准）：")
+            for tag, r in (("较早", c["earlier"]), ("较新", c["later"])):
+                parts.append(
+                    f"- {tag} [{r.get('event_date') or '日期未注明'}][{r.get('source_label', '')}]："
+                    f"“{r.get('raw_excerpt') or r.get('description', '')}”"
+                )
+        queried = state.get("queried")
+        if state["records"]:
+            where = f"{body_taxonomy.label_of(queried)}的" if queried and queried != "__all__" else ""
+            parts.append(f"📁 档案中{where}记录（共 {len(state['records'])} 条，按时间倒序）：")
+            parts.append(extractor.records_to_text(state["records"]))
+        elif queried:
+            parts.append("📁 您的健康档案暂无记录。" if queried == "__all__"
+                         else f"📁 {body_taxonomy.label_of(queried)}暂无相关医疗记录。")
+        for target, text in state["handoff_results"].items():
+            if text:
+                parts.append(f"\n**【{self._BODY_AGENT_NAMES[target]}】**\n{text[:600]}")
+        if state["missing_info"]:
+            parts.append("❓ 为了档案更准确，请补充：" + "；".join(state["missing_info"][:2]))
+        if not (state["archived"] or state["records"] or c or queried or state["handoff_results"]):
+            parts.append("您可以直接告诉我身体某个部位的情况（如“2026年2月查出肺结节”），"
+                         "或上传 CT/MRI 报告，我会按部位整理归档，随时可查看、对比。")
+        parts.append(f"\nℹ️ {extractor.DISCLAIMER}")
+        return "\n".join(parts)
+
+    async def _polish_body_response(self, message: str, structured: str) -> str:
+        """LLM 润色（15s 超时）；严格限定不得新增档案外信息、不得诊断。失败返回结构化回答。"""
+        if self._llm is None:
+            return structured
+        try:
+            from app.prompts.agent_prompts import BODY_AGENT_PROMPT
+
+            sys_prompt = (
+                BODY_AGENT_PROMPT
+                + "\n\n现在请用自然、简洁的中文直接回复用户（不要输出 JSON）。"
+                  "逐条保留 [日期][来源] 标签和原文引用；不得添加档案里没有的信息；"
+                  "不得做任何诊断、判断或医疗建议；保留末尾免责声明。"
+            )
+            answer = await asyncio.wait_for(
+                self._llm.chat(
+                    [
+                        {"role": "system", "content": sys_prompt},
+                        {"role": "user", "content": f"用户消息：{message}\n\n档案管家执行结果：\n{structured}"},
+                    ],
+                    temperature=0.3,
+                ),
+                timeout=15.0,
+            )
+            if answer and "暂不可用" not in answer and "出现问题" not in answer:
+                return answer
+        except Exception as e:
+            logger.warning("档案管家润色失败: %s，返回结构化回答", e)
+        return structured
+
+    @staticmethod
+    def _body_data(state: dict) -> dict:
+        return {
+            "body_updates": state["archived"],
+            "body_focus": state.get("focus"),
+            "records": state["records"],
+            "comparison": state.get("comparison"),
+            "missing_info": state["missing_info"],
+            "handoff": state["handoff"],
+            "organ_summary": state.get("summary", {}),
+        }
+
+    @staticmethod
+    def _body_evidence(state: dict) -> list[dict]:
+        items = list(state["archived"]) + list(state["records"][:5])
+        if state.get("comparison"):
+            items += [state["comparison"]["earlier"], state["comparison"]["later"]]
+        seen, out = set(), []
+        for r in items:
+            key = r.get("id") or (r.get("organ"), r.get("event_date"), r.get("raw_excerpt"))
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append({
+                "type": "body_record", "organ": r.get("organ"), "organ_label": r.get("organ_label"),
+                "event_date": r.get("event_date"), "source_label": r.get("source_label"),
+                "excerpt": (r.get("raw_excerpt") or r.get("description") or "")[:80],
+            })
+        return out
+
+    async def _handle_body_agent(
+        self, message: str, user_id: str | None = None,
+        user_profile: dict | None = None, db=None,
+    ) -> dict[str, Any]:
+        """档案管家：规划 → 工具（归档/检索/对比/追问/交接）→ 组织回答。只整理，不诊断。
+
+        db 可注入（测试用）；默认自行开 session。
+        """
+        from app import crud
+        from app.database import async_session
+        from app.services.body import extractor
+
+        uid = user_id or "user_001"
+
+        async def _run(session) -> dict:
+            summary = await crud.get_body_organ_summary(session, uid)
+            plan = await self._plan_body_actions(message, summary)
+            logger.info("档案管家规划: %s", plan)
+            st = await self._run_body_tools(
+                session, plan, message, uid, user_profile,
+                source_type="chat", source_label=extractor.SOURCE_CHAT,
+            )
+            st["summary"] = await crud.get_body_organ_summary(session, uid)
+            return st
+
+        if db is not None:
+            state = await _run(db)
+        else:
+            async with async_session() as session:
+                state = await _run(session)
+
+        structured = self._compose_body_response(state)
+        response = await self._polish_body_response(message, structured)
+        return {"response": response, "data": self._body_data(state), "evidence": self._body_evidence(state)}
+
+    async def handle_body_document(
+        self, user_id: str, text: str, doc_kind: str, filename: str, mime: str = "",
+        user_profile: dict | None = None, db=None,
+    ) -> dict[str, Any]:
+        """上传资料 = 档案管家事件：存档 → 归档 → 同部位并入时间线并列对比 → 涉及复查/费用时交接政策参谋。"""
+        from app import crud
+        from app.database import async_session
+        from app.services.body import extractor
+
+        uid = user_id or "user_001"
+        handoff_msg = f"我上传了一份{doc_kind}《{filename}》，相关检查/复查费用有哪些医保报销政策？"
+
+        async def _run(session) -> tuple:
+            before = await crud.get_body_organ_summary(session, uid)
+            doc = await crud.create_body_document(session, uid, filename, mime, doc_kind, text or "")
+            actions = [{"tool": "archive", "args": {}}]
+            if any(k in (text or "") for k in ("复查", "检查", "费用", "报销")):
+                actions.append({"tool": "handoff", "args": {"agent": "policy"}})
+            st = await self._run_body_tools(
+                session, {"actions": actions, "focus": None}, handoff_msg, uid, user_profile,
+                source_type="upload", source_label=doc_kind, source_ref=filename,
+                document_id=doc.id, text=text or "",
+            )
+            # 同部位已有历史 → 并入时间线并列对比
+            repeated = [o for o in dict.fromkeys(r["organ"] for r in st["archived"]) if o in before]
+            if repeated:
+                organ = repeated[0]
+                rows = await crud.get_body_records(session, uid, organ=organ, limit=2)
+                dicts = [crud.body_record_to_dict(r) for r in rows]
+                if len(dicts) >= 2:
+                    st["comparison"] = {
+                        "organ": organ, "organ_label": body_taxonomy.label_of(organ),
+                        "later": dicts[0], "earlier": dicts[1],
+                    }
+                    st["link_note"] = (
+                        f"🔗 {body_taxonomy.label_of(organ)}此前已有 {before[organ]['count']} 条记录，"
+                        "本次已并入同一时间线："
+                    )
+            st["summary"] = await crud.get_body_organ_summary(session, uid)
+            return doc, st
+
+        if db is not None:
+            doc, state = await _run(db)
+        else:
+            async with async_session() as session:
+                doc, state = await _run(session)
+
+        intro = f"📄 已解析《{filename}》（{doc_kind}）"
+        if not state["archived"]:
+            intro += "，未识别到身体部位相关信息，资料已存档。"
+            if not (text or "").strip():
+                intro += "（未提取到文字：扫描版 PDF 没有文字层，可改传清晰图片。）"
+        structured = self._compose_body_response(state, intro=intro)
+        response = await self._polish_body_response(f"用户上传了{doc_kind}《{filename}》", structured)
+        return {
+            "document_id": doc.id,
+            "doc_kind": doc_kind,
+            "filename": filename,
+            "records_added": len(state["archived"]),
+            "records": state["archived"],
+            "agent_response": response,
+            "body_focus": state.get("focus"),
+            "comparison": state.get("comparison"),
+            "handoff": state["handoff"],
+            "missing_info": state["missing_info"],
+            "organ_summary": state["summary"],
+            "disclaimer": extractor.DISCLAIMER,
+        }
+
+    # ------------------------------------------------------------------
     # 结果聚合
     # ------------------------------------------------------------------
 
@@ -934,6 +1295,11 @@ class Orchestrator:
                 "查看脑电健康趋势",
                 "了解脑电异常对应的医保政策",
             ],
+            "body": [
+                "看看我的健康档案有哪些记录",
+                "对比同一部位不同时间的记录",
+                "上传 CT/MRI 报告，自动归档到对应部位",
+            ],
         }
         suggestions = suggestions_map.get(agent_type, [
             "您可以问我关于医保报销比例的问题",
@@ -947,6 +1313,7 @@ class Orchestrator:
             "policy": "policy_agent",
             "security": "security_agent",
             "eeg": "eeg_agent",
+            "body": "body_agent",
         }.get(agent_type, "orchestrator_agent")
         return {
             "agent_type": agent_type_label,

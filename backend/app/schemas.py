@@ -22,5 +22,5 @@ class PolicySearchRequest(BaseModel):
 class AuthorizationRequest(BaseModel):
     user_id: str
     data_type: str = Field(..., pattern=r"^(医保缴费记录|就医记录|购药记录|健康档案|脑电数据)$")
-    authorized_agent: str = Field(..., pattern=r"^(权益管家|报销助手|健康卫士|政策参谋|脑电卫士)$")
+    authorized_agent: str = Field(..., pattern=r"^(权益管家|报销助手|健康卫士|政策参谋|脑电卫士|档案管家)$")
     duration_days: int = Field(default=365, ge=1, le=3650)

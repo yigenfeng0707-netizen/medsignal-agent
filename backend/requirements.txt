@@ -14,6 +14,7 @@ Pillow==10.4.0
 python-multipart==0.0.9
 aiosqlite==0.20.0
 numpy>=1.26.0
+pypdf>=4.0.0             # 档案管家：PDF 报告文本提取
 
 # EEG 真实设备接入（可选，按需安装；Demo/比赛环境可跳过）
 # Muse 头环：pip install pylsl muselsl bleak

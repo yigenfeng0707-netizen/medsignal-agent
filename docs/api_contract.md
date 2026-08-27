@@ -174,6 +174,47 @@
 
 ---
 
+## 6.6 档案管家 · 人体健康档案（只增不删）
+
+> 定位：把用户在对话/上传资料中**明确陈述**的部位相关信息按器官归档，供 3D 数字人体可视化与上游医保/政策模块共享。**不做任何诊断或推断**；无修改/删除接口。
+
+### GET `/api/body/organs` → `{ organs: { key: 中文名 } }`
+器官/部位 key 是前端 3D 网格命名契约（`lungs / heart / liver / stomach / kidneys / intestines / spine / shoulder_left …`）。
+
+### GET `/api/body/{user_id}/records?organ=`
+```json
+{
+  "user_id": "user_001", "total": 2,
+  "organs": { "lungs": { "label": "肺部", "count": 2, "latest_event_date": "2026-07" } },
+  "records": [
+    { "id": 2, "organ": "lungs", "organ_label": "肺部",
+      "description": "肺部结节较前相仿", "raw_excerpt": "肺部结节较前相仿",
+      "event_date": "2026-07", "source_type": "upload", "source_label": "CT报告",
+      "source_ref": "ct_0715.txt", "document_id": 1, "batch_id": "a1b2c3", "created_at": "..." },
+    { "id": 1, "organ": "lungs", "event_date": "2026-02", "source_type": "chat", "source_label": "对话输入", "...": "..." }
+  ],
+  "disclaimer": "以上内容仅整理展示您在对话或上传资料中提供的信息，非诊断结论；……"
+}
+```
+排序：`event_date` 倒序（未注明时间的排最后），其次归档时间倒序。`source_label ∈ {对话输入, CT报告, MRI报告, 病历文本, 其他}`。
+
+### POST `/api/body/{user_id}/upload`（multipart `file`，≤10MB）
+图片 → 阿里云视觉模型逐字转录（降级 OCR.space）；PDF → 文本层；其他 → UTF-8 文本。资料无论是否识别出部位信息都会存档。
+```json
+{
+  "document_id": 1, "doc_kind": "CT报告", "records_added": 1, "records": [ ... ],
+  "agent_response": "📄 已解析《ct_0715.txt》…🔗 肺部此前已有 1 条记录…",
+  "body_focus": "lungs",
+  "comparison": { "organ": "lungs", "earlier": { ... }, "later": { ... } },
+  "handoff": ["policy"], "missing_info": [], "disclaimer": "..."
+}
+```
+
+### 对话接口新增字段（`/api/agents/chat`、`/api/agents/complex-chat`）
+- `body_updates: [记录]` — 本轮追加到健康档案的记录（任何意图都会触发归档钩子，无相关内容时为 `[]`）
+- `body_focus: "lungs" | null` — 建议前端在数字人体上高亮的部位
+- 路由到档案管家时 `agent_type = "body_agent"`，`data` 含 `records / comparison / missing_info / handoff / organ_summary`，`evidence` 含 `{type:"body_record", organ, event_date, source_label, excerpt}`
+
 ## 7. 健康检查
 
 ### GET `/api/health` → `{ "status": "ok", "service": "MedSignal" }`
