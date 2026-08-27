@@ -17,13 +17,13 @@ export YIBAO_SESSION_SECRET="${YIBAO_SESSION_SECRET:-medsignal-modelscope-demo-s
 mkdir -p /mnt/workspace/data /mnt/workspace/chroma_data
 
 # 知识库索引播种：workspace 索引无数据时从镜像 seed 拷贝（幂等，重启不重复拷贝）
-# ⚠️ 不能只看 chroma.sqlite3 是否存在：PersistentClient 初始化即建库文件，
-# 曾放空库残留导致播种条件永远不满足（kb_chunks 恒为 0）。
-# 改为用 sqlite 查 collections 表行数判定是否有有效数据。
+# ⚠️ 判定不能用“chroma.sqlite3 是否存在”（PersistentClient 初始化即建库文件），
+# 也不能只看 collections 表行数（空 collection 也占一行，曾误判跳过播种）。
+# 必须查 embeddings 表行数：>0 才算有有效索引。
 if [ -d /app/chroma_seed ]; then
   need_seed=1
   if [ -f /mnt/workspace/chroma_data/chroma.sqlite3 ] && \
-     python -c "import sqlite3,sys; con=sqlite3.connect('/mnt/workspace/chroma_data/chroma.sqlite3'); sys.exit(0 if con.execute('select count(*) from collections').fetchone()[0] > 0 else 1)" 2>/dev/null; then
+     python -c "import sqlite3,sys; con=sqlite3.connect('/mnt/workspace/chroma_data/chroma.sqlite3'); sys.exit(0 if con.execute('select count(*) from embeddings').fetchone()[0] > 0 else 1)" 2>/dev/null; then
     need_seed=0
     echo "[entrypoint] 知识库索引已存在，跳过播种"
   fi
