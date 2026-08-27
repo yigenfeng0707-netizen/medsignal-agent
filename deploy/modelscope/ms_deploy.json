@@ -1,0 +1,13 @@
+{
+  "sdk_type": "docker",
+  "port": 7860,
+  "env": {
+    "DEMO_OFFLINE": "true",
+    "DATABASE_URL": "sqlite+aiosqlite:///./data/yibao.db",
+    "REDIS_URL": "",
+    "CORS_ORIGINS": "*",
+    "YIBAO_SESSION_SECRET": "medsignal-modelscope-demo-secret-change-me",
+    "CHROMA_PERSIST_DIR": "/app/backend/chroma_data",
+    "ENABLE_API_PROXY": "1"
+  }
+}

@@ -35,7 +35,17 @@ import {
   type ImagingRecordItem,
 } from "./mock-data";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// API 基址规则：
+//  - 未设置（本地开发）→ 回退 http://localhost:8000
+//  - 显式空字符串（魔搭同域部署）→ 相对路径 /api，由 Next rewrites 代理到后端
+//  - 绝对 URL（Render/Vercel/docker-compose）→ 直接使用
+const _rawApiBase = process.env.NEXT_PUBLIC_API_URL;
+const API_BASE =
+  _rawApiBase === undefined || _rawApiBase === ""
+    ? _rawApiBase === undefined
+      ? "http://localhost:8000"
+      : ""
+    : _rawApiBase.trim().replace(/\/+$/, "");
 
 // ==================== API 状态检测 ====================
 
