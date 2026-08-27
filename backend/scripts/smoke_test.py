@@ -12,6 +12,12 @@ import sys
 # 让脚本能从 backend 目录直接运行时找到 app 包
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Windows GBK 控制台无法输出 emoji，遇到编码错误时替换而非崩溃
+try:
+    sys.stdout.reconfigure(errors="replace")
+except Exception:
+    pass
+
 from fastapi.testclient import TestClient
 
 from app.main import app
