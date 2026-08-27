@@ -660,3 +660,130 @@ export async function getImagingRecords(
   if (data?.records) return data.records;
   return mockImagingRecords;
 }
+
+// ==================== 真实公开数据集（科研验证） ====================
+
+/** 真实 EEG 数据集记录概览（PhysioNet eegmmidb 等） */
+export interface RealEEGSessionItem {
+  record_id: string;
+  source: string;
+  mental_state: string;
+  mental_state_label: string;
+  channels: string[];
+  origin_sample_rate: number;
+  duration_seconds: number;
+  metrics: {
+    stress_index?: number;
+    attention_index?: number;
+    sleep_quality?: number;
+    cognitive_load?: number;
+    cerebrovascular_risk?: number;
+    cognitive_decline_risk?: number;
+    [k: string]: unknown;
+  } | null;
+  alerts_count: number;
+  dataset_meta: {
+    subject?: string;
+    run?: number;
+    paradigm?: string;
+    license?: string;
+    synthetic?: boolean;
+    expected_state?: string;
+  } | null;
+  origin_file: string;
+}
+
+export interface RealEEGListResponse {
+  total: number;
+  returned: number;
+  datasets: Record<string, { count: number; updated_at?: string }>;
+  sessions: RealEEGSessionItem[];
+  note: string;
+}
+
+/** 真实 EEG 单条详情（含频段功率/预警/政策联动） */
+export interface RealEEGDetail extends RealEEGSessionItem {
+  session_id: string;
+  band_powers: Record<string, Record<string, number>>;
+  avg_band_powers: Record<string, number>;
+  alerts: Array<{ title?: string; desc?: string; description?: string; suggestion?: string; level?: string }>;
+  policy_links: EEGPolicyLink[];
+  summary?: string;
+  origin_channels?: string[];
+}
+
+/** 获取真实公开 EEG 数据集评估列表 */
+export async function getRealEEGSessions(
+  source?: string,
+  limit = 20,
+): Promise<RealEEGListResponse | null> {
+  const q = source ? `?source=${encodeURIComponent(source)}&limit=${limit}` : `?limit=${limit}`;
+  return apiFetch<RealEEGListResponse>(`/api/eeg/real/list${q}`);
+}
+
+/** 获取单条真实 EEG 评估详情 */
+export async function getRealEEGDetail(recordId: string): Promise<RealEEGDetail | null> {
+  return apiFetch<RealEEGDetail>(`/api/eeg/real/${encodeURIComponent(recordId)}`);
+}
+
+/** 真实影像数据集研究概览（Montgomery/Shenzhen/demo） */
+export interface RealImagingStudyItem {
+  study_id: string;
+  study_type: string;
+  study_label: string;
+  source: string;
+  origin_file: string;
+  detected_count: number;
+  gt_count: number;
+  metrics: Record<string, number> | null;
+}
+
+export interface RealImagingListResponse {
+  total: number;
+  returned: number;
+  datasets: Record<string, { count: number; updated_at?: string }>;
+  studies: RealImagingStudyItem[];
+  note: string;
+}
+
+/** 真实影像单条详情（含 base64 影像 + AI 检测 + GT + 政策联动） */
+export interface RealImagingDetail {
+  study_id: string;
+  study_type: string;
+  study_label: string;
+  source: string;
+  origin_file: string;
+  origin_shape?: [number, number];
+  image_base64: string;
+  detected_findings: Array<{
+    finding_type: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    confidence: number;
+    severity: string;
+    evidence?: string;
+  }>;
+  gt_findings: Array<{ finding_type: string; x: number; y: number; w: number; h: number }> | null;
+  metrics: Record<string, number> | null;
+  policy_links: ImagingPolicyLink[];
+  disclaimer: string;
+}
+
+/** 获取真实公开影像数据集列表 */
+export async function getRealImagingStudies(
+  studyType?: string,
+  source?: string,
+  limit = 20,
+): Promise<RealImagingListResponse | null> {
+  const params: string[] = [`limit=${limit}`];
+  if (studyType) params.push(`study_type=${encodeURIComponent(studyType)}`);
+  if (source) params.push(`source=${encodeURIComponent(source)}`);
+  return apiFetch<RealImagingListResponse>(`/api/imaging/real/list?${params.join("&")}`);
+}
+
+/** 获取单条真实影像详情 */
+export async function getRealImagingDetail(studyId: string): Promise<RealImagingDetail | null> {
+  return apiFetch<RealImagingDetail>(`/api/imaging/real/${encodeURIComponent(studyId)}`);
+}

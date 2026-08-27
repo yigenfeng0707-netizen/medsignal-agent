@@ -50,6 +50,7 @@ import {
 } from "@/lib/api";
 import { useUser } from "@/lib/user-context";
 import { ApiStatusIndicator } from "@/components/api-status-indicator";
+import { RealEEGPanel } from "@/components/real-eeg-panel";
 import type {
   EEGSession,
   EEGMentalState,
@@ -426,19 +427,41 @@ export default function EEGPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* 页头 */}
+      {/* 页头（科技医学风格） */}
       <motion.div {...fadeIn}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <Brain className="h-6 w-6 text-purple-500" />
-              脑电健康
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              关键医疗信号识别 · 脑电采集 → 频域分析 → 健康预警 · {currentUser?.name || "用户"}
-            </p>
+        <div className="relative overflow-hidden rounded-xl border border-purple-500/20 bg-gradient-to-r from-purple-50/80 via-white to-cyan-50/80 px-5 py-4 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.25]"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(139,92,246,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(34,211,238,0.08) 1px, transparent 1px)",
+              backgroundSize: "24px 24px",
+            }}
+          />
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-400/60 to-transparent" />
+          <div className="relative flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 ring-1 ring-purple-400/40">
+                  <Brain className="h-5 w-5 text-purple-500" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="bg-gradient-to-r from-purple-600 via-violet-600 to-cyan-600 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
+                      脑电健康
+                    </h1>
+                    <span className="rounded-full border border-purple-400/40 bg-purple-400/10 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-purple-600">
+                      BCI × 医保创新
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    关键医疗信号识别 · 脑电采集 → 频域分析 → 健康预警 · {currentUser?.name || "用户"}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <ApiStatusIndicator />
           </div>
-          <ApiStatusIndicator />
         </div>
       </motion.div>
 
@@ -917,6 +940,9 @@ export default function EEGPage() {
           </Card>
         </motion.div>
       )}
+
+      {/* 真实公开数据集（PhysioNet eegmmidb 科研验证） */}
+      <RealEEGPanel />
 
       {/* 摘要 */}
       {session?.summary && (
