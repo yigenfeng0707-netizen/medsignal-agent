@@ -138,8 +138,9 @@ class KnowledgeBase:
         if not texts:
             return []
 
-        # 尝试使用 OpenAI 兼容 API
-        if self._openai_client is not None:
+        # 尝试使用 OpenAI 兼容 API（仅当显式配置了 key 才走此路径；
+        # key 为空时客户端用 dummy key 调用必失败，白等一次连接超时再回退，拖慢每次检索）
+        if self._openai_client is not None and self._embedding_api_key:
             try:
                 response = self._openai_client.embeddings.create(
                     input=texts,
