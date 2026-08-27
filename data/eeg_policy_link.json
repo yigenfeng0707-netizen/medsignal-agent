@@ -1,6 +1,6 @@
 {
-  "description": "脑电异常 → 医保政策联动规则库（BCI×医保核心创新）",
-  "version": "1.0",
+  "description": "脑电异常 → 医保政策联动规则库（BCI×医保核心创新，赛道7健康监测与早期预警）",
+  "version": "2.0",
   "links": [
     {
       "trigger": "high_stress",
@@ -65,6 +65,49 @@
         "心理治疗医保报销",
         "门诊慢病待遇（抑郁症）",
         "精神卫生专科报销"
+      ]
+    },
+    {
+      "trigger": "cerebrovascular_risk",
+      "condition": {"cerebrovascular_risk_min": 60},
+      "title": "脑血管疾病风险预警",
+      "policy_hint": "脑血管病检查与治疗医保政策",
+      "description": "脑电频段异常（δ波弥漫性增多+θ/α比值升高+α波节律减弱）提示脑血管功能风险，建议尽快进行脑血管专项检查。",
+      "suggestion": "建议进行颈动脉超声/经颅多普勒/头颅CT检查。脑血管病已纳入门诊慢病医保待遇，急性脑卒中可走绿色通道。",
+      "related_policies": [
+        "脑血管病门诊慢病待遇",
+        "脑卒中绿色通道",
+        "颈动脉超声医保报销",
+        "经颅多普勒医保报销",
+        "头颅CT医保报销"
+      ]
+    },
+    {
+      "trigger": "cognitive_decline_risk",
+      "condition": {"cognitive_decline_risk_min": 60},
+      "title": "认知功能衰退风险",
+      "policy_hint": "认知功能评估与治疗医保政策",
+      "description": "脑电特征符合轻度认知障碍(MCI)（θ波相对功率增加+α波相对功率降低+θ/α比值升高），建议进行认知功能评估。",
+      "suggestion": "建议进行MMSE/MoCA认知功能量表评估。65岁以上可享受老年认知评估医保待遇，阿尔茨海默病已纳入门诊慢病保障。",
+      "related_policies": [
+        "老年认知功能筛查",
+        "门诊慢病待遇（阿尔茨海默病）",
+        "神经内科门诊报销",
+        "认知康复训练报销"
+      ]
+    },
+    {
+      "trigger": "mental_health_risk",
+      "condition": {"mental_health_overall_min": 60},
+      "title": "精神状态筛查异常",
+      "policy_hint": "精神卫生医保政策",
+      "description": "脑电精神状态筛查显示焦虑/抑郁倾向（β波过度活跃/θ波增多），建议进行专业评估。",
+      "suggestion": "建议咨询精神卫生科或心理科。多地已将心理治疗纳入医保统筹，抑郁症/焦虑症可申请门诊慢病待遇。",
+      "related_policies": [
+        "心理治疗医保报销",
+        "门诊慢病待遇（抑郁症/焦虑症）",
+        "精神卫生专科报销",
+        "PHQ-9/GAD-7量表筛查"
       ]
     }
   ]

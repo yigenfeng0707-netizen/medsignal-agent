@@ -110,7 +110,7 @@ export default function PolicyPage() {
                 <Users className="h-6 w-6 text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-bold">张明 · 南京市职工医保</h3>
+                <h3 className="text-lg font-bold">演示用户 · 职工医保</h3>
                 <p className="text-sm text-white/80 mt-0.5">
                   糖尿病 · 高血压 | 缴费15年3个月 | 已匹配 {policies.length} 项政策
                 </p>

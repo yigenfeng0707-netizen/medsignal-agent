@@ -17,6 +17,9 @@ class Settings(BaseSettings):
 
     CHROMA_PERSIST_DIR: str = "./chroma_data"
 
+    # 路演离线模式：跳过 LLM/知识库初始化，全程使用关键词+mock降级（无网络依赖）
+    DEMO_OFFLINE: bool = False
+
     # OCR 服务：OCR.space
     OCR_API_KEY: str = ""
     OCR_API_URL: str = "https://api.ocr.space/parse/image"

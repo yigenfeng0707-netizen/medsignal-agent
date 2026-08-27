@@ -1,0 +1,8 @@
+{
+  "source": "合成信号验证（pipeline演示）",
+  "accuracy_3class": 0.9222,
+  "auc_binary_pos_vs_neg": 1.0,
+  "auc_3class_mean": 0.987,
+  "n_samples": 360,
+  "n_features": 21
+}

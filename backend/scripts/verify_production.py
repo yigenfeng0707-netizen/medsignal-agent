@@ -1,15 +1,21 @@
 """线上全功能端到端验证（线上 Render 后端）
 
 逐个测试 8 大功能，给出权威结论。
+
+用法：
+    python verify_production.py                          # 默认线上地址
+    python verify_production.py --base http://localhost:8000  # 本地后端
 """
 
+import argparse
 import json
 import urllib.request
 import urllib.error
 import ssl
 import time
 
-BASE = "https://yibao-zhinao-api.onrender.com"
+# 默认线上地址（可通过命令行参数覆盖）
+DEFAULT_BASE = "https://yibao-zhinao-api.onrender.com"
 ssl_ctx = ssl.create_default_context()
 
 results = {"pass": 0, "fail": 0, "items": []}
@@ -53,8 +59,16 @@ def section(t):
     print(f"\n{'='*60}\n{t}\n{'='*60}")
 
 
+# 命令行参数解析
+parser = argparse.ArgumentParser(description="医保智脑线上验证脚本")
+parser.add_argument("--base", default=DEFAULT_BASE,
+                    help=f"后端 API 基地址（默认：{DEFAULT_BASE}）")
+args = parser.parse_args()
+BASE = args.base.rstrip("/")
+
 # 唤醒 Render（免费套餐冷启动）
-print("唤醒 Render 服务（冷启动，请等待...）")
+print(f"目标服务：{BASE}")
+print("唤醒服务（冷启动，请等待...）")
 t0 = time.time()
 api_get("/api/health", timeout=90)
 print(f"  唤醒耗时 {time.time()-t0:.1f}s\n")

@@ -41,7 +41,7 @@ random.seed(42)
 # ============================================================
 USER_PROFILES = [
     {
-        "name": "张阿姨", "age": 58, "gender": "女", "city": "南京",
+        "name": "张阿姨", "age": 58, "gender": "女", "city": "杭州",
         "insurance_type": "职工医保", "employee_status": "退休",
         "conditions": ["糖尿病", "高血压"],
     },
@@ -51,7 +51,7 @@ USER_PROFILES = [
         "conditions": ["冠心病"],
     },
     {
-        "name": "王先生", "age": 35, "gender": "男", "city": "南京",
+        "name": "王先生", "age": 35, "gender": "男", "city": "杭州",
         "insurance_type": "职工医保", "employee_status": "在职",
         "conditions": [],
     },
@@ -61,7 +61,7 @@ USER_PROFILES = [
         "conditions": ["甲状腺结节"],
     },
     {
-        "name": "陈同学", "age": 22, "gender": "男", "city": "南京",
+        "name": "陈同学", "age": 22, "gender": "男", "city": "杭州",
         "insurance_type": "居民医保", "employee_status": "学生",
         "conditions": [],
     },
@@ -71,7 +71,7 @@ USER_PROFILES = [
         "conditions": ["糖尿病", "骨质疏松"],
     },
     {
-        "name": "周先生", "age": 50, "gender": "男", "city": "南京",
+        "name": "周先生", "age": 50, "gender": "男", "city": "杭州",
         "insurance_type": "职工医保", "employee_status": "在职",
         "conditions": ["胃病"],
     },
@@ -86,7 +86,7 @@ USER_PROFILES = [
         "conditions": ["高血压", "关节炎", "白内障"],
     },
     {
-        "name": "郑先生", "age": 45, "gender": "男", "city": "南京",
+        "name": "郑先生", "age": 45, "gender": "男", "city": "杭州",
         "insurance_type": "灵活就业医保", "employee_status": "灵活就业",
         "conditions": ["腰椎间盘突出"],
     },
@@ -96,26 +96,24 @@ USER_PROFILES = [
 # 医院名称库（按城市分组）
 # ============================================================
 HOSPITALS = {
-    "南京": [
-        "江苏省人民医院", "南京鼓楼医院", "南京市第一医院",
-        "东南大学附属中大医院", "南京市中医院", "南京医科大学第二附属医院",
-        "江苏省中医院", "南京市中西医结合医院",
+    "杭州": [
+        "浙江大学医学院附属第一医院", "浙江大学医学院附属第二医院", "浙江省人民医院",
+        "杭州市第一人民医院", "浙江省中医院", "杭州市中医院",
+        "浙江大学医学院附属邵逸夫医院", "杭州市红十字会医院",
     ],
-    "苏州": [
-        "苏州大学附属第一医院", "苏州市立医院", "苏州大学附属第二医院",
-        "苏州市中医医院", "苏州市九龙医院",
+    "宁波": [
+        "宁波大学附属第一医院", "宁波市第二医院", "宁波市医疗中心李惠利医院",
+        "宁波市中医院", "中国科学院大学宁波华美医院",
     ],
-    "无锡": [
-        "无锡市人民医院", "无锡市第二人民医院", "江南大学附属医院",
-        "无锡市中医医院", "无锡市第三人民医院",
+    "温州": [
+        "温州医科大学附属第一医院", "温州医科大学附属第二医院", "温州市人民医院",
+        "温州市中医院",
     ],
-    "常州": [
-        "常州市第一人民医院", "常州市第二人民医院", "常州市中医医院",
-        "常州市第三人民医院", "常州武进人民医院",
+    "嘉兴": [
+        "嘉兴市第一医院", "嘉兴市第二医院", "嘉兴市中医医院",
     ],
-    "南通": [
-        "南通大学附属医院", "南通市第一人民医院", "南通市第三人民医院",
-        "南通市中医院", "南通市肿瘤医院",
+    "绍兴": [
+        "绍兴市人民医院", "绍兴文理学院附属医院", "绍兴市中医院",
     ],
 }
 
@@ -357,7 +355,7 @@ def generate_medical_records(user_id: int, profile: dict) -> list:
     conditions = profile["conditions"]
     city = profile["city"]
     insurance_type = profile["insurance_type"]
-    hospitals = HOSPITALS.get(city, HOSPITALS["南京"])
+    hospitals = HOSPITALS.get(city, HOSPITALS["杭州"])
     reimb_config = REIMBURSEMENT_RATE[insurance_type]
 
     # 时间范围：2022-01-01 到 2025-12-31

@@ -68,6 +68,16 @@ class PolicyMatch:
             "steps": self.steps,
             "evidence": self.evidence,
             "source": self.source,
+            # 前端 MatchedPolicy 类型兼容字段
+            "matchScore": int(round(self.match_score * 100)),
+            "savings": f"¥{self.annual_savings:,}/年",
+            "savingsAmount": self.annual_savings,
+            "requirements": self.steps,
+            "benefits": [
+                f"预计每年节省 {self.annual_savings:,} 元",
+                *([self.match_reason.split("。")[0] + "。"] if self.match_reason else []),
+            ],
+            "description": self.match_reason,
         }
 
 
@@ -303,7 +313,7 @@ def _match_retiree_benefit(emp_status: str, ins_type: str, name: str) -> PolicyM
         deadline=None,
         steps=["退休后自动享受，无需申请", "报销比例在结算时自动应用"],
         evidence=[{"type": "employee_status", "status": emp_status, "boost": 0.05}],
-        source="南京市医疗保障局",
+        source="省级医疗保障部门",
     )
 
 

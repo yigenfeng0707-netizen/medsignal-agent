@@ -14,3 +14,9 @@ Pillow==10.4.0
 python-multipart==0.0.9
 aiosqlite==0.20.0
 numpy>=1.26.0
+
+# EEG 真实设备接入（可选，按需安装）
+# Muse 头环：pip install pylsl muselsl bleak
+# EDF 文件：pip install pyedflib
+pylsl>=1.16.0          # LSL 协议（Muse/Emotiv/OpenBCI 实时流）
+pyedflib>=0.1.38       # EDF 文件解析（临床标准格式）

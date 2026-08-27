@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,10 +24,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS 配置：从环境变量读取，默认开放（Demo 模式）
+# 生产环境通过 CORS_ORIGINS 收敛为白名单（逗号分隔）
+_cors_origins_env = os.getenv("CORS_ORIGINS", "*")
+if _cors_origins_env.strip() == "*":
+    _cors_origins = ["*"]
+    _cors_credentials = False
+else:
+    _cors_origins = [o.strip() for o in _cors_origins_env.split(",") if o.strip()]
+    _cors_credentials = True
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=_cors_origins,
+    allow_credentials=_cors_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

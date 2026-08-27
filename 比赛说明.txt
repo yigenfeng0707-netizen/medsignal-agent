@@ -1,0 +1,18 @@
+赛道赛制 Track Rules
+ 
+HEALTHCARE 医疗赛道
+ 
+围绕真实医疗场景与具体问题，设计并开发一个可实际运行的AI智能体。
+ 
+Design and develop a practically‑runnable AI Agent targeting real‑world healthcare scenarios and concrete problems.
+ 
+- 示例：项目需真正回应医疗场景或科研中的现实需求，而不仅是概念展示。可关注罕见病支持、患者的信息理解与连接、关键医疗信号识别方向，也可自主定义其他真实医疗问题。
+ 
+Example: Your project shall address real practical demands in healthcare or scientific research, rather than merely conceptual demos. Possible topics include rare‑disease support, patient‑oriented information comprehension & connection, key medical‑signal recognition. You may also define other authentic healthcare‑related problems.
+ 
+- 最终提交：完成一个可现场运行的Agent Demo + PPT，清晰呈现真实使用场景、核心解决方案、数据来源、算法逻辑与关键测试结果；充分考虑医疗安全、隐私保护及产品使用边界，并进行8分钟现场路演（PITCH）。
+ 
+Final Deliverables: A runnable on‑site Agent Demo plus PPT. Clearly demonstrate real‑world application scenarios, core solutions, data sources, algorithm logic and key test results. Give full consideration to medical safety, privacy protection and product‑usage boundaries, and deliver an 8‑minute on‑site pitch.
+ 
+主办方：Diagens德适科技｜VentureD Hackathon
+ 

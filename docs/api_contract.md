@@ -39,7 +39,7 @@
 **响应**：
 ```json
 {
-  "user": { "id": "user_001", "name": "张阿姨", "age": 58, "gender": "女", "city": "南京", "insurance_type": "职工医保", "employee_status": "退休" },
+  "user": { "id": "user_001", "name": "张阿姨", "age": 58, "gender": "女", "city": "杭州", "insurance_type": "职工医保", "employee_status": "退休" },
   "payment_years": "15年3个月",
   "payment_months": 183,
   "account_balance": 3425.20,
@@ -132,6 +132,45 @@
 
 ### GET `/api/security/audit-log/{user_id}` → `logs: [...]`
 ### GET `/api/security/data-flow/{user_id}` → 可信数据空间流转记录（P2-2 可视化用）
+
+---
+
+## 6.5 EEG 脑电健康（BCI×医保创新，赛道7核心）
+
+### GET `/api/eeg/states` → `{ states: [...] }`
+
+### POST `/api/eeg/{user_id}/session`
+**查询参数**：`mental_state=relaxed&duration_seconds=4`
+**响应**：`EEGSession`
+```json
+{
+  "session_id": "eeg_user_001_...",
+  "user_id": "user_001",
+  "metrics": {
+    "stress_index": 30.5,
+    "attention_index": 65.2,
+    "sleep_quality": 72.0,
+    "cognitive_load": 45.3,
+    "emotion": { "valence": 55, "arousal": 40, "label": "平静放松" },
+    "ratios": { "alpha_beta": 1.5, "theta_beta": 0.8, "theta_alpha": 0.6, "delta_ratio": 0.2 },
+    "cerebrovascular_risk": 25.0,
+    "cognitive_decline_risk": 18.5,
+    "mental_health": {
+      "anxiety_score": 20.0, "depression_score": 15.0,
+      "overall_risk": 20.0, "screening_label": "正常"
+    }
+  },
+  "alerts": [{ "level": "high", "category": "cerebrovascular", "title": "...", "evidence": [...] }],
+  "policy_links": [{ "trigger": "cerebrovascular_risk", "related_policies": [...] }],
+  "waveform": [{ "channel": "TP9", "data": [...] }]
+}
+```
+> ⭐ 赛道7核心新增字段：`cerebrovascular_risk`（脑血管风险指数）、`cognitive_decline_risk`（认知衰退风险）、`mental_health`（精神状态筛查）。预警 `category` 新增 `cerebrovascular`/`cognitive_decline`/`mental_health`。
+
+### GET `/api/eeg/{user_id}/latest` → `EEGSession`
+### GET `/api/eeg/{user_id}/history` → `{ total_sessions, history: [...], trend: [...] }`
+### GET `/api/eeg/{user_id}/realtime` → `{ channel, waveform, band_powers, metrics_snapshot }`
+### GET `/api/eeg/{user_id}/policy-links` → `{ policy_links: [...] }`
 
 ---
 

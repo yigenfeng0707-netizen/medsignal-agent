@@ -167,13 +167,17 @@ class TestHealthMetrics:
     """脑电健康指标计算测试"""
 
     def test_metrics_all_dimensions(self):
-        """指标包含 4 维 + 情绪 + 比值"""
+        """指标包含 4 维 + 情绪 + 比值 + 赛道7新增指标"""
         avg = {"delta": 10, "theta": 8, "alpha": 15, "beta": 5, "gamma": 2}
         m = eeg.compute_health_metrics(avg)
         for key in ("stress_index", "attention_index", "sleep_quality", "cognitive_load"):
             assert key in m
         assert "emotion" in m
         assert "ratios" in m
+        # ⭐ 赛道7核心新增指标
+        assert "cerebrovascular_risk" in m
+        assert "cognitive_decline_risk" in m
+        assert "mental_health" in m
 
     def test_metrics_in_range(self):
         """所有指标在 0-100 范围内"""
@@ -183,6 +187,12 @@ class TestHealthMetrics:
             assert 0 <= m[key] <= 100
         assert 0 <= m["emotion"]["valence"] <= 100
         assert 0 <= m["emotion"]["arousal"] <= 100
+        # ⭐ 新增指标范围
+        assert 0 <= m["cerebrovascular_risk"] <= 100
+        assert 0 <= m["cognitive_decline_risk"] <= 100
+        assert 0 <= m["mental_health"]["anxiety_score"] <= 100
+        assert 0 <= m["mental_health"]["depression_score"] <= 100
+        assert 0 <= m["mental_health"]["overall_risk"] <= 100
 
     def test_emotion_label_valid(self):
         """情绪标签在预设范围内"""
@@ -199,12 +209,78 @@ class TestHealthMetrics:
         r = m["ratios"]
         assert abs(r["alpha_beta"] - 15 / 5) < 0.01
         assert abs(r["theta_beta"] - 8 / 5) < 0.01
+        # ⭐ 新增比值
+        assert "theta_alpha" in r
+        assert "delta_ratio" in r
 
     def test_zero_powers_no_crash(self):
         """全零功率不崩溃"""
         avg = {"delta": 0, "theta": 0, "alpha": 0, "beta": 0, "gamma": 0}
         m = eeg.compute_health_metrics(avg)
         assert 0 <= m["stress_index"] <= 100
+        assert 0 <= m["cerebrovascular_risk"] <= 100
+        assert 0 <= m["cognitive_decline_risk"] <= 100
+
+    # ⭐ 赛道7新增：脑血管风险指数测试
+    def test_cerebrovascular_risk_high_delta(self):
+        """δ波激增时脑血管风险升高"""
+        avg_high_delta = {"delta": 50, "theta": 8, "alpha": 5, "beta": 3, "gamma": 2}
+        avg_normal = {"delta": 10, "theta": 8, "alpha": 30, "beta": 10, "gamma": 5}
+        m_high = eeg.compute_health_metrics(avg_high_delta)
+        m_normal = eeg.compute_health_metrics(avg_normal)
+        assert m_high["cerebrovascular_risk"] > m_normal["cerebrovascular_risk"]
+
+    def test_cerebrovascular_risk_alpha_suppression(self):
+        """α波抑制时脑血管风险升高"""
+        avg_low_alpha = {"delta": 15, "theta": 10, "alpha": 3, "beta": 5, "gamma": 2}
+        avg_normal_alpha = {"delta": 15, "theta": 10, "alpha": 30, "beta": 5, "gamma": 2}
+        m_low = eeg.compute_health_metrics(avg_low_alpha)
+        m_normal = eeg.compute_health_metrics(avg_normal_alpha)
+        assert m_low["cerebrovascular_risk"] > m_normal["cerebrovascular_risk"]
+
+    # ⭐ 赛道7新增：认知衰退风险测试
+    def test_cognitive_decline_risk_high_theta(self):
+        """θ波增多+α波减少时认知衰退风险升高"""
+        avg_mci = {"delta": 10, "theta": 25, "alpha": 8, "beta": 5, "gamma": 2}
+        avg_normal = {"delta": 10, "theta": 8, "alpha": 30, "beta": 10, "gamma": 5}
+        m_mci = eeg.compute_health_metrics(avg_mci)
+        m_normal = eeg.compute_health_metrics(avg_normal)
+        assert m_mci["cognitive_decline_risk"] > m_normal["cognitive_decline_risk"]
+
+    def test_cognitive_decline_risk_theta_alpha_ratio(self):
+        """θ/α比值升高时认知衰退风险升高"""
+        avg_high_ratio = {"delta": 10, "theta": 20, "alpha": 10, "beta": 5, "gamma": 2}
+        avg_low_ratio = {"delta": 10, "theta": 5, "alpha": 30, "beta": 5, "gamma": 2}
+        m_high = eeg.compute_health_metrics(avg_high_ratio)
+        m_low = eeg.compute_health_metrics(avg_low_ratio)
+        assert m_high["cognitive_decline_risk"] > m_low["cognitive_decline_risk"]
+
+    # ⭐ 赛道7新增：精神状态筛查测试
+    def test_mental_health_structure(self):
+        """精神状态筛查结果结构完整"""
+        avg = {"delta": 10, "theta": 8, "alpha": 15, "beta": 5, "gamma": 2}
+        m = eeg.compute_health_metrics(avg)
+        mh = m["mental_health"]
+        assert "anxiety_score" in mh
+        assert "depression_score" in mh
+        assert "overall_risk" in mh
+        assert "screening_label" in mh
+        assert mh["screening_label"] in {"焦虑倾向", "抑郁倾向", "情绪风险", "正常"}
+
+    def test_mental_health_anxiety_high_beta(self):
+        """β波过度活跃时焦虑评分升高"""
+        avg_high_beta = {"delta": 5, "theta": 5, "alpha": 5, "beta": 30, "gamma": 10}
+        avg_normal = {"delta": 10, "theta": 8, "alpha": 30, "beta": 10, "gamma": 5}
+        m_high = eeg.compute_health_metrics(avg_high_beta)
+        m_normal = eeg.compute_health_metrics(avg_normal)
+        assert m_high["mental_health"]["anxiety_score"] > m_normal["mental_health"]["anxiety_score"]
+
+    def test_mental_health_overall_is_max(self):
+        """overall_risk 是 anxiety 和 depression 的最大值"""
+        avg = {"delta": 10, "theta": 8, "alpha": 15, "beta": 5, "gamma": 2}
+        m = eeg.compute_health_metrics(avg)
+        mh = m["mental_health"]
+        assert abs(mh["overall_risk"] - max(mh["anxiety_score"], mh["depression_score"])) < 0.1
 
 
 # ============================================================
@@ -328,6 +404,156 @@ class TestAlerts:
             for i in range(len(alerts) - 1):
                 assert order[alerts[i]["level"]] <= order[alerts[i + 1]["level"]]
 
+    # ⭐ 赛道7新增：脑血管风险预警测试
+    def test_cerebrovascular_high_alert(self):
+        """脑血管风险≥60触发high级预警"""
+        metrics = {
+            "stress_index": 30, "attention_index": 60,
+            "sleep_quality": 70, "cognitive_load": 50,
+            "emotion": {"label": "情绪平稳", "valence": 50, "arousal": 50},
+            "ratios": {"alpha_beta": 1.0, "theta_beta": 1.0, "slow_wave_ratio": 0.4, "fast_wave_ratio": 0.2, "theta_alpha": 1.5, "delta_ratio": 0.4},
+            "cerebrovascular_risk": 75,
+            "cognitive_decline_risk": 20,
+            "mental_health": {"anxiety_score": 20, "depression_score": 15, "overall_risk": 20, "screening_label": "正常"},
+        }
+        alerts = eeg.scan_eeg_alerts(metrics, {"name": "测试", "age": 65})
+        cv_alerts = [a for a in alerts if "脑血管" in a["title"]]
+        assert len(cv_alerts) == 1
+        assert cv_alerts[0]["level"] == "high"
+        assert cv_alerts[0]["category"] == "cerebrovascular"
+        assert "evidence" in cv_alerts[0]
+
+    def test_cerebrovascular_medium_alert(self):
+        """脑血管风险40-59触发medium级预警"""
+        metrics = {
+            "stress_index": 30, "attention_index": 60,
+            "sleep_quality": 70, "cognitive_load": 50,
+            "emotion": {"label": "情绪平稳", "valence": 50, "arousal": 50},
+            "ratios": {"alpha_beta": 1.0, "theta_beta": 1.0, "slow_wave_ratio": 0.4, "fast_wave_ratio": 0.2, "theta_alpha": 1.0, "delta_ratio": 0.3},
+            "cerebrovascular_risk": 50,
+            "cognitive_decline_risk": 20,
+            "mental_health": {"anxiety_score": 20, "depression_score": 15, "overall_risk": 20, "screening_label": "正常"},
+        }
+        alerts = eeg.scan_eeg_alerts(metrics)
+        cv_alerts = [a for a in alerts if "脑血管" in a["title"]]
+        assert len(cv_alerts) == 1
+        assert cv_alerts[0]["level"] == "medium"
+
+    def test_cerebrovascular_no_alert_when_low(self):
+        """脑血管风险<40不触发预警"""
+        metrics = {
+            "stress_index": 30, "attention_index": 60,
+            "sleep_quality": 70, "cognitive_load": 50,
+            "emotion": {"label": "情绪平稳", "valence": 50, "arousal": 50},
+            "ratios": {"alpha_beta": 1.0, "theta_beta": 1.0, "slow_wave_ratio": 0.4, "fast_wave_ratio": 0.2, "theta_alpha": 0.6, "delta_ratio": 0.2},
+            "cerebrovascular_risk": 25,
+            "cognitive_decline_risk": 20,
+            "mental_health": {"anxiety_score": 20, "depression_score": 15, "overall_risk": 20, "screening_label": "正常"},
+        }
+        alerts = eeg.scan_eeg_alerts(metrics)
+        cv_alerts = [a for a in alerts if "脑血管" in a["title"]]
+        assert len(cv_alerts) == 0
+
+    # ⭐ 赛道7新增：认知衰退风险预警测试
+    def test_cognitive_decline_high_alert(self):
+        """认知衰退风险≥60触发high级预警"""
+        metrics = {
+            "stress_index": 30, "attention_index": 60,
+            "sleep_quality": 70, "cognitive_load": 50,
+            "emotion": {"label": "情绪平稳", "valence": 50, "arousal": 50},
+            "ratios": {"alpha_beta": 1.0, "theta_beta": 1.0, "slow_wave_ratio": 0.4, "fast_wave_ratio": 0.2, "theta_alpha": 1.5, "delta_ratio": 0.2},
+            "cerebrovascular_risk": 25,
+            "cognitive_decline_risk": 70,
+            "mental_health": {"anxiety_score": 20, "depression_score": 15, "overall_risk": 20, "screening_label": "正常"},
+        }
+        alerts = eeg.scan_eeg_alerts(metrics, {"name": "测试", "age": 70})
+        cd_alerts = [a for a in alerts if "认知" in a["title"] and "衰退" in a["title"]]
+        assert len(cd_alerts) == 1
+        assert cd_alerts[0]["level"] == "high"
+        assert cd_alerts[0]["category"] == "cognitive_decline"
+
+    def test_cognitive_decline_medium_alert(self):
+        """认知衰退风险40-59触发medium级预警"""
+        metrics = {
+            "stress_index": 30, "attention_index": 60,
+            "sleep_quality": 70, "cognitive_load": 50,
+            "emotion": {"label": "情绪平稳", "valence": 50, "arousal": 50},
+            "ratios": {"alpha_beta": 1.0, "theta_beta": 1.0, "slow_wave_ratio": 0.4, "fast_wave_ratio": 0.2, "theta_alpha": 1.0, "delta_ratio": 0.2},
+            "cerebrovascular_risk": 25,
+            "cognitive_decline_risk": 50,
+            "mental_health": {"anxiety_score": 20, "depression_score": 15, "overall_risk": 20, "screening_label": "正常"},
+        }
+        alerts = eeg.scan_eeg_alerts(metrics)
+        cd_alerts = [a for a in alerts if "认知" in a["title"] and ("衰退" in a["title"] or "下降" in a["title"])]
+        assert len(cd_alerts) == 1
+        assert cd_alerts[0]["level"] == "medium"
+
+    # ⭐ 赛道7新增：精神状态预警测试
+    def test_mental_health_high_alert_anxiety(self):
+        """焦虑倾向≥60触发high级预警"""
+        metrics = {
+            "stress_index": 30, "attention_index": 60,
+            "sleep_quality": 70, "cognitive_load": 50,
+            "emotion": {"label": "情绪平稳", "valence": 50, "arousal": 50},
+            "ratios": {"alpha_beta": 1.0, "theta_beta": 1.0, "slow_wave_ratio": 0.4, "fast_wave_ratio": 0.2, "theta_alpha": 0.6, "delta_ratio": 0.2},
+            "cerebrovascular_risk": 25,
+            "cognitive_decline_risk": 20,
+            "mental_health": {"anxiety_score": 75, "depression_score": 40, "overall_risk": 75, "screening_label": "焦虑倾向"},
+        }
+        alerts = eeg.scan_eeg_alerts(metrics)
+        mh_alerts = [a for a in alerts if "精神状态" in a["title"] or "焦虑" in a["title"]]
+        assert len(mh_alerts) == 1
+        assert mh_alerts[0]["level"] == "high"
+        assert mh_alerts[0]["category"] == "mental_health"
+
+    def test_mental_health_high_alert_depression(self):
+        """抑郁倾向≥60触发high级预警"""
+        metrics = {
+            "stress_index": 30, "attention_index": 60,
+            "sleep_quality": 70, "cognitive_load": 50,
+            "emotion": {"label": "情绪平稳", "valence": 50, "arousal": 50},
+            "ratios": {"alpha_beta": 1.0, "theta_beta": 1.0, "slow_wave_ratio": 0.4, "fast_wave_ratio": 0.2, "theta_alpha": 0.6, "delta_ratio": 0.2},
+            "cerebrovascular_risk": 25,
+            "cognitive_decline_risk": 20,
+            "mental_health": {"anxiety_score": 40, "depression_score": 70, "overall_risk": 70, "screening_label": "抑郁倾向"},
+        }
+        alerts = eeg.scan_eeg_alerts(metrics)
+        mh_alerts = [a for a in alerts if "精神状态" in a["title"] or "抑郁" in a["title"]]
+        assert len(mh_alerts) == 1
+        assert mh_alerts[0]["level"] == "high"
+
+    def test_mental_health_medium_alert(self):
+        """情绪风险40-59触发medium级预警"""
+        metrics = {
+            "stress_index": 30, "attention_index": 60,
+            "sleep_quality": 70, "cognitive_load": 50,
+            "emotion": {"label": "情绪平稳", "valence": 50, "arousal": 50},
+            "ratios": {"alpha_beta": 1.0, "theta_beta": 1.0, "slow_wave_ratio": 0.4, "fast_wave_ratio": 0.2, "theta_alpha": 0.6, "delta_ratio": 0.2},
+            "cerebrovascular_risk": 25,
+            "cognitive_decline_risk": 20,
+            "mental_health": {"anxiety_score": 45, "depression_score": 40, "overall_risk": 45, "screening_label": "情绪风险"},
+        }
+        alerts = eeg.scan_eeg_alerts(metrics)
+        mh_alerts = [a for a in alerts if "情绪状态" in a["title"] or "精神" in a["title"]]
+        assert len(mh_alerts) == 1
+        assert mh_alerts[0]["level"] == "medium"
+
+    def test_alerts_have_category(self):
+        """所有预警都有category字段"""
+        metrics = {
+            "stress_index": 85, "attention_index": 30,
+            "sleep_quality": 30, "cognitive_load": 80,
+            "emotion": {"label": "焦虑倾向", "valence": 30, "arousal": 70},
+            "ratios": {"alpha_beta": 0.3, "theta_beta": 3.0, "slow_wave_ratio": 0.2, "fast_wave_ratio": 0.4, "theta_alpha": 1.5, "delta_ratio": 0.4},
+            "cerebrovascular_risk": 70,
+            "cognitive_decline_risk": 65,
+            "mental_health": {"anxiety_score": 70, "depression_score": 40, "overall_risk": 70, "screening_label": "焦虑倾向"},
+        }
+        alerts = eeg.scan_eeg_alerts(metrics)
+        for a in alerts:
+            assert "category" in a
+            assert a["category"] in {"stress", "sleep", "cognitive", "attention", "emotion", "cerebrovascular", "cognitive_decline", "mental_health"}
+
 
 # ============================================================
 # 6. 医保政策联动
@@ -381,6 +607,57 @@ class TestPolicyLink:
         for l in links:
             assert "evidence" in l
             assert len(l["evidence"]) > 0
+
+    # ⭐ 赛道7新增：脑血管风险政策联动测试
+    def test_cerebrovascular_links_policy(self):
+        """脑血管风险触发脑血管病政策联动"""
+        metrics = {
+            "stress_index": 30, "attention_index": 60,
+            "sleep_quality": 70, "cognitive_load": 50,
+            "cerebrovascular_risk": 75,
+        }
+        links = eeg.link_to_policies(metrics)
+        triggers = [l["trigger"] for l in links]
+        assert "cerebrovascular_risk" in triggers
+        cv_link = [l for l in links if l["trigger"] == "cerebrovascular_risk"][0]
+        assert "脑血管" in cv_link["policy_hint"] or "脑血管" in cv_link["title"]
+        assert len(cv_link["related_policies"]) >= 3
+
+    # ⭐ 赛道7新增：认知衰退政策联动测试
+    def test_cognitive_decline_links_policy(self):
+        """认知衰退风险触发认知评估政策联动"""
+        metrics = {
+            "stress_index": 30, "attention_index": 60,
+            "sleep_quality": 70, "cognitive_load": 50,
+            "cognitive_decline_risk": 70,
+        }
+        links = eeg.link_to_policies(metrics)
+        triggers = [l["trigger"] for l in links]
+        assert "cognitive_decline_risk" in triggers
+        cd_link = [l for l in links if l["trigger"] == "cognitive_decline_risk"][0]
+        assert "认知" in cd_link["title"] or "认知" in cd_link["policy_hint"]
+
+    # ⭐ 赛道7新增：精神状态政策联动测试
+    def test_mental_health_links_policy(self):
+        """精神状态风险触发精神卫生政策联动"""
+        metrics = {
+            "stress_index": 30, "attention_index": 60,
+            "sleep_quality": 70, "cognitive_load": 50,
+            "mental_health": {"overall_risk": 75, "anxiety_score": 75, "depression_score": 40, "screening_label": "焦虑倾向"},
+        }
+        links = eeg.link_to_policies(metrics)
+        triggers = [l["trigger"] for l in links]
+        assert "mental_health_risk" in triggers
+        mh_link = [l for l in links if l["trigger"] == "mental_health_risk"][0]
+        assert "精神" in mh_link["title"] or "心理" in mh_link["policy_hint"]
+
+    def test_policy_link_file_has_new_triggers(self):
+        """政策联动规则库文件包含赛道7新增触发器"""
+        rules = eeg.load_eeg_policy_link()
+        triggers = [l["trigger"] for l in rules["links"]]
+        assert "cerebrovascular_risk" in triggers
+        assert "cognitive_decline_risk" in triggers
+        assert "mental_health_risk" in triggers
 
 
 # ============================================================

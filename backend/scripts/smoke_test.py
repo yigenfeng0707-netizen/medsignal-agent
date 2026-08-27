@@ -172,6 +172,17 @@ def main():
     latest = client.get("/api/eeg/user_001/latest").json()
     check("最新 EEG 含波形", len(latest.get("waveform", [])) == 4)
     check("最新 EEG 含指标", "stress_index" in latest.get("metrics", {}))
+    # ⭐ 赛道7新增指标验证
+    metrics = latest.get("metrics", {})
+    check("含脑血管风险指数", "cerebrovascular_risk" in metrics)
+    check("含认知衰退风险", "cognitive_decline_risk" in metrics)
+    check("含精神状态筛查", "mental_health" in metrics)
+    check("脑血管风险0-100", 0 <= metrics.get("cerebrovascular_risk", -1) <= 100)
+    check("认知衰退风险0-100", 0 <= metrics.get("cognitive_decline_risk", -1) <= 100)
+    mh = metrics.get("mental_health", {})
+    check("精神状态含焦虑评分", "anxiety_score" in mh)
+    check("精神状态含抑郁评分", "depression_score" in mh)
+    check("精神状态含筛查标签", "screening_label" in mh)
 
     # 9.4 EEG 历史趋势
     hist = client.get("/api/eeg/user_001/history").json()

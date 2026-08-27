@@ -11,8 +11,9 @@ BCI×医保创新模块的 API 入口
 """
 
 import logging
+import os
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud
@@ -204,3 +205,178 @@ async def get_policy_links(user_id: str, db: AsyncSession = Depends(get_db)):
         "policy_links": links,
         "summary": record.summary or "",
     }
+
+
+# ============================================================
+# v2.2 新增：真实设备接入 + 文件导入
+# ============================================================
+
+@router.get("/device/check")
+async def check_device():
+    """检查 LSL EEG 设备连接状态（不采集，仅探测）"""
+    from app.services.eeg.device_adapter import check_lsl_connection
+    return check_lsl_connection()
+
+
+@router.post("/{user_id}/session-device")
+async def create_eeg_session_from_device(
+    user_id: str,
+    duration_seconds: int = Query(4, ge=1, le=30, description="采集时长（秒）"),
+    mental_state: str = Query("auto", description="心理状态标签（auto 则根据信号推断）"),
+    db: AsyncSession = Depends(get_db),
+):
+    """从真实 EEG 设备采集信号并评估（通过 LSL 协议）
+
+    前置条件：
+    1. EEG 设备已通过蓝牙/USB 连接到电脑
+    2. LSL 推流正在运行（如 muselsl stream）
+    3. pylsl 已安装：pip install pylsl
+
+    流程：LSL 采集 → 频域分析 → 健康指标 → 预警 → 政策联动 → 入库
+    """
+    from app.services.eeg.device_adapter import acquire_from_lsl, get_device_config
+
+    profile = await crud.get_user_health_profile(db, user_id)
+    if not profile.get("found"):
+        raise HTTPException(status_code=404, detail=f"用户 {user_id} 不存在")
+
+    config = get_device_config()
+
+    try:
+        signals, channels, sample_rate, device_info = acquire_from_lsl(
+            stream_name=config["lsl_stream_name"],
+            stream_type=config["lsl_stream_type"],
+            duration_seconds=duration_seconds,
+        )
+    except ImportError as e:
+        raise HTTPException(status_code=503, detail=f"依赖未安装: {e}")
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=f"设备连接失败: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"采集失败: {e}")
+
+    # 信号质量检查
+    if device_info.signal_quality == "poor":
+        logger.warning("EEG 信号质量差: %s", device_info.quality_detail)
+
+    # 完整评估（复用引擎）
+    session = eeg_engine.assess_real_session(
+        user_id=user_id,
+        signals=signals,
+        channels=channels,
+        sample_rate=sample_rate,
+        mental_state=mental_state,
+        user_profile=profile,
+        device_info=device_info.to_dict(),
+    )
+
+    # 入库
+    try:
+        await crud.create_eeg_record(
+            db=db,
+            user_id=user_id,
+            session_id=session.session_id,
+            duration_seconds=session.duration_seconds,
+            mental_state=session.mental_state,
+            mental_state_label=session.mental_state_label,
+            avg_band_powers=session.avg_band_powers,
+            metrics=session.metrics,
+            alert_count=len(session.alerts),
+            policy_link_count=len(session.policy_links),
+            summary=session.summary,
+        )
+    except Exception as e:
+        logger.warning("EEG 记录入库失败（不影响返回）: %s", e)
+
+    return session.to_dict()
+
+
+@router.post("/{user_id}/import")
+async def import_eeg_file(
+    user_id: str,
+    file: UploadFile = File(..., description="EEG 文件（.csv / .edf / .txt）"),
+    sample_rate: int = Query(256, ge=1, le=1000, description="采样率（Hz），CSV/TXT 需指定"),
+    mental_state: str = Query("auto", description="心理状态标签"),
+    db: AsyncSession = Depends(get_db),
+):
+    """导入 EEG 文件并分析（支持 CSV / EDF / TXT）
+
+    CSV 格式：
+    - 第一行：通道名（逗号分隔），如 TP9,AF7,AF8,TP10
+    - 第二行起：每行一个采样点的各通道电压值（微伏 μV）
+
+    EDF 格式：
+    - 临床标准 EDF/EDF+ 文件
+    - 自动提取通道和采样率
+    - 需安装 pyedflib：pip install pyedflib
+    """
+    from app.services.eeg.device_adapter import load_from_csv, load_from_edf
+
+    profile = await crud.get_user_health_profile(db, user_id)
+    if not profile.get("found"):
+        raise HTTPException(status_code=404, detail=f"用户 {user_id} 不存在")
+
+    # 读取文件内容
+    content = await file.read()
+    filename = file.filename or "uploaded_eeg"
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+    try:
+        if ext == "csv" or ext == "txt":
+            signals, channels, sr, device_info = load_from_csv(
+                content, sample_rate=sample_rate, filename=filename,
+            )
+        elif ext == "edf":
+            # EDF 需要写入临时文件（pyedflib 只支持文件路径）
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp:
+                tmp.write(content)
+                tmp_path = tmp.name
+            try:
+                signals, channels, sr, device_info = load_from_edf(tmp_path)
+            finally:
+                os.unlink(tmp_path)
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"不支持的文件格式: .{ext}，支持 .csv / .edf / .txt",
+            )
+    except HTTPException:
+        raise
+    except ImportError as e:
+        raise HTTPException(status_code=503, detail=f"依赖未安装: {e}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"文件解析失败: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"导入失败: {e}")
+
+    # 完整评估
+    session = eeg_engine.assess_real_session(
+        user_id=user_id,
+        signals=signals,
+        channels=channels,
+        sample_rate=sr,
+        mental_state=mental_state,
+        user_profile=profile,
+        device_info=device_info.to_dict(),
+    )
+
+    # 入库
+    try:
+        await crud.create_eeg_record(
+            db=db,
+            user_id=user_id,
+            session_id=session.session_id,
+            duration_seconds=session.duration_seconds,
+            mental_state=session.mental_state,
+            mental_state_label=session.mental_state_label,
+            avg_band_powers=session.avg_band_powers,
+            metrics=session.metrics,
+            alert_count=len(session.alerts),
+            policy_link_count=len(session.policy_links),
+            summary=session.summary,
+        )
+    except Exception as e:
+        logger.warning("EEG 记录入库失败（不影响返回）: %s", e)
+
+    return session.to_dict()

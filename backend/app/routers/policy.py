@@ -77,7 +77,7 @@ async def get_policy_detail(policy_id: int, db: AsyncSession = Depends(get_db)):
         "policy_id": doc.id,
         "title": doc.title,
         "content": doc.content,
-        "source": doc.source or "南京市医疗保障局",
+        "source": doc.source or "省级医疗保障部门",
         "publish_date": doc.publish_date.isoformat() if doc.publish_date else "",
         "category": doc.category or "综合",
         "tags": doc.tags or "",

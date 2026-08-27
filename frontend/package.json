@@ -11,7 +11,6 @@
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.12",
     "@radix-ui/react-dialog": "^1.1.16",
-    "@radix-ui/react-dropdown-menu": "^2.1.17",
     "@radix-ui/react-progress": "^1.1.9",
     "@radix-ui/react-scroll-area": "^1.2.11",
     "@radix-ui/react-separator": "^1.1.9",
@@ -24,7 +23,7 @@
     "echarts": "^6.1.0",
     "echarts-for-react": "^3.0.6",
     "framer-motion": "^12.40.0",
-    "lucide-react": "^1.17.0",
+    "lucide-react": "^1.21.0",
     "next": "14.2.35",
     "react": "^18",
     "react-dom": "^18",

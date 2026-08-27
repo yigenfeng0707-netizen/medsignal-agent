@@ -94,12 +94,12 @@ def slide_1():
     # 标题
     title = shape_text(80, 160, 800, 80, "医保智脑", "title", "center", WHITE, True, 64)
     subtitle = shape_text(80, 250, 800, 50, "基于可信数据空间的个人医保智能体", "sub-headline", "center", WHITE, False, 28)
-    team = shape_text(80, 330, 800, 40, "演讲人：冯亦根  |  模法黑客松 S4 · 医保智能体开发专场", "body", "center", "rgb(160,174,192)", False, 18)
+    team = shape_text(80, 330, 800, 40, "全球脑机接口×医保创新场景大赛 · 场景应用赛道", "body", "center", "rgb(160,174,192)", False, 18)
     date = shape_text(80, 380, 800, 30, "2026年6月", "caption", "center", "rgb(160,174,192)", False, 16)
     # 底部装饰条
     bar = shape_rect(0, 500, 960, 40, BLUE)
     content = "\n".join([title, subtitle, team, date, bar])
-    return create_slide(content, GRADIENT_DARK, "各位评委、各位老师，大家好，我是冯亦根。今天我为大家带来我们的项目——医保智脑。")
+    return create_slide(content, GRADIENT_DARK, "各位评委、各位老师，大家好。今天我为大家带来我们的项目——医保智脑·脑电健康卫士。")
 
 
 def slide_2():
@@ -120,17 +120,17 @@ def slide_2():
     rt2 = shape_text(550, 250, 300, 80, "上千元", "title", "left", ORANGE, True, 48)
     rt3 = shape_text(550, 340, 300, 80, "错过政策红利，不知道能享什么待遇", "body", "left", WHITE, False, 18)
     content = "\n".join([title, sub, card, icon1, t1, p1, icon2, t2, p2, rcard, rt1, rt2, rt3])
-    return create_slide(content, LIGHT_BG, "张阿姨，58岁，退休工人。昨天刚看完门诊，今天一早就赶到医保大厅，排了3个小时，只问了一句话——'我这个能报多少？'这不是个案，这是8000万江苏参保人每天都在经历的困境。")
+    return create_slide(content, LIGHT_BG, "张阿姨，58岁，退休工人。昨天刚看完门诊，今天一早就赶到医保大厅，排了3个小时，只问了一句话——'我这个能报多少？'这不是个案，这是5600万参保人每天都在经历的困境。")
 
 
 def slide_3():
     """三组数据"""
-    title = shape_text(80, 50, 800, 50, "8000万人的信息鸿沟", "headline", "left", DARK, True, 40)
+    title = shape_text(80, 50, 800, 50, "5600万人的信息鸿沟", "headline", "left", DARK, True, 40)
     # 三个卡片
     cards = []
     xs = [80, 340, 600]
     numbers = ["2.5亿次", "47分钟", "80%"]
-    labels = ["江苏8000万参保人\n人均每年咨询3.2次", "一份医保政策文件\n平均阅读时长", "参保人不知道\n自己可享受哪些红利"]
+    labels = ["5600万参保人\n人均每年咨询3.2次", "一份医保政策文件\n平均阅读时长", "参保人不知道\n自己可享受哪些红利"]
     icons = ["🔢", "📄", "💰"]
     colors = [BLUE, ORANGE, RED]
     for i in range(3):
@@ -227,7 +227,7 @@ def slide_7():
     # 左侧票据识别
     card1 = shape_rect(80, 120, 420, 180, WHITE, radius=12, border="rgb(226,232,240)")
     c1t = shape_text(100, 140, 380, 30, "📄 票据识别", "body", "left", DARK, True, 18)
-    c1d = shape_text(100, 175, 380, 100, "南京市鼓楼区中央门社区卫生服务中心\n2026-06-10  |  2型糖尿病\n费用总额：¥486.30", "body", "left", DARK, False, 16)
+    c1d = shape_text(100, 175, 380, 100, "某区社区卫生服务中心\n2026-06-10  |  2型糖尿病\n费用总额：¥486.30", "body", "left", DARK, False, 16)
     # 右侧计算
     card2 = shape_rect(540, 120, 340, 180, WHITE, radius=12, border="rgb(226,232,240)")
     c2t = shape_text(560, 140, 300, 30, "🧮 报销预审", "body", "left", DARK, True, 18)
@@ -362,7 +362,7 @@ def slide_11():
         caps_xml.extend([c, n, d])
     apps = shape_text(100, 470, 740, 30, "N 个应用场景  →  医保智脑 = 可信数据空间在个人服务端的落地", "body", "left", WHITE, False, 16)
     content = "\n".join([title, timeline, t1, t2, t3, arch, a_t, base, base_t] + caps_xml + [apps])
-    return create_slide(content, LIGHT_BG, "我们的架构完全对齐江苏省可信数据空间。2025年5月，可信数据空间在南京正式发布，被国家数据局确定为全国重点联系示范场景。我们不是在造空中楼阁，我们站在省级战略的肩膀上。")
+    return create_slide(content, LIGHT_BG, "我们的架构完全对齐浙江省医保数据要素战略的「1+3+N」框架。隐私计算、区块链存证、数据沙箱三大能力，确保数据可用不可见、可控可计量、可信可追溯。")
 
 
 def slide_12():
@@ -370,8 +370,8 @@ def slide_12():
     title = shape_text(80, 40, 800, 50, "从被动报销到主动健康", "headline", "center", DARK, True, 40)
     # 三个大字
     bigs = [
-        ("8000万", "参保人"),
-        ("8000万次", "每年少跑腿"),
+        ("5600万", "参保人"),
+        ("5600万次", "每年少跑腿"),
         ("数十亿", "政策红利释放"),
     ]
     xs = [80, 360, 640]
@@ -389,7 +389,7 @@ def slide_12():
     # 右侧金句
     quote = shape_text(540, 330, 340, 160, "少花1块钱医疗费\n比报销1块钱\n更有价值", "sub-headline", "left", DARK, True, 24)
     content = "\n".join([title] + bigs_xml + [old, old_t, new, new_t, quote])
-    return create_slide(content, LIGHT_BG, "医保智脑推动的是范式转变——从被动报销到主动健康。少花1块钱医疗费比报销1块钱更有价值。8000万参保人，每人省一次跑腿，多享一项政策，社会效益不可估量。")
+    return create_slide(content, LIGHT_BG, "医保智脑推动的是范式转变——从被动报销到主动健康。少花1块钱医疗费比报销1块钱更有价值。5600万参保人，每人省一次跑腿，多享一项政策，社会效益不可估量。")
 
 
 def slide_13():
@@ -438,26 +438,27 @@ def slide_14():
 def slide_15():
     """团队"""
     title = shape_text(80, 40, 800, 50, "团队", "headline", "center", DARK, True, 40)
-    # 头像占位
-    avatar = shape_rect(400, 110, 160, 160, NAVY, radius=80)
-    av_t = shape_text(400, 170, 160, 40, "冯", "title", "center", WHITE, True, 48)
-    name = shape_text(80, 290, 800, 40, "冯亦根", "sub-headline", "center", DARK, True, 32)
-    role = shape_text(80, 335, 800, 30, "全栈开发者 + 产品设计", "body", "center", GRAY, False, 18)
-    tags = "Python  |  FastAPI  |  Next.js  |  React  |  LLM  |  Multi-Agent"
-    tags_t = shape_text(80, 380, 800, 30, tags, "body", "center", BLUE, False, 16)
-    contrib = shape_text(80, 430, 800, 30, "架构设计 · 后端开发 · 前端开发 · AI Prompt Engineering", "body", "center", DARK, False, 16)
-    bottom = shape_text(80, 490, 800, 30, "3天，从0到1，把想法变成可运行的产品", "body", "center", DARK, True, 18)
-    content = "\n".join([title, avatar, av_t, name, role, tags_t, contrib, bottom])
-    return create_slide(content, LIGHT_BG, "我是冯亦根，一个人完成了整个项目的架构设计、前后端开发和AI提示词工程。3天时间，从0到1，把想法变成了可运行的产品。")
+    role1 = shape_text(80, 120, 250, 40, "项目负责人", "sub-headline", "center", NAVY, True, 20)
+    role1d = shape_text(80, 165, 250, 80, "统筹协调\n申报书统稿\n大赛对接", "body", "center", DARK, False, 14)
+    role2 = shape_text(285, 120, 250, 40, "临床专家", "sub-headline", "center", BLUE, True, 20)
+    role2d = shape_text(285, 165, 250, 80, "纳排标准\n量表选择\n效度验证", "body", "center", DARK, False, 14)
+    role3 = shape_text(490, 120, 250, 40, "技术负责人", "sub-headline", "center", BLUE, True, 20)
+    role3d = shape_text(490, 165, 250, 80, "EEG算法\n系统开发\n多智能体", "body", "center", DARK, False, 14)
+    tags = "医工信交叉  |  Python/FastAPI  |  Next.js  |  EEG/BCI  |  Multi-Agent"
+    tags_t = shape_text(80, 280, 800, 30, tags, "body", "center", BLUE, False, 16)
+    contrib = shape_text(80, 330, 800, 30, "151项单元测试 + 68项冒烟测试全绿 · 赛道7三大核心能力完整覆盖", "body", "center", DARK, False, 16)
+    bottom = shape_text(80, 400, 800, 30, "脑智同心 · 全球脑机接口×医保创新场景大赛", "body", "center", DARK, True, 18)
+    content = "\n".join([title, role1, role1d, role2, role2d, role3, role3d, tags_t, contrib, bottom])
+    return create_slide(content, LIGHT_BG, "我们是一支医工信交叉团队：项目负责人统筹协调，临床专家保障医学严谨性，技术负责人实现BCI×医保全链路系统。")
 
 
 def slide_16():
     """结尾"""
-    title = shape_text(80, 100, 800, 60, "让数据多跑路", "title", "center", WHITE, True, 48)
-    l2 = shape_text(80, 170, 800, 60, "让群众少跑腿", "title", "center", WHITE, True, 48)
-    l3 = shape_text(80, 240, 800, 70, "让健康早一步", "title", "center", ORANGE, True, 52)
-    slogan = shape_text(80, 350, 800, 40, "懂医保 · 懂健康 · 懂政策", "sub-headline", "center", "rgb(203,213,224)", False, 24)
-    team = shape_text(80, 430, 800, 30, "冯亦根  |  医保智脑", "body", "center", WHITE, False, 18)
+    title = shape_text(80, 100, 800, 60, "让脑电数据守护健康", "title", "center", WHITE, True, 48)
+    l2 = shape_text(80, 170, 800, 60, "让医保政策主动找到你", "title", "center", WHITE, True, 48)
+    l3 = shape_text(80, 240, 800, 70, "从被动报销到主动健康", "title", "center", ORANGE, True, 52)
+    slogan = shape_text(80, 350, 800, 40, "懂医保 · 懂健康 · 懂脑电", "sub-headline", "center", "rgb(203,213,224)", False, 24)
+    team = shape_text(80, 430, 800, 30, "脑智同心 · 医保智脑·脑电健康卫士", "body", "center", WHITE, False, 18)
     thanks = shape_text(80, 480, 800, 40, "谢谢大家！", "headline", "center", WHITE, True, 32)
     content = "\n".join([title, l2, l3, slogan, team, thanks])
     return create_slide(content, GRADIENT_DARK, "回到张阿姨的故事。有了医保智脑，她不需要排3小时队，不需要看不懂47分钟的政策文件，不需要错过每年2016元的政策红利。让数据多跑路，让群众少跑腿，让健康早一步。谢谢大家！")

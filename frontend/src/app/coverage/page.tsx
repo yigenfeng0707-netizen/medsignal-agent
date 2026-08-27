@@ -202,7 +202,7 @@ export default function CoveragePage() {
                   </span>
                   <span className="flex items-center gap-1">
                     <Building2 className="h-3.5 w-3.5" />
-                    {user?.city || "南京市"}
+                    {user?.city || "演示城市"}
                   </span>
                   <span className="flex items-center gap-1">
                     <Shield className="h-3.5 w-3.5" />

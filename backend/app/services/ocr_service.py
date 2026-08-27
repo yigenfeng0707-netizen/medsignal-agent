@@ -166,7 +166,7 @@ class OCRService:
     def _mock_ocr_result() -> dict:
         """Mock OCR 结果（降级方案）"""
         return {
-            "hospital": "南京市第一医院",
+            "hospital": "某市第一人民医院",
             "date": "2024-12-10",
             "patient_name": "张阿姨",
             "department": "内分泌科",

@@ -57,7 +57,7 @@ class Orchestrator:
         },
         "policy": {
             "response": "为您匹配到2条相关政策，门诊统筹报销比例已提升至70%。",
-            "data": {"matched_count": 2, "top_policy": "南京市城镇职工基本医疗保险门诊统筹办法"},
+            "data": {"matched_count": 2, "top_policy": "浙江省城镇职工基本医疗保险门诊统筹办法"},
         },
         "security": {
             "response": "您的数据授权状态正常，当前有2项有效授权。",
@@ -82,6 +82,13 @@ class Orchestrator:
         会自动降级到关键词匹配和 mock 数据。
         """
         if self._services_initialized:
+            return
+
+        if settings.DEMO_OFFLINE:
+            logger.info("DEMO_OFFLINE=1：跳过 LLM/知识库初始化，使用离线降级模式")
+            self._llm = None
+            self._kb = None
+            self._services_initialized = True
             return
 
         # 初始化 LLM 服务（主力：商汤 SenseNova，备选：阿里云 DashScope）

@@ -65,16 +65,16 @@ pnpm dev
 ### 验证
 ```bash
 cd backend
-python -m pytest tests/                    # 92 项单元测试
-python -m scripts.smoke_test               # 60 项端到端冒烟测试
+python -m pytest tests/                    # 151 项单元测试
+python -m scripts.smoke_test               # 68 项端到端冒烟测试
 ```
 
 ## 🧪 测试
 
 | 测试套件 | 数量 | 说明 |
 |---|---|---|
-| 单元测试 | 92 | 四大算法引擎（报销/健康/政策/脑电） |
-| 端到端冒烟 | 60 | 7 个 Router + AI 对话 + EEG 脑电 + 多用户 |
+| 单元测试 | 151 | 四大算法引擎（报销/健康/政策/脑电）+ 设备适配层 |
+| 端到端冒烟 | 68 | 7 个 Router + AI 对话 + EEG 脑电 + 多用户 |
 
 ```bash
 python -m pytest tests/ -v
@@ -113,7 +113,7 @@ yibao-zhinao/
 │   │   │   ├── llm_service.py / knowledge_base.py / ocr_service.py
 │   │   └── prompts/agent_prompts.py  # 6 个 Agent 提示词（含脑电卫士）
 │   ├── data/                    # 仿真数据 + 政策库 + 规则库 + 脑电政策联动
-│   ├── tests/                   # 92 项单元测试（含 EEG 引擎 55 项）
+│   ├── tests/                   # 151 项单元测试（含 EEG 引擎 77 项）
 │   └── scripts/                 # 数据生成/初始化/冒烟测试
 ├── frontend/
 │   └── src/
@@ -122,7 +122,7 @@ yibao-zhinao/
 │       └── lib/                 # api.ts / mock-data.ts / user-context.tsx
 ├── docs/                        # 升级计划/完成报告/API契约/PPT大纲/路演稿
 ├── docker-compose.yml / nginx.conf / render.yaml
-└── .github/workflows/deploy.yml
+└── .github/workflows/ci.yml     # CI/CD（lint + test + build）
 ```
 
 ## 📖 文档

@@ -11,6 +11,8 @@ import {
   Moon,
   Eye,
   HeartPulse,
+  Heart,
+  AlertTriangle,
   Play,
   Square,
   Loader2,
@@ -18,6 +20,11 @@ import {
   ShieldCheck,
   TrendingUp,
   ChevronRight,
+  Usb,
+  Upload,
+  CheckCircle2,
+  AlertCircle,
+  Wifi,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactEChartsCore from "echarts-for-react/lib/core";
@@ -32,10 +39,14 @@ import {
 import { CanvasRenderer } from "echarts/renderers";
 import {
   createEEGSession,
+  createEEGSessionFromDevice,
+  checkEEGDevice,
+  importEEGFile,
   getLatestEEG,
   getEEGHistory,
   getEEGRealtime,
   getEEGMentalStates,
+  type EEGDeviceStatus,
 } from "@/lib/api";
 import { useUser } from "@/lib/user-context";
 import { ApiStatusIndicator } from "@/components/api-status-indicator";
@@ -165,6 +176,18 @@ export default function EEGPage() {
   const streamSeedRef = useRef(0);
   const { userId, currentUser } = useUser();
 
+  // 采集模式：synthetic（合成信号）/ device（真实 LSL 设备）/ file（文件导入）
+  const [acquireMode, setAcquireMode] = useState<"synthetic" | "device" | "file">("synthetic");
+  // 真实设备状态
+  const [deviceStatus, setDeviceStatus] = useState<EEGDeviceStatus | null>(null);
+  const [checkingDevice, setCheckingDevice] = useState(false);
+  // 文件导入
+  const [importedFile, setImportedFile] = useState<File | null>(null);
+  const [importSampleRate, setImportSampleRate] = useState<number>(256);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // 错误提示
+  const [acquireError, setAcquireError] = useState<string>("");
+
   // 加载初始数据
   useEffect(() => {
     setLoading(true);
@@ -213,15 +236,69 @@ export default function EEGPage() {
   // 发起完整采集会话
   const handleCollect = async () => {
     setCollecting(true);
+    setAcquireError("");
     stopStream();
-    const result = await createEEGSession(userId, selectedState, 4);
-    if (result) {
-      setSession(result);
-      // 刷新历史趋势
-      const history = await getEEGHistory(userId);
-      if (history?.trend) setTrend(history.trend);
+    try {
+      let result: EEGSession | null = null;
+      if (acquireMode === "device") {
+        result = await createEEGSessionFromDevice(userId, 4, selectedState);
+        if (!result) {
+          setAcquireError(
+            "真实设备采集失败。请确认：(1) LSL 流已启动（如 muselsl stream）；(2) 后端已安装 pylsl（pip install pylsl）；(3) 设备已连接并通过 /api/eeg/device/check 检测。",
+          );
+        }
+      } else if (acquireMode === "file") {
+        if (!importedFile) {
+          setAcquireError("请先选择要导入的 EEG 文件（CSV/EDF/TXT）。");
+          setCollecting(false);
+          return;
+        }
+        result = await importEEGFile(userId, importedFile, importSampleRate, selectedState);
+        if (!result) {
+          setAcquireError(
+            "文件导入失败。请确认文件格式：CSV 第一行为通道名、后续每行为采样点；EDF 需安装 pyedflib。可参考 docs/EEG设备接入指南.md。",
+          );
+        }
+      } else {
+        result = await createEEGSession(userId, selectedState, 4);
+      }
+      if (result) {
+        setSession(result);
+        // 刷新历史趋势
+        const history = await getEEGHistory(userId);
+        if (history?.trend) setTrend(history.trend);
+      }
+    } catch (err) {
+      setAcquireError(`采集异常：${err instanceof Error ? err.message : String(err)}`);
     }
     setCollecting(false);
+  };
+
+  // 检查 LSL 设备连接状态
+  const handleCheckDevice = async () => {
+    setCheckingDevice(true);
+    setAcquireError("");
+    const status = await checkEEGDevice();
+    setDeviceStatus(status);
+    if (!status) {
+      setAcquireError("无法连接后端 /api/eeg/device/check。请确认后端服务已启动。");
+    } else if (!status.pylsl_installed) {
+      setAcquireError("后端未安装 pylsl。请在后端环境执行：pip install pylsl");
+    } else if (!status.connected) {
+      setAcquireError(
+        "未检测到 LSL EEG 流。请先启动设备的 LSL 输出（如 Muse: muselsl stream；OpenBCI: GUI 启用 LSL；Emotiv: Cortex App LSL Bridge）。",
+      );
+    }
+    setCheckingDevice(false);
+  };
+
+  // 文件选择
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) {
+      setImportedFile(f);
+      setAcquireError("");
+    }
   };
 
   // 波形图配置（4 通道）
@@ -368,10 +445,46 @@ export default function EEGPage() {
       {/* 采集控制栏 */}
       <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.05 }}>
         <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-100">
-          <CardContent className="p-4">
+          <CardContent className="p-4 space-y-3">
+            {/* 第一行：采集模式切换 */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-foreground flex items-center gap-1">
+                <Sparkles className="h-4 w-4 text-purple-500" />
+                采集模式：
+              </span>
+              {([
+                { key: "synthetic", label: "合成信号", icon: Sparkles, desc: "演示/测试用" },
+                { key: "device", label: "真实设备", icon: Usb, desc: "LSL 实时采集" },
+                { key: "file", label: "文件导入", icon: Upload, desc: "CSV/EDF/TXT" },
+              ] as const).map((m) => {
+                const active = acquireMode === m.key;
+                const MIcon = m.icon;
+                return (
+                  <button
+                    key={m.key}
+                    onClick={() => {
+                      setAcquireMode(m.key);
+                      setAcquireError("");
+                    }}
+                    className={`px-3 py-1.5 text-sm rounded-lg border transition-all flex items-center gap-1.5 ${
+                      active
+                        ? "bg-purple-600 text-white border-purple-600 shadow-sm"
+                        : "bg-white text-foreground border-gray-200 hover:border-purple-300"
+                    }`}
+                  >
+                    <MIcon className="h-3.5 w-3.5" />
+                    {m.label}
+                    <span className={`text-[10px] ${active ? "text-purple-100" : "text-muted-foreground"}`}>
+                      {m.desc}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 第二行：场景选择 + 主操作按钮 */}
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-purple-500" />
                 <span className="text-sm font-medium">采集场景：</span>
                 <select
                   value={selectedState}
@@ -386,15 +499,26 @@ export default function EEGPage() {
                   ))}
                 </select>
               </div>
+
               <Button
                 onClick={handleCollect}
-                disabled={collecting}
+                disabled={collecting || (acquireMode === "file" && !importedFile)}
                 className="bg-purple-600 hover:bg-purple-700 text-white"
               >
                 {collecting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     采集中...
+                  </>
+                ) : acquireMode === "device" ? (
+                  <>
+                    <Usb className="h-4 w-4 mr-2" />
+                    从设备采集 4 秒
+                  </>
+                ) : acquireMode === "file" ? (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    导入并分析
                   </>
                 ) : (
                   <>
@@ -403,22 +527,26 @@ export default function EEGPage() {
                   </>
                 )}
               </Button>
-              <Button
-                onClick={isStreaming ? stopStream : startStream}
-                variant={isStreaming ? "destructive" : "outline"}
-              >
-                {isStreaming ? (
-                  <>
-                    <Square className="h-4 w-4 mr-2" />
-                    停止实时流
-                  </>
-                ) : (
-                  <>
-                    <Activity className="h-4 w-4 mr-2" />
-                    实时流模拟
-                  </>
-                )}
-              </Button>
+
+              {acquireMode === "synthetic" && (
+                <Button
+                  onClick={isStreaming ? stopStream : startStream}
+                  variant={isStreaming ? "destructive" : "outline"}
+                >
+                  {isStreaming ? (
+                    <>
+                      <Square className="h-4 w-4 mr-2" />
+                      停止实时流
+                    </>
+                  ) : (
+                    <>
+                      <Activity className="h-4 w-4 mr-2" />
+                      实时流模拟
+                    </>
+                  )}
+                </Button>
+              )}
+
               {session && (
                 <Badge variant="secondary" className="ml-auto">
                   最近采集：{session.mental_state_label} · {session.duration_seconds}s ·{" "}
@@ -426,6 +554,107 @@ export default function EEGPage() {
                 </Badge>
               )}
             </div>
+
+            {/* 第三行：模式专属控件 */}
+            {acquireMode === "device" && (
+              <div className="pt-2 border-t border-purple-100 flex flex-wrap items-center gap-3">
+                <Button
+                  onClick={handleCheckDevice}
+                  variant="outline"
+                  size="sm"
+                  disabled={checkingDevice}
+                >
+                  {checkingDevice ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  ) : (
+                    <Wifi className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  检测 LSL 设备
+                </Button>
+                {deviceStatus && (
+                  <div className="flex items-center gap-2 text-xs">
+                    {deviceStatus.connected ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-amber-500" />
+                    )}
+                    <span className={deviceStatus.connected ? "text-green-700" : "text-amber-700"}>
+                      {deviceStatus.message}
+                    </span>
+                    {deviceStatus.stream_count > 0 && (
+                      <Badge variant="outline" className="text-[10px]">
+                        {deviceStatus.stream_count} 个流
+                      </Badge>
+                    )}
+                  </div>
+                )}
+                {deviceStatus?.streams && deviceStatus.streams.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {deviceStatus.streams.map((s, i) => (
+                      <span
+                        key={i}
+                        className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-purple-200 text-purple-700"
+                      >
+                        {s.name} · {s.channel_count}ch · {s.nominal_srate}Hz
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <span className="text-[11px] text-muted-foreground ml-auto">
+                  支持 Muse / Emotiv / OpenBCI 等 LSL 兼容设备，详见 docs/EEG设备接入指南.md
+                </span>
+              </div>
+            )}
+
+            {acquireMode === "file" && (
+              <div className="pt-2 border-t border-purple-100 flex flex-wrap items-center gap-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.edf,.txt,.tsv"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Upload className="h-3.5 w-3.5 mr-1.5" />
+                  选择文件
+                </Button>
+                {importedFile && (
+                  <Badge variant="secondary" className="text-xs">
+                    {importedFile.name} ({(importedFile.size / 1024).toFixed(1)} KB)
+                  </Badge>
+                )}
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="text-muted-foreground">采样率：</span>
+                  <select
+                    value={importSampleRate}
+                    onChange={(e) => setImportSampleRate(Number(e.target.value))}
+                    className="px-2 py-1 text-xs rounded border border-gray-200 bg-white"
+                  >
+                    <option value={256}>256 Hz</option>
+                    <option value={250}>250 Hz</option>
+                    <option value={500}>500 Hz</option>
+                    <option value={1000}>1000 Hz</option>
+                    <option value={220}>220 Hz（Muse）</option>
+                  </select>
+                </div>
+                <span className="text-[11px] text-muted-foreground ml-auto">
+                  CSV 格式：第一行通道名，后续每行采样点；EDF 需后端安装 pyedflib
+                </span>
+              </div>
+            )}
+
+            {/* 错误提示 */}
+            {acquireError && (
+              <div className="mt-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-800 leading-relaxed">{acquireError}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -460,7 +689,7 @@ export default function EEGPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <Brain className="h-4 w-4 text-purple-500" />
-                脑电健康四维指标
+                脑电健康指标
                 <Badge variant="outline" className="ml-2">
                   情绪：{metrics.emotion?.label || "平稳"}
                 </Badge>
@@ -473,6 +702,24 @@ export default function EEGPage() {
                 <MetricRing score={metrics.sleep_quality} label="睡眠质量" icon={Moon} reverse />
                 <MetricRing score={metrics.cognitive_load} label="认知负荷" icon={Brain} />
               </div>
+              {/* ⭐ 赛道7核心：脑血管风险 + 认知衰退 + 精神状态 */}
+              <div className="mt-4 grid grid-cols-3 gap-4">
+                <MetricRing score={metrics.cerebrovascular_risk ?? 0} label="脑血管风险" icon={Heart} reverse />
+                <MetricRing score={metrics.cognitive_decline_risk ?? 0} label="认知衰退风险" icon={Brain} reverse />
+                <MetricRing score={metrics.mental_health?.overall_risk ?? 0} label="精神状态风险" icon={AlertTriangle} reverse />
+              </div>
+              {/* 精神状态筛查详情 */}
+              {metrics.mental_health && metrics.mental_health.screening_label !== "正常" && (
+                <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm">
+                  <span className="font-medium">精神状态筛查：</span>
+                  <span className={metrics.mental_health.screening_label === "焦虑倾向" ? "text-orange-600" : metrics.mental_health.screening_label === "抑郁倾向" ? "text-blue-600" : "text-amber-600"}>
+                    {metrics.mental_health.screening_label}
+                  </span>
+                  <span className="ml-3 text-muted-foreground">
+                    焦虑 {metrics.mental_health.anxiety_score}/100 · 抑郁 {metrics.mental_health.depression_score}/100
+                  </span>
+                </div>
+              )}
               {metrics.ratios && (
                 <div className="mt-4 grid grid-cols-4 gap-2 text-xs text-muted-foreground">
                   <div className="text-center p-2 rounded bg-gray-50">
