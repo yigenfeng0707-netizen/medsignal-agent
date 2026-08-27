@@ -135,6 +135,78 @@ jobs:
 
       # 魔搭平台对 git push 不一定自动触发构建（曾出现推送后镜像长时间不更新的情况），
       # 因此推送后必须显式调用 deploy API 强制触发构建（skill: ms-studio-deploy）
+      #
+      # ⚠️ 重要教训（2026-08-27 排查）：git 仓库中 ms_deploy.json 的 env 更新【不会】
+      # 同步到运行容器。容器环境变量的真实来源是平台侧保存的 secrets/variables，
+      # 只能通过 OpenAPI 写入（曾出现：推送新 ms_deploy.json 后容器内 LLM_API_KEY
+      # 仍为失效旧值导致 chat 504，新增 VISION_API_KEY 缺失）。因此部署前先同步。
+      - name: Sync secrets/variables to ModelScope platform
+        shell: bash
+        env:
+          MSCORE_TOKEN: ${{ secrets.MODELSCOPE_TOKEN }}
+          SPACE_OWNER: ${{ secrets.MODELSCOPE_USERNAME }}
+          SPACE_NAME: ${{ vars.MODELSCOPE_SPACE_NAME }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          VISION_API_KEY: ${{ secrets.VISION_API_KEY }}
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+        run: |
+          set -euo pipefail
+          EP="https://modelscope.cn/openapi/v1"
+          AUTH="Authorization: Bearer ${MSCORE_TOKEN}"
+
+          # 查询指定 kind（secrets/variables）下 key 是否已存在
+          key_exists() {
+            curl -sf -H "${AUTH}" \
+              "${EP}/studios/${SPACE_OWNER}/${SPACE_NAME}/$1" \
+              | grep -q "\"$2\""
+          }
+
+          # upsert：存在则 PUT 更新，不存在则 POST 新增
+          sync_kv() {
+            local kind="$1" key="$2" val="$3" method="POST" code
+            if key_exists "${kind}" "${key}"; then
+              method="PUT"
+            fi
+            code=$(curl -s -o /tmp/sync_resp.json -w "%{http_code}" -X "${method}" \
+              "${EP}/studios/${SPACE_OWNER}/${SPACE_NAME}/${kind}" \
+              -H "${AUTH}" -H "Content-Type: application/json" \
+              -d "{\"key\":\"${key}\",\"value\":\"${val}\"}")
+            echo "${kind%/s} ${key}: ${method} -> HTTP ${code}"
+            if [ "${code}" != "200" ] && [ "${code}" != "201" ]; then
+              echo "::warning::${kind%/s} ${key} 同步失败: $(head -c 300 /tmp/sync_resp.json)"
+            fi
+          }
+
+          delete_kv() {
+            local kind="$1" key="$2" code
+            if ! key_exists "${kind}" "${key}"; then
+              return 0
+            fi
+            code=$(curl -s -o /tmp/sync_resp.json -w "%{http_code}" -X "DELETE" \
+              "${EP}/studios/${SPACE_OWNER}/${SPACE_NAME}/${kind}" \
+              -H "${AUTH}" -H "Content-Type: application/json" \
+              -d "{\"key\":\"${key}\"}")
+            echo "${kind%/s} ${key}: DELETE -> HTTP ${code}"
+          }
+
+          # 敏感密钥 → secrets
+          if [ -n "${LLM_API_KEY:-}" ]; then sync_kv secrets LLM_API_KEY "${LLM_API_KEY}"; fi
+          if [ -n "${VISION_API_KEY:-}" ]; then sync_kv secrets VISION_API_KEY "${VISION_API_KEY}"; fi
+          if [ -n "${DASHSCOPE_API_KEY:-}" ]; then sync_kv secrets DASHSCOPE_API_KEY "${DASHSCOPE_API_KEY}"; fi
+
+          # 非敏感配置 → 明文 variables（config.py 默认值已正确，此处同步防止平台残留旧值覆盖）
+          sync_kv variables DEMO_OFFLINE "false"
+          sync_kv variables LLM_BASE_URL "https://aiping.cn/api/v1"
+          sync_kv variables LLM_MODEL "Kimi-K3"
+          sync_kv variables VISION_BASE_URL "https://aiping.cn/api/v1"
+          sync_kv variables VISION_MODEL "GLM-4.6V"
+          sync_kv variables DASHSCOPE_BASE_URL "https://dashscope.aliyuncs.com/compatible-mode/v1"
+          sync_kv variables DASHSCOPE_MODEL "qwen-plus"
+
+          # 清理历史遗留的旧网关密钥（SenseNova/STEP，已弃用）
+          delete_kv secrets STEP_API_KEY || true
+          delete_kv secrets SENSENOVA_VISION_API_KEY || true
+
       - name: Trigger Studio build (deploy API)
         shell: bash
         env:
