@@ -9,6 +9,7 @@ MedSignal - LLM 服务封装
 - 可对接 DeepSeek、通义千问等 OpenAI 兼容 API
 """
 
+import asyncio
 import json
 import logging
 
@@ -115,6 +116,7 @@ class LLMService:
             self._client = OpenAI(
                 api_key=self._api_key,
                 base_url=self._base_url,
+                timeout=30.0,
             )
             self._initialized = True
             logger.info("主力 LLM 客户端初始化成功 (model=%s, base_url=%s)", self._model, self._base_url)
@@ -132,6 +134,7 @@ class LLMService:
             self._fallback_client = OpenAI(
                 api_key=self._fallback_api_key,
                 base_url=self._fallback_base_url,
+                timeout=25.0,
             )
             self._fallback_initialized = True
             logger.info("备选 LLM 客户端初始化成功 (model=%s, base_url=%s)", self._fallback_model, self._fallback_base_url)
@@ -156,14 +159,17 @@ class LLMService:
         Returns:
             模型生成的回复文本
         """
-        # 尝试主力模型（aiping 网关 Kimi-K3，推理模型需较大 max_tokens）
+        # 尝试主力模型（aiping 网关 Kimi-K3，推理模型需较大 max_tokens）。
+        # 同步 SDK 必须用 asyncio.to_thread 包装，否则会阻塞事件循环，
+        # 导致路由层的 asyncio.wait_for 超时保护失效（曾引发线上 504）。
         if self._initialized:
             try:
-                response = self._client.chat.completions.create(
+                response = await asyncio.to_thread(
+                    self._client.chat.completions.create,
                     model=self._model,
                     messages=messages,
                     temperature=temperature,
-                    max_tokens=4096,
+                    max_tokens=2048,
                 )
                 choice = response.choices[0]
                 # 推理模型：content 可能为空，reasoning 字段包含思考过程
@@ -181,7 +187,8 @@ class LLMService:
         # 尝试备选模型（阿里云 DashScope）
         if self._fallback_initialized:
             try:
-                response = self._fallback_client.chat.completions.create(
+                response = await asyncio.to_thread(
+                    self._fallback_client.chat.completions.create,
                     model=self._fallback_model,
                     messages=messages,
                     temperature=temperature,

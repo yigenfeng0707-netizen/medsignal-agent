@@ -202,6 +202,8 @@ jobs:
           sync_kv variables VISION_MODEL "GLM-4.6V"
           sync_kv variables DASHSCOPE_BASE_URL "https://dashscope.aliyuncs.com/compatible-mode/v1"
           sync_kv variables DASHSCOPE_MODEL "qwen-plus"
+          # Chroma 索引持久化到魔搭挂载点（容器内路径重启即丢，曾致重启后 KB 重建+模型重下）
+          sync_kv variables CHROMA_PERSIST_DIR "/mnt/workspace/chroma_data"
 
           # 清理历史遗留的旧网关密钥（SenseNova/STEP，已弃用）
           delete_kv secrets STEP_API_KEY || true

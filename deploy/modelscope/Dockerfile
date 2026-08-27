@@ -43,6 +43,11 @@ WORKDIR /app
 COPY requirements-modelscope.txt ./
 RUN pip install -r requirements-modelscope.txt
 
+# 预下载 ChromaDB 默认 ONNX 嵌入模型（~79MB）到镜像缓存。
+# 若不预烘，运行时首个 KB 检索请求会触发从 S3 下载（国外源，慢且不可控），
+# 曾导致线上 chat 请求超时 504。
+RUN python -c "from chromadb.utils import embedding_functions as ef; ef.DefaultEmbeddingFunction()(['预热'])"
+
 # 后端源码
 COPY backend/ ./backend/
 # 数据文件：所有引擎用 /app/data/*.json 规则库（claims/health/policy/eeg/imaging）

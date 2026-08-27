@@ -16,7 +16,7 @@
     "REDIS_URL": "",
     "CORS_ORIGINS": "*",
     "YIBAO_SESSION_SECRET": "medsignal-modelscope-demo-secret-change-me",
-    "CHROMA_PERSIST_DIR": "/app/backend/chroma_data",
+    "CHROMA_PERSIST_DIR": "/mnt/workspace/chroma_data",
     "ENABLE_API_PROXY": "1"
   }
 }

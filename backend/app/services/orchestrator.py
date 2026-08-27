@@ -7,6 +7,7 @@ MedSignal - 智能体编排服务
 - 降级机制：服务不可用时回退到关键词匹配和 mock 数据
 """
 
+import asyncio
 import logging
 from typing import Any
 
@@ -127,7 +128,12 @@ class Orchestrator:
                 embedding_base_url="",
                 embedding_model="",
             )
-            await self._kb.initialize(persist_dir=settings.CHROMA_PERSIST_DIR)
+            # 初始化含 ChromaDB 集合创建（首次可能触发 ONNX 模型下载），
+            # 超时则降级 KB=None，不影响启动与其他功能
+            await asyncio.wait_for(
+                self._kb.initialize(persist_dir=settings.CHROMA_PERSIST_DIR),
+                timeout=60.0,
+            )
             stats = await self._kb.get_stats()
             if stats.get("total_chunks", 0) > 0:
                 logger.info("知识库服务初始化成功，已有 %d 个文本块", stats["total_chunks"])
@@ -396,12 +402,17 @@ class Orchestrator:
             if chronic:
                 search_query = f"{message}（用户情况：{ins_type}，慢病：{'、'.join(chronic)}）"
 
-        # 1. 知识库检索
+        # 1. 知识库检索（含嵌入生成，首次可能触发模型下载；超时/失败降级为无 RAG 上下文）
         search_results: list[SearchResult] = []
         if self._kb is not None:
             try:
-                search_results = await self._kb.search(search_query, top_k=5, min_score=0.3)
+                search_results = await asyncio.wait_for(
+                    self._kb.search(search_query, top_k=5, min_score=0.3),
+                    timeout=10.0,
+                )
                 logger.info("知识库检索到 %d 条相关结果", len(search_results))
+            except TimeoutError:
+                logger.warning("知识库检索超时(10s)，本次降级为无 RAG 上下文")
             except Exception as e:
                 logger.error("知识库检索失败: %s", e)
 
@@ -550,12 +561,18 @@ class Orchestrator:
             emp = user_profile.get("employee_status", "")
             search_query = f"{message}（用户：{ins_type}/{emp}）"
 
-        # 尝试从知识库获取报销相关信息
+        # 尝试从知识库获取报销相关信息（超时/失败降级为无 RAG 上下文，防嵌入模型拖慢请求）
         if self._kb is not None:
             try:
-                search_results = await self._kb.search(search_query, top_k=3, category="职工医保/居民医保基本政策", min_score=0.3)
+                search_results = await asyncio.wait_for(
+                    self._kb.search(search_query, top_k=3, category="职工医保/居民医保基本政策", min_score=0.3),
+                    timeout=10.0,
+                )
                 if not search_results:
-                    search_results = await self._kb.search(search_query, top_k=3, min_score=0.3)
+                    search_results = await asyncio.wait_for(
+                        self._kb.search(search_query, top_k=3, min_score=0.3),
+                        timeout=10.0,
+                    )
 
                 if search_results and self._llm is not None:
                     context = [

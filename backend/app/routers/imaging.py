@@ -7,6 +7,7 @@ MedSignal Agent - 医学影像 AI 标注路由
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import logging
@@ -50,13 +51,18 @@ def _summarize_findings(findings: list) -> str:
     return "；".join(parts)
 
 
-def _vision_interpretation(image_base64: str, study_label: str, findings_summary: str):
-    """调用视觉模型生成影像所见解读（不可用时返回 None，不影响主流程）。"""
+async def _vision_interpretation(image_base64: str, study_label: str, findings_summary: str):
+    """调用视觉模型生成影像所见解读（不可用时返回 None，不影响主流程）。
+
+    同步 SDK 用 asyncio.to_thread 包装，避免阻塞事件循环。
+    """
     try:
         vs = get_vision_service()
         if vs is None or not image_base64:
             return None
-        return vs.interpret_imaging_study(image_base64, study_label, findings_summary)
+        return await asyncio.to_thread(
+            vs.interpret_imaging_study, image_base64, study_label, findings_summary
+        )
     except Exception as e:
         logger.warning("视觉模型解读异常（已降级跳过）: %s", e)
         return None
@@ -152,7 +158,7 @@ async def analyze_image(user_id: str, req: AnalyzeRequest):
     # 视觉大模型影像解读（可选，降级不影响主流程）
     vision_interpretation = None
     if req.with_vision:
-        vision_interpretation = _vision_interpretation(
+        vision_interpretation = await _vision_interpretation(
             study.image_base64,
             STUDY_TYPES[study.study_type]["label"],
             _summarize_findings(study.findings),
@@ -425,7 +431,7 @@ async def get_real_study(study_id: str, with_vision: bool = Query(False, descrip
             label = FINDINGS_META.get(f.get("finding_type", ""), {}).get("label", f.get("finding_type", "未知"))
             sev = _SEVERITY_LABEL.get(f.get("severity", "medium"), "中危")
             summary_parts.append(f"{label}（{sev}，置信度{f.get('confidence', 0.8):.0%}）")
-        vision_interpretation = _vision_interpretation(
+        vision_interpretation = await _vision_interpretation(
             image_b64,
             target.get("study_label", target["study_type"]),
             "；".join(summary_parts),

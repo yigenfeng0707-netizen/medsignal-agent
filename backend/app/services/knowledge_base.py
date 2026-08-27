@@ -8,6 +8,7 @@ MedSignal - 政策知识库服务
 - 元数据过滤与来源引用
 """
 
+import asyncio
 import json
 import logging
 import os
@@ -355,8 +356,12 @@ class KnowledgeBase:
         if not self._initialized:
             raise RuntimeError("知识库未初始化，请先调用 initialize()")
 
-        # 1. 向量相似度检索
-        vector_results = self._vector_search(query, top_k * 2, category)
+        # 1. 向量相似度检索。
+        # 嵌入生成（首次含 ONNX 模型下载）是重同步 IO，必须放线程池，
+        # 否则会阻塞事件循环（曾引发线上 chat 504）。
+        vector_results = await asyncio.to_thread(
+            self._vector_search, query, top_k * 2, category
+        )
 
         # 2. 关键词检索
         keyword_results = self._keyword_search(query, top_k * 2, category)
