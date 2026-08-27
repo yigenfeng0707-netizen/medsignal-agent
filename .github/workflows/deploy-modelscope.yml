@@ -38,17 +38,19 @@ jobs:
         shell: bash
         env:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          STEP_API_KEY: ${{ secrets.STEP_API_KEY }}
+          SENSENOVA_VISION_API_KEY: ${{ secrets.SENSENOVA_VISION_API_KEY }}
         run: |
           set -euo pipefail
           PKG=/tmp/mscope
           rm -rf "$PKG" && mkdir -p "$PKG"
 
-          # 后端：剔除开发/本地产物与密钥文件
+          # 后端：剔除开发/本地产物与密钥文件（保留 scripts/：init_db.py 容器启动时初始化 DB）
           rsync -a \
             --exclude 'venv' --exclude '.venv' --exclude '__pycache__' \
             --exclude '*.db' --exclude '*.db-journal' \
             --exclude 'chroma_data' --exclude '.pytest_cache' \
-            --exclude '*.pyc' --exclude 'tests' --exclude 'scripts' \
+            --exclude '*.pyc' --exclude 'tests' \
             --exclude '.env' --exclude '.env.*' \
             backend/ "$PKG/backend/"
 
@@ -58,6 +60,12 @@ jobs:
             --exclude '.env' --exclude '.env.*' \
             frontend/ "$PKG/frontend/"
 
+          # 数据文件：init_db.py + claims/health/policy/eeg/imaging 引擎需要
+          # 排除 receipts/（OCR 图片 10+MB，离线模式不用）和 .gitkeep
+          rsync -a \
+            --exclude 'receipts' --exclude '.gitkeep' \
+            data/ "$PKG/data/"
+
           # 魔搭部署文件 → 包根目录
           cp deploy/modelscope/Dockerfile "$PKG/Dockerfile"
           cp deploy/modelscope/ms_deploy.json "$PKG/ms_deploy.json"
@@ -65,13 +73,27 @@ jobs:
           cp deploy/modelscope/requirements-modelscope.txt "$PKG/requirements-modelscope.txt"
           cp README.md "$PKG/README.md"
 
-          # 注入 LLM_API_KEY：从 GitHub Secret 替换占位符，密钥永不进入 git 历史
-          if [ -n "${LLM_API_KEY:-}" ]; then
-            python3 -c "import json,os,pathlib; p=pathlib.Path('/tmp/mscope/ms_deploy.json'); d=json.loads(p.read_text(encoding='utf-8')); d['env']['LLM_API_KEY']=os.environ['LLM_API_KEY']; p.write_text(json.dumps(d,ensure_ascii=False,indent=2)+chr(10),encoding='utf-8')"
-            echo "::notice::已从 GitHub Secret 注入 LLM_API_KEY 到部署包"
-          else
-            echo "::warning::未配置 secrets.LLM_API_KEY，部署包将保留占位符；请在魔搭创空间页面设置环境变量 LLM_API_KEY 后线上才能调用真实 LLM"
-          fi
+          # 注入 LLM/Step/Vision Token：从 GitHub Secret 替换占位符，密钥永不进入 git 历史
+          python3 -c "
+          import json, os, pathlib
+          p = pathlib.Path('/tmp/mscope/ms_deploy.json')
+          d = json.loads(p.read_text(encoding='utf-8'))
+          secrets_to_inject = [
+              ('LLM_API_KEY', os.environ.get('LLM_API_KEY', '')),
+              ('STEP_API_KEY', os.environ.get('STEP_API_KEY', '')),
+              ('SENSENOVA_VISION_API_KEY', os.environ.get('SENSENOVA_VISION_API_KEY', '')),
+          ]
+          injected = []
+          for key, val in secrets_to_inject:
+              if val:
+                  d['env'][key] = val
+                  injected.append(key)
+          p.write_text(json.dumps(d, ensure_ascii=False, indent=2) + chr(10), encoding='utf-8')
+          if injected:
+              print(f\"::notice::已从 GitHub Secret 注入: {', '.join(injected)}\")
+          else:
+              print('::warning::未配置任何 LLM/Step/Vision Secret，部署包保留占位符；请在魔搭创空间页面手工设置环境变量后才能调用真实 AI\")
+          "
 
           echo "--- 部署包内容 ---"
           find "$PKG" -maxdepth 2 -type f | sort | head -40

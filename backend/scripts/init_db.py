@@ -231,6 +231,18 @@ async def init_database(data_path: str):
         await conn.run_sync(Base.metadata.create_all)
     print("✅ 数据表创建完成")
 
+    # 幂等检查：users 表已有数据则跳过所有插入（防止容器重启时重复写入）
+    async with async_session_factory() as session:
+        from sqlalchemy import func
+        existing_count = (
+            await session.execute(select(func.count(User.id)))
+        ).scalar()
+    if existing_count and existing_count > 0:
+        print(f"\n⏭️  users 表已有 {existing_count} 条数据，跳过初始化（幂等保护）")
+        await engine.dispose()
+        print("🎉 跳过完成")
+        return
+
     # 插入数据
     print("\n📋 插入数据...")
     async with async_session_factory() as session:

@@ -45,6 +45,9 @@ RUN pip install -r requirements-modelscope.txt
 
 # 后端源码
 COPY backend/ ./backend/
+# 数据文件：所有引擎用 /app/data/*.json 规则库（claims/health/policy/eeg/imaging）
+# init_db.py 默认从 /app/data/mock_data.json 读取种子数据
+COPY data/ ./data/
 # 持久化目录：/mnt/workspace 为魔搭创空间持久化挂载点（重启/迁移不丢数据）
 RUN mkdir -p /app/backend/data /app/backend/chroma_data /mnt/workspace/data
 

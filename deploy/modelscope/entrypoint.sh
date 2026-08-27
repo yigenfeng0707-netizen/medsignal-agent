@@ -16,6 +16,15 @@ export YIBAO_SESSION_SECRET="${YIBAO_SESSION_SECRET:-medsignal-modelscope-demo-s
 # 持久化目录（魔搭 /mnt/workspace 挂载点，重启不丢）
 mkdir -p /mnt/workspace/data /mnt/workspace/chroma_data
 
+# 数据库初始化（幂等：users 表已有数据则跳过）
+# - init_db.py 默认读取 /app/data/mock_data.json（Dockerfile 已 COPY data/ → /app/data/）
+# - DATABASE_URL 指向 /mnt/workspace/data/yibao.db（持久化，重启不丢）
+echo "[entrypoint] 初始化数据库（幂等）..."
+cd /app/backend
+python scripts/init_db.py 2>&1 | tee /tmp/init_db.log || {
+  echo "[entrypoint] ⚠️ init_db.py 失败（不阻塞启动，后端 lifespan 会建空表）"
+}
+
 echo "[entrypoint] 启动后端 uvicorn :8000 ..."
 cd /app/backend
 nohup python -m uvicorn app.main:app \
