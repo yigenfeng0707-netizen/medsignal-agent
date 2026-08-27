@@ -33,6 +33,10 @@ nohup python -m uvicorn app.main:app \
     > /tmp/backend.log 2>&1 &
 BACKEND_PID=$!
 
+# 实时输出后端日志到 stdout（魔搭日志能看到 LLM 调用错误、SQL 警告等）
+tail -f /tmp/backend.log 2>/dev/null &
+TAIL_PID=$!
+
 # 等待后端就绪（最多 90s）
 for i in $(seq 1 90); do
   if curl -fsS http://127.0.0.1:8000/api/health >/dev/null 2>&1; then
