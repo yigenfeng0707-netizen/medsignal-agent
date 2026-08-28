@@ -343,7 +343,7 @@ def slide05(prs):
              [("\u5b89\u5168\u5408\u89c4\u5c42 \u00b7 \u5b89\u5168\u5b88\u95e8 \u2014\u2014 \u6388\u6743\u7ba1\u7406 + \u53ef\u4fe1\u6570\u636e\u7a7a\u95f4 + \u533a\u5757\u94fe\u5b58\u8bc1", 14, WHITE, True, PP_ALIGN.CENTER)],
              anchor=MSO_ANCHOR.MIDDLE)
     tbox(s, 0.5, 6.48, 12.33, 0.4,
-         [("\u7528\u6237\u8f93\u5165 \u2192 \u7f16\u6392\u5668 \u2192 \u591a\u667a\u80fd\u4f53\u5e76\u884c \u2192 \u7ed3\u679c\u805a\u5408 \u2192 \u7528\u6237", 11, GRAY, False, PP_ALIGN.CENTER)])
+         [("用户输入 → 编排器 → 多智能体并行 → 结果聚合 → 用户 · 会话持久化 · 动态用户全站联动", 11, GRAY, False, PP_ALIGN.CENTER)])
     notes(s, "\u67b6\u6784\u5206\u4e09\u5c42\uff1a\u7f16\u6392\u5668\u8d1f\u8d23\u8c03\u5ea6\uff0c\u4fe1\u53f7\u8bc6\u522b\u5c42\u8986\u76d6\u8111\u7535\u3001\u5f71\u50cf\u3001\u884c\u4e3a\u4e09\u7c7b\u5173\u952e\u4fe1\u53f7\uff0c\u4fe1\u606f\u8fde\u63a5\u5c42\u628a\u7ed3\u679c\u7ffb\u8bd1\u6210\u60a3\u8005\u542c\u5f97\u61c2\u3001\u7528\u5f97\u4e0a\u7684\u5efa\u8bae\uff0c\u5e95\u5c42\u7531\u5b89\u5168\u5b88\u95e8\u4fdd\u969c\u9690\u79c1\u5408\u89c4\u3002\u5176\u4e2d\u8111\u7535\u536b\u58eb\u548c\u5f71\u50cf\u536b\u58eb\u662f\u6211\u4eec\u7684\u6838\u5fc3\u521b\u65b0\u3002")
 
 
@@ -354,9 +354,9 @@ def slide06(prs):
              "EEG \u9891\u57df\u5206\u6790 \u00b7 \u4e94\u7ef4\u5065\u5eb7\u6307\u6807 \u00b7 \u4e3b\u52a8\u9884\u8b66", 6, accent=GREEN)
     card(s, 0.5, 1.35, 4.3, 4.4, WHITE, line=GRAY_LT, lw=1.0)
     card_title(s, 0.5, 1.35, 4.3, "EEG \u8bbe\u5907\u63a5\u5165", fill=GREEN)
-    specs = ["Muse / Emotiv / OpenBCI", "4 \u901a\u9053 \u00b7 256 Hz \u91c7\u6837",
-             "LSL \u517c\u5bb9 \u00b7 \u4eff\u771f\u4fe1\u53f7\u6f14\u793a", "FFT + Welch PSD \u9891\u57df\u5206\u6790",
-             "\u4e94\u9891\u6bb5 \u03b4 / \u03b8 / \u03b1 / \u03b2 / \u03b3"]
+    specs = ["Muse / Emotiv / OpenBCI", "4 通道 · 256 Hz 采样",
+             "LSL 兼容 · 仿真信号演示", "FFT + Welch PSD 频域分析",
+             "五频段 δ / θ / α / β / γ", "双源真实数据集验证"]
     tbox(s, 0.7, 1.95, 3.9, 2.4, [(ln, 11.5, DARK) for ln in specs])
     wf = rect(s, 0.7, 4.45, 3.9, 1.15, NAVY_DARK)
     tbox(s, 0.7, 4.45, 3.9, 1.15, [("\u5b9e\u65f6\u6ce2\u5f62 \u00b7 4 \u901a\u9053\u6eda\u52a8", 10, GREEN_LT, False, PP_ALIGN.CENTER)],
@@ -382,9 +382,9 @@ def slide06(prs):
              anchor=MSO_ANCHOR.MIDDLE)
     badge = rrect(s, 0.5, 6.0, 12.33, 0.75, GREEN, radius=0.10)
     set_text(badge.text_frame,
-             [("\u2713 \u9891\u57df\u5206\u6790\u5f15\u64ce \u00b7 77 \u9879\u5355\u5143\u6d4b\u8bd5\u5168\u90e8\u901a\u8fc7", 15, WHITE, True, PP_ALIGN.CENTER)],
+             [("✓ 双源真实数据集 · PhysioNet 运动想象 + EEGEmotions-27 情绪 · 289 项测试全绿", 15, WHITE, True, PP_ALIGN.CENTER)],
              anchor=MSO_ANCHOR.MIDDLE)
-    notes(s, "\u7b2c\u4e00\u4e2a Demo\u3002\u63a5\u5165 EEG \u8bbe\u5907\uff0cMedSignal \u5bf9\u8111\u7535\u505a\u9891\u57df\u5206\u6790\uff0c\u8f93\u51fa\u538b\u529b\u3001\u7761\u7720\u7b49\u4e94\u4e2a\u7ef4\u5ea6\u7684\u5ba2\u89c2\u6307\u6807\u3002\u5f20\u5148\u751f\u7684\u201c\u7761\u4e0d\u597d\u201d\u7b2c\u4e00\u6b21\u6709\u4e86\u6570\u5b57\u3002\u5f53\u6307\u6807\u5f02\u5e38\uff0c\u5b83\u4e3b\u52a8\u9884\u8b66\uff0c\u5e76\u81ea\u52a8\u5339\u914d\u5230\u76f8\u5173\u533b\u7597\u5f85\u9047\u3002\u8fd9\u80cc\u540e\u662f 77 \u9879\u5f15\u64ce\u6d4b\u8bd5\u5728\u652f\u6491\u3002")
+    notes(s, "第一个 Demo。接入 EEG 设备，MedSignal 对脑电做频域分析，输出压力、睡眠等五个维度的客观指标。张先生的“睡不好”第一次有了数字。当指标异常，它主动预警，并自动匹配到相关医疗待遇。引擎已在双源真实公开数据集上验证：PhysioNet 运动想象数据集 + EEGEmotions-27 情绪数据集，加上 289 项单元测试在支撑。")
 
 
 def slide07(prs):
@@ -511,11 +511,15 @@ def slide09(prs):
               ("\u8111\u7535\u536b\u58eb + \u653f\u7b56\u53c2\u8c0b", 10.5, NAVY, True, PP_ALIGN.CENTER),
               ("\u201c\u8111\u7535\u5f02\u5e38\u600e\u4e48\u7701\u94b1\u201d \u2192 \u5e76\u884c\u56de\u7b54", 9.5, GRAY, False, PP_ALIGN.CENTER)],
              anchor=MSO_ANCHOR.MIDDLE)
-    qa = rrect(s, 0.5, 5.6, 12.33, 0.75, NAVY, radius=0.10)
+    qa = rrect(s, 0.5, 5.6, 12.33, 0.62, NAVY, radius=0.10)
     set_text(qa.text_frame,
-             [("\u6743\u76ca\u95ee\u7b54 \u00b7 \u4e00\u53e5\u8bdd\u67e5\u6e05\uff1a\u53c2\u4fdd\u7c7b\u578b / \u8d26\u6237\u4f59\u989d / \u62a5\u9500\u6bd4\u4f8b \u00b7 \u4e3b\u52a8\u63d0\u9192\u7f34\u8d39\u5e74\u9650", 13, WHITE, True, PP_ALIGN.CENTER)],
+             [("权益问答 · 一句话查清：参保类型 / 账户余额 / 报销比例 · 主动提醒缴费年限", 13, WHITE, True, PP_ALIGN.CENTER)],
              anchor=MSO_ANCHOR.MIDDLE)
-    notes(s, "\u7b2c\u56db\u4e2a Demo \u662f\u4fe1\u606f\u8fde\u63a5\u5c42\u3002\u4e00\u5f20\u7968\u636e\u4e0a\u4f20\uff0c\u62a5\u9500\u8ba1\u7b97\u4e03\u6b65\u8d70\uff1b\u653f\u7b56\u5339\u914d\u6309\u80fd\u7701\u591a\u5c11\u94b1\u6392\u5e8f\uff0c\u6bcf\u4e00\u6761\u90fd\u6709\u653f\u7b56\u539f\u6587\uff1b\u66f4\u5173\u952e\u7684\u662f\u591a\u667a\u80fd\u4f53\u534f\u4f5c\u2014\u2014\u5f53\u4ed6\u540c\u65f6\u95ee\u201c\u8111\u7535\u5f02\u5e38\u600e\u4e48\u7701\u94b1\u201d\uff0c\u7cfb\u7edf\u4f1a\u5e76\u884c\u8c03\u5ea6\u8111\u7535\u536b\u58eb\u548c\u653f\u7b56\u53c2\u8c0b\uff0c\u4e00\u6b21\u56de\u7b54\u4e24\u4e2a\u95ee\u9898\u3002")
+    live = rrect(s, 0.5, 6.42, 12.33, 0.68, GREEN, radius=0.10)
+    set_text(live.text_frame,
+             [("现场演示 · 动态新增用户 → 对话/健康画像/数字人体档案全站即时联动（< 10 秒）· 会话持久化重启可回放", 12, WHITE, True, PP_ALIGN.CENTER)],
+             anchor=MSO_ANCHOR.MIDDLE)
+    notes(s, "第四个 Demo 是信息连接层。一张票据上传，报销计算七步走；政策匹配按能省多少钱排序，每一条都有政策原文；多智能体协作——当他同时问“脑电异常怎么省钱”，系统会并行调度脑电卫士和政策参谋，一次回答两个问题。最新能力：动态用户管理，现场新增一个用户，不到十秒，对话、健康画像、数字人体档案全站联动；连续对话会话持久化，服务重启后历史可回放。")
 
 
 def slide10(prs):
