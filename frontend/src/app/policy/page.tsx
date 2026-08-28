@@ -32,6 +32,7 @@ import { getPolicyMatches } from "@/lib/api";
 import { useUser } from "@/lib/user-context";
 import type { PolicyMatch, MatchedPolicy } from "@/lib/mock-data";
 import { ApiStatusIndicator } from "@/components/api-status-indicator";
+import { BrandedPageHeader } from "@/components/branded-page-header";
 
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
@@ -66,12 +67,12 @@ export default function PolicyPage() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="didayi-page space-y-5">
         <motion.div {...fadeIn}>
           <h1 className="text-2xl font-bold text-foreground">政策匹配</h1>
           <p className="text-sm text-muted-foreground">智能匹配适合您的医保政策与优惠</p>
         </motion.div>
-        <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <Card className="didayi-card">
           <CardContent className="p-6">
             <div className="flex items-center justify-center h-32">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -83,27 +84,15 @@ export default function PolicyPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="didayi-page space-y-5">
       {/* Page Header */}
       <motion.div {...fadeIn}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">政策匹配</h1>
-            <p className="text-sm text-muted-foreground">智能匹配适合您的医保政策与优惠</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <ApiStatusIndicator />
-            <Badge className="bg-purple-100 text-purple-700 border-0 gap-1">
-              <Sparkles className="h-3 w-3" />
-              AI 智能匹配
-            </Badge>
-          </div>
-        </div>
+        <BrandedPageHeader title="政策匹配" description="结合个人参保与健康情况，智能筛选可用政策和优惠权益。" badge="AI 智能匹配" status={<ApiStatusIndicator />} />
       </motion.div>
 
       {/* User Profile Summary */}
       <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.1 }}>
-        <Card className="bg-gradient-to-r from-purple-500 to-purple-600 border-0 text-white">
+        <Card className="overflow-hidden border-0 bg-gradient-to-r from-[#0876a8] via-cyan-500 to-sky-400 text-white shadow-[0_16px_38px_rgba(14,149,190,.22)]">
           <CardContent className="p-6">
             <div className="flex items-center gap-6">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
@@ -146,15 +135,15 @@ export default function PolicyPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.2 + i * 0.05 }}
           >
-            <Card className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group"
+            <Card className="didayi-card cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-[0_15px_34px_rgba(30,134,185,.14)] group"
               onClick={() => setSelectedPolicy(policy)}
             >
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
                   {/* Match Score */}
                   <div className="flex flex-col items-center">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-purple-50">
-                      <span className="text-lg font-bold text-purple-600">{policy.matchScore}%</span>
+                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-cyan-50">
+                      <span className="text-lg font-bold text-cyan-600">{policy.matchScore}%</span>
                     </div>
                     <span className="text-xs text-muted-foreground mt-1">匹配度</span>
                   </div>
@@ -162,10 +151,10 @@ export default function PolicyPage() {
                   {/* Policy Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-base font-semibold text-foreground group-hover:text-purple-600 transition-colors">
+                      <h3 className="text-base font-semibold text-foreground group-hover:text-cyan-600 transition-colors">
                         {policy.title}
                       </h3>
-                      <Badge variant="secondary" className="text-xs bg-purple-50 text-purple-600">
+                      <Badge variant="secondary" className="text-xs bg-cyan-50 text-cyan-600">
                         {policy.category}
                       </Badge>
                     </div>
@@ -188,7 +177,7 @@ export default function PolicyPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-purple-600 hover:text-purple-700 mt-1 -mr-2"
+                      className="mt-1 -mr-2 text-cyan-600 hover:text-cyan-700"
                     >
                       查看详情 <ChevronRight className="h-4 w-4" />
                     </Button>
@@ -208,7 +197,7 @@ export default function PolicyPage() {
               <DialogHeader>
                 <div className="flex items-center gap-2">
                   <DialogTitle className="text-xl">{selectedPolicy.title}</DialogTitle>
-                  <Badge className="bg-purple-100 text-purple-700 border-0">
+                  <Badge className="border-0 bg-cyan-100 text-cyan-700">
                     {selectedPolicy.category}
                   </Badge>
                 </div>
@@ -254,7 +243,7 @@ export default function PolicyPage() {
                   <div className="space-y-2">
                     {selectedPolicy.requirements.map((req, i) => (
                       <div key={i} className="flex items-start gap-2">
-                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-purple-100 text-purple-600 text-xs font-medium shrink-0 mt-0.5">
+                        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-100 text-xs font-medium text-cyan-600">
                           {i + 1}
                         </div>
                         <span className="text-sm text-muted-foreground">{req}</span>

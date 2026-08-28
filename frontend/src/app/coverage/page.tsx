@@ -31,6 +31,7 @@ import { getCoverageSummary } from "@/lib/api";
 import { useUser } from "@/lib/user-context";
 import type { CoverageSummary } from "@/lib/mock-data";
 import { ApiStatusIndicator } from "@/components/api-status-indicator";
+import { BrandedPageHeader } from "@/components/branded-page-header";
 
 echarts.use([BarChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
 
@@ -81,7 +82,7 @@ function CircularProgress({ value, size = 80, strokeWidth = 6, color }: { value:
 
 function SkeletonCard() {
   return (
-    <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+    <Card className="didayi-card">
       <CardContent className="p-6">
         <div className="flex items-center justify-center h-24">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -140,7 +141,7 @@ export default function CoveragePage() {
         barWidth: "50%",
         itemStyle: {
           borderRadius: [4, 4, 0, 0],
-          color: "#3b82f6",
+          color: "#19bed2",
         },
       },
     ],
@@ -148,13 +149,13 @@ export default function CoveragePage() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="didayi-page space-y-5">
         <motion.div {...fadeIn}>
           <h1 className="text-2xl font-bold text-foreground">权益全景</h1>
           <p className="text-sm text-muted-foreground">全面了解您的医保权益与保障范围</p>
         </motion.div>
         <SkeletonCard />
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[1, 2, 3, 4].map((i) => <SkeletonCard key={i} />)}
         </div>
       </div>
@@ -166,21 +167,15 @@ export default function CoveragePage() {
   const inpatientPct = Math.round((data?.inpatient_ratio || 0.90) * 100);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="didayi-page space-y-5">
       {/* Page Header */}
       <motion.div {...fadeIn}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">权益全景</h1>
-            <p className="text-sm text-muted-foreground">全面了解您的医保权益与保障范围</p>
-          </div>
-          <ApiStatusIndicator />
-        </div>
+        <BrandedPageHeader title="权益全景" description="集中查看个人医保权益、保障范围、账户变化与使用记录。" badge="权益管家" status={<ApiStatusIndicator />} />
       </motion.div>
 
       {/* User Info Card */}
       <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.1 }}>
-        <Card className="bg-gradient-to-r from-blue-500 to-blue-600 border-0 text-white">
+        <Card className="overflow-hidden border-0 bg-gradient-to-r from-cyan-500 via-sky-500 to-[#0876a8] text-white shadow-[0_16px_38px_rgba(14,149,190,.22)]">
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
               <Avatar className="h-14 w-14 border-2 border-white/30">
@@ -220,9 +215,9 @@ export default function CoveragePage() {
       </motion.div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.15 }}>
-          <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <Card className="didayi-card">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
@@ -246,7 +241,7 @@ export default function CoveragePage() {
         </motion.div>
 
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.2 }}>
-          <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <Card className="didayi-card">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50">
@@ -268,7 +263,7 @@ export default function CoveragePage() {
         </motion.div>
 
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.25 }}>
-          <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <Card className="didayi-card">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50">
@@ -285,7 +280,7 @@ export default function CoveragePage() {
         </motion.div>
 
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.3 }}>
-          <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <Card className="didayi-card">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50">
@@ -303,10 +298,10 @@ export default function CoveragePage() {
       </div>
 
       {/* Charts and Activity */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid gap-5 xl:grid-cols-3">
         {/* Payment History Chart */}
-        <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.35 }} className="col-span-2">
-          <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.35 }} className="xl:col-span-2">
+          <Card className="didayi-card">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-semibold">缴费记录</CardTitle>
@@ -326,7 +321,7 @@ export default function CoveragePage() {
 
         {/* Recent Activity Timeline */}
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.4 }}>
-          <Card className="bg-white rounded-xl shadow-sm border border-gray-100 h-full">
+          <Card className="didayi-card h-full">
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-semibold">最近动态</CardTitle>
             </CardHeader>

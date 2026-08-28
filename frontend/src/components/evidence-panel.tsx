@@ -51,7 +51,7 @@ export function EvidencePanel({
     <div className="mt-2 border-t border-slate-100 pt-2">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 text-xs font-medium text-slate-500 transition hover:text-blue-600"
+        className="flex items-center gap-1.5 text-xs font-medium text-slate-500 transition hover:text-cyan-600"
       >
         <ChevronDown
           className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-180")}

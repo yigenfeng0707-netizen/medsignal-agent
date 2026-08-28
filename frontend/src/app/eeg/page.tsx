@@ -50,6 +50,7 @@ import {
 } from "@/lib/api";
 import { useUser } from "@/lib/user-context";
 import { ApiStatusIndicator } from "@/components/api-status-indicator";
+import { BrandedPageHeader } from "@/components/branded-page-header";
 import { RealEEGPanel } from "@/components/real-eeg-panel";
 import type {
   EEGSession,
@@ -409,7 +410,7 @@ export default function EEGPage() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="didayi-page space-y-5">
         <motion.div {...fadeIn}>
           <h1 className="text-2xl font-bold text-foreground">脑电健康</h1>
           <p className="text-sm text-muted-foreground">关键医疗信号识别 · 脑电采集 → 频域分析 → 健康预警</p>
@@ -426,48 +427,20 @@ export default function EEGPage() {
   const policyLinks = session?.policy_links || [];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="didayi-page space-y-5">
       {/* 页头（科技医学风格） */}
       <motion.div {...fadeIn}>
-        <div className="relative overflow-hidden rounded-xl border border-purple-500/20 bg-gradient-to-r from-purple-50/80 via-white to-cyan-50/80 px-5 py-4 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.25]"
-            style={{
-              backgroundImage:
-                "linear-gradient(rgba(139,92,246,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(34,211,238,0.08) 1px, transparent 1px)",
-              backgroundSize: "24px 24px",
-            }}
-          />
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-400/60 to-transparent" />
-          <div className="relative flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 ring-1 ring-purple-400/40">
-                  <Brain className="h-5 w-5 text-purple-500" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h1 className="bg-gradient-to-r from-purple-600 via-violet-600 to-cyan-600 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
-                      脑电健康
-                    </h1>
-                    <span className="rounded-full border border-purple-400/40 bg-purple-400/10 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-purple-600">
-                      BCI × 医保创新
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-sm text-muted-foreground">
-                    关键医疗信号识别 · 脑电采集 → 频域分析 → 健康预警 · {currentUser?.name || "用户"}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <ApiStatusIndicator />
-          </div>
-        </div>
+        <BrandedPageHeader
+          title="脑电健康"
+          description={<>脑电采集 → 频域分析 → 健康预警 · 当前用户：<span className="font-semibold text-slate-700">{currentUser?.name || "用户"}</span></>}
+          badge="BCI × 医保创新"
+          status={<ApiStatusIndicator />}
+        />
       </motion.div>
 
       {/* 采集控制栏 */}
       <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.05 }}>
-        <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-100">
+        <Card className="didayi-card bg-gradient-to-r from-cyan-50/80 via-white to-sky-50/80">
           <CardContent className="p-4 space-y-3">
             {/* 第一行：采集模式切换 */}
             <div className="flex flex-wrap items-center gap-2">

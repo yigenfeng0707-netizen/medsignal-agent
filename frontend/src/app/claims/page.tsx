@@ -23,6 +23,7 @@ import { uploadReceipt, preReviewClaim } from "@/lib/api";
 import { mockClaimsPreReview } from "@/lib/mock-data";
 import type { OCRResult, PreReviewResult } from "@/lib/mock-data";
 import { ApiStatusIndicator } from "@/components/api-status-indicator";
+import { BrandedPageHeader } from "@/components/branded-page-header";
 
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
@@ -71,22 +72,16 @@ export default function ClaimsPage() {
     : "85%";
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="didayi-page space-y-5">
       {/* Page Header */}
       <motion.div {...fadeIn}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">报销预审</h1>
-            <p className="text-sm text-muted-foreground">AI 辅助报销材料预审，提高报销效率</p>
-          </div>
-          <ApiStatusIndicator />
-        </div>
+        <BrandedPageHeader title="报销预审" description="AI 辅助识别报销材料，提前发现缺失信息并估算报销结果。" badge="智能预审" status={<ApiStatusIndicator />} />
       </motion.div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.1 }}>
-          <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <Card className="didayi-card">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -102,7 +97,7 @@ export default function ClaimsPage() {
         </motion.div>
 
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.15 }}>
-          <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <Card className="didayi-card">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -118,7 +113,7 @@ export default function ClaimsPage() {
         </motion.div>
 
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.2 }}>
-          <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <Card className="didayi-card">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -134,12 +129,12 @@ export default function ClaimsPage() {
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-5 gap-6">
+      <div className="grid gap-5 xl:grid-cols-5">
         {/* Upload Area + OCR Results */}
-        <div className="col-span-3 space-y-6">
+        <div className="space-y-5 xl:col-span-3">
           {/* Upload Area */}
           <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.25 }}>
-            <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+            <Card className="didayi-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
                   <Upload className="h-4 w-4 text-orange-500" />
@@ -289,10 +284,10 @@ export default function ClaimsPage() {
         </div>
 
         {/* Right Sidebar */}
-        <div className="col-span-2 space-y-6">
+        <div className="space-y-5 xl:col-span-2">
           {/* Required Documents Checklist */}
           <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.3 }}>
-            <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+            <Card className="didayi-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
                   <ClipboardCheck className="h-4 w-4 text-orange-500" />
@@ -337,7 +332,7 @@ export default function ClaimsPage() {
 
           {/* Claim Tracking Timeline */}
           <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.35 }}>
-            <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+            <Card className="didayi-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
                   <Clock className="h-4 w-4 text-orange-500" />

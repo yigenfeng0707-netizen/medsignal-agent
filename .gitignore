@@ -58,9 +58,13 @@ node_modules/
 
 # Next.js 构建产物
 .next/
+.next-build/
 out/
 build/
 *.tsbuildinfo
+
+# 本地 UI 预览截图（不进入发布仓库）
+docs/ui-preview/
 next-env.d.ts
 
 # 前端测试/缓存

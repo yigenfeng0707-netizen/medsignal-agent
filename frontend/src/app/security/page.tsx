@@ -28,6 +28,7 @@ import { getSecurityOverview, updateAuthorization } from "@/lib/api";
 import { useUser } from "@/lib/user-context";
 import type { SecurityOverview } from "@/lib/mock-data";
 import { ApiStatusIndicator } from "@/components/api-status-indicator";
+import { BrandedPageHeader } from "@/components/branded-page-header";
 
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
@@ -51,7 +52,7 @@ const rightIconMap: Record<string, React.ComponentType<{ className?: string }>> 
 
 function SkeletonCard() {
   return (
-    <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+    <Card className="didayi-card">
       <CardContent className="p-6">
         <div className="flex items-center justify-center h-32">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -76,14 +77,14 @@ export default function SecurityPage() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="didayi-page space-y-5">
         <motion.div {...fadeIn}>
           <h1 className="text-2xl font-bold text-foreground">数据授权</h1>
           <p className="text-sm text-muted-foreground">管理您的数据授权，保护个人隐私</p>
         </motion.div>
         <SkeletonCard />
-        <div className="grid grid-cols-3 gap-6">
-          <div className="col-span-2"><SkeletonCard /></div>
+        <div className="grid gap-5 lg:grid-cols-3">
+          <div className="lg:col-span-2"><SkeletonCard /></div>
           <SkeletonCard />
         </div>
       </div>
@@ -151,44 +152,38 @@ export default function SecurityPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="didayi-page space-y-5">
       {/* Page Header */}
       <motion.div {...fadeIn}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">数据授权</h1>
-            <p className="text-sm text-muted-foreground">管理您的数据授权，保护个人隐私</p>
-          </div>
-          <ApiStatusIndicator />
-        </div>
+        <BrandedPageHeader title="数据授权" description="清晰管理每一项数据访问权限，所有授权均可查看和撤销。" badge="隐私守护" status={<ApiStatusIndicator />} />
       </motion.div>
 
       {/* Authorization Overview */}
       <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.1 }}>
-        <Card className="bg-gradient-to-r from-gray-700 to-gray-800 border-0 text-white">
+        <Card className="overflow-hidden border border-sky-100 bg-gradient-to-r from-cyan-50 via-sky-50 to-white text-slate-700 shadow-[0_14px_34px_rgba(45,145,183,.12)]">
           <CardContent className="p-6">
             <div className="flex items-center gap-6">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/10">
-                <Lock className="h-7 w-7 text-white" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-cyan-100">
+                <Lock className="h-7 w-7 text-cyan-600" />
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold">数据安全总览</h3>
-                <p className="text-sm text-white/70 mt-0.5">
+                <p className="mt-0.5 text-sm text-slate-500">
                   您已授权 {agents.length} 个智能体访问 {new Set(authMatrix.filter((a) => a.enabled).map((a) => a.data_type)).size} 类数据，所有授权均可随时撤销
                 </p>
               </div>
               <div className="flex items-center gap-6">
                 <div className="text-center">
                   <p className="text-2xl font-bold">{data?.active_authorizations || 0}</p>
-                  <p className="text-xs text-white/60">活跃授权</p>
+                  <p className="text-xs text-slate-400">活跃授权</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold">{data?.anomalies || 0}</p>
-                  <p className="text-xs text-white/60">异常访问</p>
+                  <p className="text-xs text-slate-400">异常访问</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold">{data?.today_accesses || 0}</p>
-                  <p className="text-xs text-white/60">今日访问</p>
+                  <p className="text-xs text-slate-400">今日访问</p>
                 </div>
               </div>
             </div>
@@ -196,10 +191,10 @@ export default function SecurityPage() {
         </Card>
       </motion.div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid gap-5 xl:grid-cols-3">
         {/* Authorization Matrix */}
-        <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.15 }} className="col-span-2">
-          <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.15 }} className="xl:col-span-2">
+          <Card className="didayi-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <Key className="h-4 w-4 text-gray-500" />
@@ -268,7 +263,7 @@ export default function SecurityPage() {
 
         {/* Data Rights */}
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.2 }}>
-          <Card className="bg-white rounded-xl shadow-sm border border-gray-100 h-full">
+          <Card className="didayi-card h-full">
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <Shield className="h-4 w-4 text-gray-500" />
@@ -301,10 +296,10 @@ export default function SecurityPage() {
       </div>
 
       {/* Active Authorizations + Audit Log */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid gap-5 xl:grid-cols-2">
         {/* Active Authorizations */}
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.25 }}>
-          <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <Card className="didayi-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-gray-500" />
@@ -353,7 +348,7 @@ export default function SecurityPage() {
 
         {/* Audit Log */}
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.3 }}>
-          <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <Card className="didayi-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <Clock className="h-4 w-4 text-gray-500" />
