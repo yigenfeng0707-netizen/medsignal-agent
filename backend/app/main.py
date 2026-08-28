@@ -10,6 +10,7 @@ from app.auth import generate_session_token
 from app.config import settings
 from app.database import init_db
 from app.routers import (
+    admin,
     agents,
     body,
     body_archive,
@@ -58,6 +59,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(admin.router)
 app.include_router(agents.router)
 app.include_router(coverage.router)
 app.include_router(claims.router)

@@ -149,6 +149,8 @@ jobs:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           VISION_API_KEY: ${{ secrets.VISION_API_KEY }}
           DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          YIBAO_ADMIN_SECRET: ${{ secrets.YIBAO_ADMIN_SECRET }}
         run: |
           set -euo pipefail
           EP="https://modelscope.cn/openapi/v1"
@@ -193,9 +195,13 @@ jobs:
           if [ -n "${LLM_API_KEY:-}" ]; then sync_kv secrets LLM_API_KEY "${LLM_API_KEY}"; fi
           if [ -n "${VISION_API_KEY:-}" ]; then sync_kv secrets VISION_API_KEY "${VISION_API_KEY}"; fi
           if [ -n "${DASHSCOPE_API_KEY:-}" ]; then sync_kv secrets DASHSCOPE_API_KEY "${DASHSCOPE_API_KEY}"; fi
+          # 管理后台超级管理员：密码与 token 签发密钥走 secrets（公开创空间不能用默认密码）
+          if [ -n "${ADMIN_PASSWORD:-}" ]; then sync_kv secrets ADMIN_PASSWORD "${ADMIN_PASSWORD}"; fi
+          if [ -n "${YIBAO_ADMIN_SECRET:-}" ]; then sync_kv secrets YIBAO_ADMIN_SECRET "${YIBAO_ADMIN_SECRET}"; fi
 
           # 非敏感配置 → 明文 variables（config.py 默认值已正确，此处同步防止平台残留旧值覆盖）
           sync_kv variables DEMO_OFFLINE "false"
+          sync_kv variables ADMIN_USERNAME "admin"
           sync_kv variables LLM_BASE_URL "https://llm-uarugoa0rqgduef5.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
           sync_kv variables LLM_MODEL "qwen-max"
           sync_kv variables VISION_BASE_URL "https://llm-uarugoa0rqgduef5.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
