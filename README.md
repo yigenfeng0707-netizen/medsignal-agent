@@ -5,6 +5,32 @@
 
 MedSignal 围绕医疗赛道"**关键医疗信号识别**"方向，从三类真实医疗信号入手，帮助医生与患者不遗漏任何关键信号：**脑电信号**（EEG 频域分析 → 压力/睡眠/注意力/情绪五维健康指标）、**医学影像信号**（CT/胸片/MRI 病灶检测 → AI 预标注 → 医师复核 → 结构化报告）、**生理行为信号**（用药/就医/购药模式 → 慢病风险主动预警）；同时以"患者信息连接"能力把专业医疗与政策信息翻译成患者可理解、可行动的建议。
 
+## 一分钟看懂
+
+MedSignal 是一个可本地运行的医疗健康智能体工作台。普通用户可以在同一界面里聊天、切换或添加用户、查看健康画像和医保信息，并通过 3D 数字人体整理就诊档案；开发者可以继续接入真实大模型、医院数据、脑电设备和影像模型。
+
+当前仓库包含两种运行方式：
+
+- **离线演示模式（默认）**：不需要任何 API Key。聊天通过意图识别、规则引擎和安全的演示数据回答，所有主要页面都能使用。
+- **大模型模式**：将 `DEMO_OFFLINE=false` 并配置 OpenAI 兼容接口后，可获得更自然的开放式对话、RAG 政策问答和多智能体结果融合。
+
+> 本项目用于技术演示、资料整理和辅助决策，不构成临床诊断或治疗建议。演示数据不应替代真实医疗数据。
+
+### 普通用户可以做什么
+
+1. 在首页和 MedSignal 助手连续对话。
+2. 从左侧进入医保权益、健康画像、数字人体档案、脑电、影像、报销和政策功能。
+3. 在右上角切换用户，或点击“添加新用户”；新用户会立即联动聊天与数字人体档案。
+4. 在数字人体档案中旋转人体模型，按器官和时间查看已有记录。
+
+### 开发者从哪里开始
+
+- 后端 API：`http://localhost:8000/docs`
+- 前端入口：`http://localhost:3000`
+- 大模型配置：`backend/.env.example`
+- 接口契约：`docs/api_contract.md`
+- 后续路线图：[NEXT_STEPS.md](NEXT_STEPS.md)
+
 ## 📚 文档导航
 
 | 文档 | 说明 | 适合人群 |
@@ -57,6 +83,7 @@ pip install -r requirements.txt
 # 配置 API Key（可选，不配也能跑，会自动降级到规则引擎）
 cp .env.example .env
 # 编辑 .env 填入 LLM_API_KEY 等
+# 若要启用大模型，还需设置 DEMO_OFFLINE=false
 
 # 初始化数据库 + 构建知识库（首次）
 python scripts/init_db.py
@@ -158,6 +185,15 @@ medsignal/
 - `YIBAO_API_KEY` — API 鉴权（可选，不配则开放）
 
 > 💡 不配置任何 API Key 也能运行：所有功能会自动降级到规则引擎 + mock 数据，保证 Demo 不翻车。
+
+### 大模型调用说明
+
+项目使用 OpenAI 兼容协议，代码入口位于 `backend/app/services/llm_service.py`：
+
+- 主调用：`LLM_BASE_URL` + `LLM_API_KEY` + `LLM_MODEL`，示例默认是 aiping 网关的 `Kimi-K3`。
+- 备用调用：`DASHSCOPE_BASE_URL` + `DASHSCOPE_API_KEY` + `DASHSCOPE_MODEL`，示例默认是阿里云 DashScope 的 `qwen-plus`。
+- 视觉解读：`VISION_BASE_URL` + `VISION_API_KEY` + `VISION_MODEL`，为可选能力。
+- 当 `DEMO_OFFLINE=true` 时，后端会主动跳过 LLM 和知识库初始化，因此即使填了 Key 也不会调用大模型。
 
 ## 🛡️ 容错降级
 
