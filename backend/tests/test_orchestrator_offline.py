@@ -261,6 +261,14 @@ class TestRouteToAgentOffline:
         result = await orch.route_to_agent("general", "你好", "1", PROFILE)
         assert result["response"] == "自然对话回答"
 
+    async def test_general_agent_llm_failure_falls_back_offline(self, orch):
+        """LLM 网关 401/超时等异常时，降级到离线回答而非透传错误。"""
+        orch._llm = FakeLLM(chat_exc=RuntimeError("LLM 服务暂不可用"))
+        result = await orch.route_to_agent("general", "你好", "1", PROFILE)
+        assert "AI 服务" not in result["response"]
+        assert "Error" not in result["response"]
+        assert result["response"]  # 有离线兑底内容
+
     async def test_body_agent_with_db(self, orch, db):
         result = await orch._handle_body_agent(
             "我2026年2月查出肺部小结节", "1", None, db=db,

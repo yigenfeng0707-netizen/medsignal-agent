@@ -201,9 +201,11 @@ class LLMService:
                     return content.strip()
             except Exception as e:
                 logger.error("备选 LLM 对话也失败: %s", e)
-                return f"抱歉，AI 服务暂时出现问题：{e}"
+                # 不把原始错误透传给用户：抛异常让调用方（编排器各智能体）
+                # 的 try/except 降级分支生效，走规则引擎/离线回答
+                raise RuntimeError("LLM 服务暂不可用（主力与备选均失败），已触发离线降级") from e
 
-        return "LLM 服务暂不可用，请检查 API 配置。"
+        raise RuntimeError("LLM 服务未初始化，无法调用")
 
     async def chat_vision(self, messages: list[dict], temperature: float = 0.1) -> str:
         """多模态（图片）对话：走阿里云 DashScope 视觉模型（qwen-vl-*）。
