@@ -135,3 +135,6 @@ skills-lock.json
 /data-demand.docx
 /医学影像数据集汇总.docx
 docs/项目申报书_new.docx
+
+# ==================== AI 工具生成缓存（本地会话产物，不入库） ====================
+.dumate/
