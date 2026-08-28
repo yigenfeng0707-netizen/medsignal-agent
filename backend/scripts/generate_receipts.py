@@ -53,8 +53,8 @@ def find_font(size: int = 20) -> ImageFont.FreeTypeFont:
 RECEIPT_TEMPLATES = [
     {
         "filename": "receipt_outpatient_张阿姨.png",
-        "title": "江苏省医疗门诊收费票据",
-        "hospital": "江苏省人民医院",
+        "title": "浙江省医疗门诊收费票据",
+        "hospital": "浙江省人民医院",
         "patient": "张阿姨",
         "insurance_type": "职工医保",
         "date": "2025-03-15",
@@ -75,8 +75,8 @@ RECEIPT_TEMPLATES = [
     },
     {
         "filename": "receipt_inpatient_李大爷.png",
-        "title": "江苏省医疗住院收费票据",
-        "hospital": "苏州大学附属第一医院",
+        "title": "浙江省医疗住院收费票据",
+        "hospital": "浙江大学医学院附属第一医院",
         "patient": "李大爷",
         "insurance_type": "居民医保",
         "date": "2025-01-20",
@@ -105,8 +105,8 @@ RECEIPT_TEMPLATES = [
     },
     {
         "filename": "receipt_outpatient_赵女士.png",
-        "title": "江苏省医疗门诊收费票据",
-        "hospital": "无锡市人民医院",
+        "title": "浙江省医疗门诊收费票据",
+        "hospital": "宁波市第一医院",
         "patient": "赵女士",
         "insurance_type": "职工医保",
         "date": "2025-05-08",

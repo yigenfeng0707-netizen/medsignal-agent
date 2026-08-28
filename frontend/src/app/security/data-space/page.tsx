@@ -313,9 +313,9 @@ export default function DataSpacePage() {
           <div className="flex items-start gap-3">
             <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-cyan-600" />
             <div className="text-xs text-slate-700">
-              <p className="mb-1 font-semibold text-slate-900">对齐江苏省医保行业可信数据空间战略</p>
+              <p className="mb-1 font-semibold text-slate-900">对齐浙江省医保行业可信数据空间战略</p>
               <p>
-                江苏省医保行业可信数据空间（「1+3+N」框架）已被国家数据局确定为全国重点联系示范场景。
+                浙江省医保行业可信数据空间（「1+3+N」框架）已被国家数据局确定为全国重点联系示范场景。
                 MedSignal 通过隐私计算、联邦查询、区块链存证等技术，在保护个人隐私的前提下释放医疗数据价值，
                 完美契合「数据要素×医疗健康」国家战略。
               </p>

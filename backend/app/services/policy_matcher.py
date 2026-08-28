@@ -212,7 +212,7 @@ def _match_chronic_disease(disease: str, annual_drug: float, ins_type: str, name
             {"type": "chronic_disease", "disease": disease},
             {"type": "drug_cost", "annual": annual_drug, "estimated_savings": savings},
         ],
-        source="江苏省医疗保障局",
+        source="浙江省医疗保障局",
     )
 
 

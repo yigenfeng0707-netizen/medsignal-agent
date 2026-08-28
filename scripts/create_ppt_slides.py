@@ -316,7 +316,7 @@ def slide_10():
     title = shape_text(80, 40, 800, 50, "四大技术创新", "headline", "center", DARK, True, 40)
     innovations = [
         ("Multi-Agent\n多智能体架构", "5个专业智能体\n+1个编排器\n支持三种协作模式", BLUE),
-        ("可信数据空间\n对齐", "对接江苏省\n1+3+N框架\n可用不可见", GREEN),
+        ("可信数据空间\n对齐", "对接浙江省\n1+3+N框架\n可用不可见", GREEN),
         ("健康预警\n创新", "从事后报销\n到事前预防\n五维健康画像", ORANGE),
         ("全链路\n可解释性", "报销有公式\n政策有原文\n预警有证据", PURPLE),
     ]
@@ -339,11 +339,11 @@ def slide_11():
     # 时间轴
     timeline = shape_rect(80, 110, 800, 80, WHITE, radius=12, border="rgb(226,232,240)")
     t1 = shape_text(100, 130, 220, 40, "2024.12\n国家医保局签约", "body", "left", DARK, False, 14)
-    t2 = shape_text(360, 130, 220, 40, "2025.5.29\n江苏发布可信数据空间", "body", "left", DARK, False, 14)
+    t2 = shape_text(360, 130, 220, 40, "2025.5.29\n浙江发布可信数据空间", "body", "left", DARK, False, 14)
     t3 = shape_text(620, 130, 220, 40, "现在\n全国重点示范场景", "body", "left", DARK, False, 14)
     # 1+3+N 架构
     arch = shape_rect(80, 220, 800, 250, NAVY, radius=12)
-    a_t = shape_text(100, 240, 760, 40, "江苏省医保行业可信数据空间 · 1+3+N 架构", "sub-headline", "left", WHITE, True, 24)
+    a_t = shape_text(100, 240, 760, 40, "浙江省医保行业可信数据空间 · 1+3+N 架构", "sub-headline", "left", WHITE, True, 24)
     # 底座
     base = shape_rect(100, 300, 740, 50, BLUE, radius=8)
     base_t = shape_text(100, 315, 740, 20, "1 个数据底座：统一数据治理平台", "body", "center", WHITE, True, 18)
