@@ -1,0 +1,6 @@
+# 行尾规范：容器内执行的脚本与构建文件必须为 LF
+# （CRLF 会使 bash 的 `\` 续行失效、命令混入 \r，曾因工作区 CRLF 即将混入部署包）
+*.sh text eol=lf
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
+entrypoint.sh text eol=lf
