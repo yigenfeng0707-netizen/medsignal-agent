@@ -138,3 +138,10 @@ docs/项目申报书_new.docx
 
 # ==================== AI 工具生成缓存（本地会话产物，不入库） ====================
 .dumate/
+
+# ==================== demo 视频管线可再生产物（脚本可重新生成） ====================
+video-demo/remake/audio/
+video-demo/remake/tts/
+video-demo/remake/segments/
+video-demo/remake/scenes/
+video-demo/remake/output/

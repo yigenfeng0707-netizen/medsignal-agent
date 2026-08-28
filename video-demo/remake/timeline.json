@@ -1,0 +1,85 @@
+{
+  "total_duration": 90.48,
+  "segments": [
+    {
+      "id": "s01_pain",
+      "text": "交了这么多年医保，用的时候却看不懂。",
+      "start": 0.0,
+      "duration": 8.0,
+      "end": 8.0,
+      "tts_start": 0.5,
+      "tts_duration": 3.912,
+      "mp3_path": "D:/APPs/VentureDhealthcare/video-demo/remake/tts/s01_pain.mp3"
+    },
+    {
+      "id": "s02_title",
+      "text": "MedSignal，多模态医疗信号智能体，关键医疗信号识别。",
+      "start": 8.0,
+      "duration": 7.0,
+      "end": 15.0,
+      "tts_start": 8.5,
+      "tts_duration": 5.448,
+      "mp3_path": "D:/APPs/VentureDhealthcare/video-demo/remake/tts/s02_title.mp3"
+    },
+    {
+      "id": "s03_home",
+      "text": "登录即推送健康预警，从被动报销到主动健康。",
+      "start": 15.0,
+      "duration": 15.0,
+      "end": 30.0,
+      "tts_start": 15.5,
+      "tts_duration": 5.52,
+      "mp3_path": "D:/APPs/VentureDhealthcare/video-demo/remake/tts/s03_home.mp3"
+    },
+    {
+      "id": "s04_eeg",
+      "text": "脑血管、认知、精神三大风险量化，每条预警可展开证据。",
+      "start": 30.0,
+      "duration": 20.0,
+      "end": 50.0,
+      "tts_start": 30.5,
+      "tts_duration": 6.456,
+      "mp3_path": "D:/APPs/VentureDhealthcare/video-demo/remake/tts/s04_eeg.mp3"
+    },
+    {
+      "id": "s05_policy",
+      "text": "脑电异常自动推荐医保政策，一年可省数千元。",
+      "start": 50.0,
+      "duration": 15.0,
+      "end": 65.0,
+      "tts_start": 50.5,
+      "tts_duration": 4.944,
+      "mp3_path": "D:/APPs/VentureDhealthcare/video-demo/remake/tts/s05_policy.mp3"
+    },
+    {
+      "id": "s06_imaging",
+      "text": "AI检测框与医师复核，医师在环的安全闭环。",
+      "start": 65.0,
+      "duration": 13.0,
+      "end": 78.0,
+      "tts_start": 65.5,
+      "tts_duration": 4.992,
+      "mp3_path": "D:/APPs/VentureDhealthcare/video-demo/remake/tts/s06_imaging.mp3"
+    },
+    {
+      "id": "s07_multi",
+      "text": "多智能体协作，可信数据空间，可用不可见。",
+      "start": 78.0,
+      "duration": 8.0,
+      "end": 86.0,
+      "tts_start": 78.5,
+      "tts_duration": 4.56,
+      "mp3_path": "D:/APPs/VentureDhealthcare/video-demo/remake/tts/s07_multi.mp3"
+    },
+    {
+      "id": "s08_ending",
+      "text": "让关键医疗信号，不再被错过。",
+      "start": 86.0,
+      "duration": 4.48,
+      "end": 90.48,
+      "tts_start": 86.5,
+      "tts_duration": 3.48,
+      "mp3_path": "D:/APPs/VentureDhealthcare/video-demo/remake/tts/s08_ending.mp3"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "medsignal-demo-video",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "remotion studio",
+    "render": "remotion render MedSignalDemo out/demo_90s.mp4",
+    "render-4k": "remotion render MedSignalDemo out/demo_90s_4k.mp4 --scale=2",
+    "still": "remotion still MedSignalDemo out/frame.png"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.518",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "4.0.518"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.8",
+    "@types/web": "0.0.166",
+    "typescript": "5.8.3"
+  }
+}
