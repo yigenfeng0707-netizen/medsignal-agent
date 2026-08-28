@@ -12,6 +12,7 @@ MedSignal - LLM 服务封装
 import asyncio
 import json
 import logging
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
