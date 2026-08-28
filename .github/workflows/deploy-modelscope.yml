@@ -197,7 +197,7 @@ jobs:
           # 非敏感配置 → 明文 variables（config.py 默认值已正确，此处同步防止平台残留旧值覆盖）
           sync_kv variables DEMO_OFFLINE "false"
           sync_kv variables LLM_BASE_URL "https://llm-uarugoa0rqgduef5.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
-          sync_kv variables LLM_MODEL "qwen3.8-max"
+          sync_kv variables LLM_MODEL "qwen-max"
           sync_kv variables VISION_BASE_URL "https://llm-uarugoa0rqgduef5.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
           sync_kv variables VISION_MODEL "qwen3-vl-plus"
           sync_kv variables DASHSCOPE_BASE_URL "https://dashscope.aliyuncs.com/compatible-mode/v1"
