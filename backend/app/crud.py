@@ -543,6 +543,20 @@ async def get_body_records(
     return list(result.scalars().all())
 
 
+async def get_body_documents(
+    db: AsyncSession, user_id: str | int, limit: int = 100
+) -> list[BodyDocument]:
+    """用户已存档的资料元数据（新→旧），供 3D 查看器「患者资料」面板展示。"""
+    uid = _normalize_user_id(user_id)
+    result = await db.execute(
+        select(BodyDocument)
+        .where(BodyDocument.user_id == uid)
+        .order_by(desc(BodyDocument.id))
+        .limit(limit)
+    )
+    return list(result.scalars().all())
+
+
 async def get_body_organ_summary(db: AsyncSession, user_id: str | int) -> dict:
     """各器官记录数与最近检查时间：{organ: {label, count, latest_event_date}}。"""
     summary: dict[str, dict] = {}

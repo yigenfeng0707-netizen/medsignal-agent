@@ -215,6 +215,43 @@
 - `body_focus: "lungs" | null` — 建议前端在数字人体上高亮的部位
 - 路由到档案管家时 `agent_type = "body_agent"`，`data` 含 `records / comparison / missing_info / handoff / organ_summary`，`evidence` 含 `{type:"body_record", organ, event_date, source_label, excerpt}`
 
+### 6.7 数字人体 3D 查看器（`/api/body-archive/*` + `/digital-body/*`）
+
+> 静态查看器 `backend/app/static/digital-body/index.html` 由后端挂载于 `/digital-body`，前端页面 `/body-archive` iframe 嵌入；数据复用 6.6 的 BodyRecord/BodyDocument，只增不删。
+
+### GET `/api/body-archive/patients` → `{ patients: [{ id: "user_001", name: "张阿姨" }] }`
+
+### GET `/api/body-archive/patients/{user_id}`
+```json
+{
+  "patient_id": "user_001", "name": "张阿姨", "sex": "f",
+  "records": [ { ...同 6.6 records 条目 } ],
+  "materials": [ { "filename": "胸部CT.pdf", "note": "复查资料" } ],
+  "disclaimer": "..."
+}
+```
+`sex` 决定查看器加载男/女解剖模型。
+
+### POST `/api/body-archive/patients/{user_id}/records`
+仅追加记录；调用方须保证内容来自用户原文。配置 `YIBAO_API_KEY` 后需携带 `X-API-Key`。
+```json
+{
+  "organ": "lungs",
+  "event_date": "2026-02",
+  "source_type": "chat",
+  "source_label": "对话输入",
+  "source_ref": "",
+  "description": "查出肺部小结节",
+  "raw_excerpt": "我2026年2月查出肺部小结节"
+}
+```
+
+### POST `/api/body-archive/patients/{user_id}/materials`
+只登记文件名与备注，不上传或保存原文件：`{"filename":"胸部CT.pdf","note":"复查资料"}`。
+
+### GET `/digital-body/index.html?patient=user_001`
+3D 查看器静态入口（支持 `patient / focus / view / time` 查询参数）。前端页面入口为 `/body-archive`。
+
 ## 7. 健康检查
 
 ### GET `/api/health` → `{ "status": "ok", "service": "MedSignal" }`

@@ -1,13 +1,26 @@
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.auth import generate_session_token
 from app.config import settings
 from app.database import init_db
-from app.routers import agents, body, claims, coverage, eeg, health_profile, imaging, policy, security
+from app.routers import (
+    agents,
+    body,
+    body_archive,
+    claims,
+    coverage,
+    eeg,
+    health_profile,
+    imaging,
+    policy,
+    security,
+)
 from app.services import orchestrator
 
 
@@ -53,6 +66,16 @@ app.include_router(security.router)
 app.include_router(eeg.router)
 app.include_router(imaging.router)
 app.include_router(body.router)
+app.include_router(body_archive.router)
+
+# 数字人体 3D 查看器（静态资源，前端 /body-archive 页面 iframe 嵌入）
+_digital_body_dir = Path(__file__).resolve().parent / "static" / "digital-body"
+if _digital_body_dir.is_dir():
+    app.mount(
+        "/digital-body",
+        StaticFiles(directory=_digital_body_dir, html=True),
+        name="digital-body",
+    )
 
 
 @app.get("/api/health")
@@ -130,6 +153,13 @@ async def detailed_health_check():
         "study_types": list(STUDY_TYPES) if imaging_ok else [],
         "image_size": 512,
         "pipeline": "预处理 → 局部对比度增强 → 连通域分析 → 形态学特征分类",
+    }
+
+    # 数字人体档案（档案管家 · 3D 查看器）
+    deps["body_archive"] = {
+        "available": _digital_body_dir.is_dir(),
+        "viewer": "/digital-body/index.html",
+        "api": "/api/body-archive/patients",
     }
 
     all_ok = (
