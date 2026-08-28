@@ -49,6 +49,10 @@ class Orchestrator:
         "body": ["档案", "记录一下", "帮我记", "对比", "复查", "查出", "确诊",
                  "疼", "痛", "不适", "结节"]
                 + [label for label, _ in body_taxonomy.ORGANS.values() if "/" not in label],
+        # 数据管家：湖仓数据资产/智能查询/质量血缘（避开与 security “我的数据” 的碰撞，用数据类词组）
+        "data": ["查数据", "数据库", "湖仓", "数据湖", "数据目录", "数据资产", "数据质量",
+                 "数据血缘", "有多少条", "多少条记录", "统计", "汇总", "数据分析",
+                 "查询数据", "数据查询", "TOP10", "用药排行", "缴费统计"],
     }
 
     # Mock 数据（降级方案）
@@ -85,6 +89,11 @@ class Orchestrator:
             "response": "档案管家已就绪：您可以直接告诉我身体某个部位的情况（如“2026年2月查出肺结节”），"
                         "或上传 CT/MRI 报告，我会按部位整理归档，随时可查看、对比。只整理您提供的信息，不做诊断。",
             "data": {"body_updates": [], "body_focus": None},
+        },
+        "data": {
+            "response": "已为您接入湖仓一体数据服务。仓层包含参保缴费、就医、用药、脑电、影像等主题表，"
+                        "支持自然语言智能查询（如“帮我汇总就医费用”），每次查询均展示 SQL 与统计口径。",
+            "data": {"warehouse_tables": 10, "query_source": "template"},
         },
     }
 
@@ -292,7 +301,7 @@ class Orchestrator:
             "coverage": "权益管家", "claims": "报销助手",
             "health_profile": "健康卫士", "policy": "政策参谋",
             "security": "安全守门", "eeg": "脑电卫士",
-            "imaging": "影像卫士", "body": "档案管家",
+            "imaging": "影像卫士", "body": "档案管家", "data": "数据管家",
         }
         parts = []
         for intent, result in agent_results.items():
@@ -314,7 +323,7 @@ class Orchestrator:
             "coverage": "权益管家", "claims": "报销助手",
             "health_profile": "健康卫士", "policy": "政策参谋",
             "security": "安全守门", "eeg": "脑电卫士",
-            "imaging": "影像卫士", "body": "档案管家",
+            "imaging": "影像卫士", "body": "档案管家", "data": "数据管家",
         }
 
         # 优先用 LLM 融合
@@ -397,6 +406,8 @@ class Orchestrator:
             return await self._handle_imaging_agent(message, user_id, user_profile)
         elif agent_type == "body":
             return await self._handle_body_agent(message, user_id, user_profile)
+        elif agent_type == "data":
+            return await self._handle_data_agent(message, user_id, user_profile)
         else:
             # claims / security 等暂时使用 LLM 或 mock
             return await self._handle_generic_agent(agent_type, message, user_profile)
@@ -1259,6 +1270,81 @@ class Orchestrator:
         }
 
     # ------------------------------------------------------------------
+    # 数据管家（湖仓一体数据智能体）
+    # ------------------------------------------------------------------
+
+    async def _handle_data_agent(
+        self, message: str, user_id: str | None = None,
+        user_profile: dict | None = None, db=None,
+    ) -> dict[str, Any]:
+        """数据管家：湖仓一体数据中枢。
+
+        自然语言问题 → 预置模板/LLM NL2SQL → 只读执行 → 结构化回答（SQL 透明）。
+        db 可注入（测试用）；默认自行开 session。
+        """
+        from app.database import async_session
+        from app.services.data_lake import engine as data_engine
+
+        async def _run(session) -> dict:
+            return await data_engine.smart_query(session, message, llm=self._llm, user_id=user_id)
+
+        if db is not None:
+            result = await _run(db)
+        else:
+            async with async_session() as session:
+                result = await _run(session)
+
+        structured = data_engine.format_chat_response(result)
+        response = await self._polish_data_response(message, structured)
+
+        query = result.get("query") or {}
+        evidence = []
+        if query.get("sql"):
+            evidence.append({
+                "type": "data_query", "sql": query["sql"],
+                "row_count": query.get("row_count", 0), "source": query.get("source"),
+            })
+        return {
+            "response": response,
+            "data": {
+                "query": query,
+                "result_table": result.get("result_table"),
+                "data_source": result.get("data_source"),
+                "catalog_summary": (result.get("catalog") or {}).get("summary"),
+            },
+            "evidence": evidence,
+        }
+
+    async def _polish_data_response(self, message: str, structured: str) -> str:
+        """LLM 润色（15s 超时）；严禁编造查询结果之外的数字。失败返回结构化回答。"""
+        if self._llm is None:
+            return structured
+        try:
+            from app.prompts.agent_prompts import DATA_AGENT_PROMPT
+
+            sys_prompt = (
+                DATA_AGENT_PROMPT
+                + "\n\n现在请用自然、简洁的中文直接回复用户（不要输出 JSON）。"
+                  "所有数字必须且只能来自下方查询结果，不得估算或编造；"
+                  "保留 SQL 与口径说明；用户转向报销/政策问题时提示可交接对应智能体。"
+            )
+            answer = await asyncio.wait_for(
+                self._llm.chat(
+                    [
+                        {"role": "system", "content": sys_prompt},
+                        {"role": "user", "content": f"用户消息：{message}\n\n数据管家执行结果：\n{structured}"},
+                    ],
+                    temperature=0.3,
+                ),
+                timeout=15.0,
+            )
+            if answer and "暂不可用" not in answer and "出现问题" not in answer:
+                return answer
+        except Exception as e:
+            logger.warning("数据管家润色失败: %s，返回结构化回答", e)
+        return structured
+
+    # ------------------------------------------------------------------
     # 结果聚合
     # ------------------------------------------------------------------
 
@@ -1300,6 +1386,11 @@ class Orchestrator:
                 "对比同一部位不同时间的记录",
                 "上传 CT/MRI 报告，自动归档到对应部位",
             ],
+            "data": [
+                "帮我汇总就医费用",
+                "看看我的用药 TOP10",
+                "湖仓里有哪些数据资产",
+            ],
         }
         suggestions = suggestions_map.get(agent_type, [
             "您可以问我关于医保报销比例的问题",
@@ -1314,6 +1405,7 @@ class Orchestrator:
             "security": "security_agent",
             "eeg": "eeg_agent",
             "body": "body_agent",
+            "data": "data_agent",
         }.get(agent_type, "orchestrator_agent")
         return {
             "agent_type": agent_type_label,

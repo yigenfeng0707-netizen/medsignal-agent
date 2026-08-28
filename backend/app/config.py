@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     OCR_API_KEY: str = ""
     OCR_API_URL: str = "https://api.ocr.space/parse/image"
 
+    # 部署/鉴权相关：auth.py 、main.py 直接从环境变量读取，
+    # 此处声明是为了让 pydantic-settings 解析 .env 时不报 extra_forbidden 错误
+    YIBAO_API_KEY: str = ""
+    YIBAO_SESSION_SECRET: str = "please-change-this"
+    CORS_ORIGINS: str = "*"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

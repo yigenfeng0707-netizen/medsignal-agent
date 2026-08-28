@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,27 +34,46 @@ export default function ClaimsPage() {
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "done">("idle");
   const [ocrResult, setOcrResult] = useState<OCRResult | null>(null);
   const [preReviewResult, setPreReviewResult] = useState<PreReviewResult | null>(null);
+  const [fileName, setFileName] = useState<string>("");
+  const [uploadError, setUploadError] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const requiredDocs = mockClaimsPreReview.required_docs;
   const claimTimeline = mockClaimsPreReview.claim_status;
 
-  const handleUpload = async () => {
+  const openFilePicker = () => fileInputRef.current?.click();
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // 允许重复选择同一文件
+    if (!file) return;
+
+    // 与后端 /api/claims/ocr 的 10MB 限制对齐
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError("文件大小超过 10MB 限制，请压缩后重新上传");
+      return;
+    }
+
+    setUploadError("");
+    setFileName(file.name);
     setUploadState("uploading");
 
     try {
-      // 创建一个模拟文件用于上传
-      const mockFile = new File(["receipt"], "receipt.jpg", { type: "image/jpeg" });
-      const ocr = await uploadReceipt(mockFile);
-      setOcrResult(ocr);
-
-      // 使用 OCR 结果进行预审
-      const review = await preReviewClaim({
-        hospital: ocr.hospital,
-        total_amount: ocr.total,
-        patient_name: ocr.patient,
-        items: ocr.items,
-      });
-      setPreReviewResult(review);
+      const ocr = await uploadReceipt(file);
+      if (ocr) {
+        setOcrResult(ocr);
+        // 使用 OCR 结果进行预审（后端按 total_amount + visit_type 走完整报销引擎）
+        const review = await preReviewClaim({
+          total_amount: ocr.total,
+          visit_type: ocr.visit_type || "门诊",
+        });
+        setPreReviewResult(review);
+      } else {
+        // 后端不可用/无有效识别结果 → 演示兜底，保证 Demo 不翻车
+        setOcrResult(mockClaimsPreReview.ocr_result);
+        setPreReviewResult(mockClaimsPreReview.pre_review);
+        setUploadError("OCR 服务暂不可用，已为您展示示例数据");
+      }
     } catch {
       // 降级：使用模拟数据
       setOcrResult(mockClaimsPreReview.ocr_result);
@@ -147,6 +166,20 @@ export default function ClaimsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                {/* 真实文件选择器（后端限制 10MB，支持图片与 PDF） */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,application/pdf"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                {uploadError && uploadState !== "done" && (
+                  <div className="mb-3 flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100">
+                    <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
+                    <span className="text-sm text-red-700">{uploadError}</span>
+                  </div>
+                )}
                 <AnimatePresence mode="wait">
                   {uploadState === "idle" && (
                     <motion.div
@@ -154,7 +187,7 @@ export default function ClaimsPage() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      onClick={handleUpload}
+                      onClick={openFilePicker}
                       className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 p-8 cursor-pointer hover:border-orange-300 hover:bg-orange-50/30 transition-all group"
                     >
                       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 group-hover:bg-orange-100 transition-colors mb-4">
@@ -208,8 +241,16 @@ export default function ClaimsPage() {
                       {/* OCR Result Header */}
                       <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-100">
                         <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        <span className="text-sm text-green-700 font-medium">发票识别成功</span>
+                        <span className="text-sm text-green-700 font-medium">
+                          发票识别成功{fileName ? `：${fileName}` : ""}
+                        </span>
                       </div>
+                      {uploadError && (
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-100">
+                          <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                          <span className="text-sm text-amber-700">{uploadError}</span>
+                        </div>
+                      )}
 
                       {/* Extracted Info */}
                       <div className="grid grid-cols-2 gap-3">

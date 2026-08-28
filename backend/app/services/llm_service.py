@@ -419,7 +419,7 @@ class LLMService:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _parse_json_response(text: str) -> Optional[dict | list]:
+    def _parse_json_response(text: str) -> dict | list | None:
         """尝试从 LLM 响应中解析 JSON（对象或数组）
 
         处理可能的 markdown 代码块包裹等情况。

@@ -4,7 +4,6 @@
 import {
   mockCoverageSummary,
   mockHealthProfile,
-  mockOCRResult,
   mockPreReviewResult,
   mockClaimsPreReview,
   mockPolicyMatch,
@@ -228,27 +227,28 @@ export async function getHealthTrends(
 }
 
 /** 上传发票 OCR 识别 */
-export async function uploadReceipt(file: File): Promise<OCRResult> {
-  const data = await apiUpload<{ ocr_result: Record<string, unknown>; confidence: number }>(
-    "/api/claims/ocr",
-    file,
-  );
-  if (data?.ocr_result) {
-    const r = data.ocr_result;
-    return {
-      hospital: (r.hospital as string) || "",
-      date: (r.visit_date as string) || "",
-      patient: (r.patient_name as string) || "",
-      department: (r.diagnosis as string) || "",
-      items: ((r.items as { name: string; amount: number }[]) || []).map((it) => ({
-        name: it.name,
-        price: it.amount,
-      })),
-      total: (r.total_amount as number) || 0,
-      confidence: data.confidence,
-    };
-  }
-  return mockOCRResult;
+export async function uploadReceipt(file: File): Promise<OCRResult | null> {
+  const data = await apiUpload<Record<string, unknown>>("/api/claims/ocr", file);
+  if (!data) return null;
+  // 兼容两种返回格式：后端现状直接返回 OCR 对象；{ ocr_result } 包裹格式作为旧契约兼容
+  const wrapped = data.ocr_result as Record<string, unknown> | undefined;
+  const r = (wrapped ?? data) as Record<string, unknown>;
+  const items = ((r.items as { name: string; amount: number }[]) || []).map((it) => ({
+    name: it.name,
+    price: Number(it.amount) || 0,
+  }));
+  // 识别结果无实质内容时返回 null，由调用方决定兜底策略
+  if (!r.hospital && items.length === 0 && !r.total_amount) return null;
+  return {
+    hospital: (r.hospital as string) || "",
+    date: (r.date as string) || (r.visit_date as string) || "",
+    patient: (r.patient_name as string) || "",
+    department: (r.department as string) || (r.diagnosis as string) || "",
+    visit_type: (r.visit_type as string) || "",
+    items,
+    total: Number(r.total_amount) || 0,
+    confidence: Number(wrapped ? data.confidence : r.confidence) || 0,
+  };
 }
 
 /** 报销预审 */

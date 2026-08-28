@@ -29,7 +29,7 @@ services:
       - OCR_API_KEY=${OCR_API_KEY:-}
       - OCR_API_URL=${OCR_API_URL:-https://api.ocr.space/parse/image}
       - YIBAO_API_KEY=${YIBAO_API_KEY:-}
-      - YIBAO_SESSION_SECRET=${YIBAO_SESSION_SECRET:-please-change-this}
+      - YIBAO_SESSION_SECRET=${YIBAO_SESSION_SECRET:-}
       - CORS_ORIGINS=${CORS_ORIGINS:-*}
       - CHROMA_PERSIST_DIR=/app/chroma_data
     depends_on:
@@ -65,7 +65,7 @@ services:
       - OCR_API_KEY=${OCR_API_KEY:-}
       - YIBAO_API_KEY=${YIBAO_API_KEY}
       - YIBAO_SESSION_SECRET=${YIBAO_SESSION_SECRET}
-      - CORS_ORIGINS=${CORS_ORIGINS}
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
       - CHROMA_PERSIST_DIR=/app/chroma_data
     depends_on:
       postgres:

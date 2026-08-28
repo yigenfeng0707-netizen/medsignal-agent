@@ -14,6 +14,11 @@ class PreReviewRequest(BaseModel):
     insurance_type: str = Field(default="职工医保")
 
 
+class DataQueryRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=500)
+    user_id: str | None = None
+
+
 class PolicySearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500)
     category: str | None = None

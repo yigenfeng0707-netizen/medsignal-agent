@@ -32,6 +32,7 @@ AGENTS = [
     ("claims_agent", "报销助手"),
     ("policy_agent", "政策参谋"),
     ("body_agent", "档案管家"),
+    ("data_agent", "数据管家"),
 ]
 
 

@@ -181,7 +181,7 @@ class BodyDocument(Base):
     # CT报告 / MRI报告 / 病历文本 / 其他
     doc_kind = Column(String(30), default="其他")
     extracted_text = Column(Text, default="")
-    uploaded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    uploaded_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
     user = relationship("User", back_populates="body_documents")
     records = relationship("BodyRecord", back_populates="document")
@@ -214,7 +214,7 @@ class BodyRecord(Base):
     source_ref = Column(String(200), default="")
     document_id = Column(Integer, ForeignKey("body_documents.id"), nullable=True)
     batch_id = Column(String(40), default="", index=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
     user = relationship("User", back_populates="body_records")
     document = relationship("BodyDocument", back_populates="records")

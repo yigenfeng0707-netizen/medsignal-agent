@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.auth import generate_session_token
 from app.config import settings
 from app.database import init_db
-from app.routers import agents, body, claims, coverage, eeg, health_profile, imaging, policy, security
+from app.routers import agents, body, claims, coverage, data, eeg, health_profile, imaging, policy, security
 from app.services import orchestrator
 
 
@@ -52,6 +52,7 @@ app.include_router(policy.router)
 app.include_router(security.router)
 app.include_router(eeg.router)
 app.include_router(imaging.router)
+app.include_router(data.router)
 app.include_router(body.router)
 
 
@@ -130,6 +131,20 @@ async def detailed_health_check():
         "study_types": list(STUDY_TYPES) if imaging_ok else [],
         "image_size": 512,
         "pipeline": "预处理 → 局部对比度增强 → 连通域分析 → 形态学特征分类",
+    }
+
+    # 湖仓一体数据引擎（数据管家模块）
+    try:
+        from app.services.data_lake import engine as data_lake_engine
+        data_engine_ok = True
+        warehouse_tables = len(data_lake_engine.WAREHOUSE_TABLES)
+    except Exception:
+        data_engine_ok = False
+        warehouse_tables = 0
+    deps["data_engine"] = {
+        "available": data_engine_ok,
+        "warehouse_tables": warehouse_tables,
+        "query_modes": ["template", "nl2sql"],
     }
 
     all_ok = (
