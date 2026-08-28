@@ -29,12 +29,13 @@ class Orchestrator:
 
     # 关键词意图映射（降级方案）
     AGENT_KEYWORDS: dict[str, list[str]] = {
+        "general": ["你好", "您好", "嗨", "在吗", "你是谁", "能做什么", "怎么用", "帮助", "谢谢", "再见"],
         "coverage": ["报销", "待遇", "报销比例", "起付线", "封顶线", "医保卡", "个人账户", "缴费",
                      "能报多少", "报多少", "账户余额", "参保", "权益"],
         "claims": ["理赔", "报销流程", "发票", "OCR", "上传", "预审", "报销材料",
                    "票据", "报销单", "提交报销"],
         "health_profile": ["健康", "体检", "画像", "慢病", "用药", "趋势", "预警",
-                           "健康风险", "身体状况"],
+                           "健康风险", "身体状况", "身体", "不舒服", "症状", "血压", "血糖"],
         "policy": ["政策", "规定", "通知", "办法", "文件", "异地", "省钱",
                    "惠民", "享受什么", "能享受", "门诊慢病"],
         "security": ["授权", "隐私", "数据安全", "审计", "权限", "我的数据"],
@@ -193,7 +194,7 @@ class Orchestrator:
 
         best = max(scores, key=scores.get)
         if scores[best] == 0:
-            return "coverage"
+            return "general"
         return best
 
     def multi_intent_recognition(self, message: str) -> list[tuple[str, float]]:
@@ -209,13 +210,13 @@ class Orchestrator:
                 scores[agent_type] = score
 
         if not scores:
-            return [("coverage", 1.0)]
+            return [("general", 1.0)]
 
         total = sum(scores.values())
         ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
         # 只保留权重 >= 0.2 的意图（避免噪音）
         result = [(intent, score / total) for intent, score in ranked if score / total >= 0.2]
-        return result if result else [("coverage", 1.0)]
+        return result if result else [("general", 1.0)]
 
     async def handle_complex_query(
         self, message: str, user_id: str | None = None, user_profile: dict | None = None,
@@ -397,9 +398,76 @@ class Orchestrator:
             return await self._handle_imaging_agent(message, user_id, user_profile)
         elif agent_type == "body":
             return await self._handle_body_agent(message, user_id, user_profile)
+        elif agent_type == "general":
+            return await self._handle_general_agent(message, user_profile)
         else:
             # claims / security 等暂时使用 LLM 或 mock
             return await self._handle_generic_agent(agent_type, message, user_profile)
+
+    async def _handle_general_agent(
+        self, message: str, user_profile: dict | None = None
+    ) -> dict[str, Any]:
+        """处理问候、身份询问和未命中专业意图的自然对话。"""
+        name = (user_profile or {}).get("name") or "您"
+        chronic = (user_profile or {}).get("chronic_diseases") or []
+
+        if self._llm is not None:
+            try:
+                profile_text = ""
+                if user_profile and user_profile.get("found"):
+                    profile_text = (
+                        f"当前用户：{name}，{user_profile.get('age', '')}岁，"
+                        f"{user_profile.get('insurance_type', '')}，"
+                        f"已记录健康关注：{'、'.join(chronic) if chronic else '暂无'}。"
+                    )
+                answer = await self._llm.chat(
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": (
+                                "你是 MedSignal 智能助手。自然、简洁地回应普通对话；"
+                                "可引导用户使用医保权益、健康画像、报销预审、政策匹配、"
+                                "脑电、影像和数字人体档案功能。不得虚构诊断或政策结论。"
+                                + profile_text
+                            ),
+                        },
+                        {"role": "user", "content": message},
+                    ],
+                    temperature=0.6,
+                )
+                return {"response": answer, "data": {"mode": "llm_general"}}
+            except Exception as exc:
+                logger.warning("通用对话 LLM 失败，使用离线回答: %s", exc)
+
+        text = message.strip().lower()
+        if any(word in text for word in ("你是谁", "能做什么", "怎么用", "帮助")):
+            response = (
+                f"您好，{name}！我是 MedSignal 医疗健康与医保智能助手。"
+                "我可以结合当前用户资料，查询医保权益、评估健康风险、整理数字人体档案、"
+                "辅助报销预审和政策匹配，也能解读脑电与医学影像演示结果。"
+                "您可以直接问：‘我最近身体怎么样？’或‘我的住院费用大概能报多少？’"
+            )
+        elif any(word in text for word in ("我是谁", "我的资料", "介绍一下我")):
+            if user_profile and user_profile.get("found"):
+                response = (
+                    f"当前选择的是{name}，{user_profile.get('age', '未知')}岁，"
+                    f"参保类型为{user_profile.get('insurance_type', '未记录')}。"
+                    f"档案中关注的健康问题包括：{'、'.join(chronic) if chronic else '暂无明确慢病记录'}。"
+                    "您可以继续让我查看健康画像、就诊记录或数字人体档案。"
+                )
+            else:
+                response = "当前没有找到对应用户资料，请先从右上角选择或新增用户。"
+        elif any(word in text for word in ("你好", "您好", "嗨", "在吗")):
+            response = f"您好，{name}！我在。您想先了解健康情况、医保权益，还是查看数字人体档案？"
+        elif "谢谢" in text:
+            response = "不客气。如果还想继续查看健康、医保或档案信息，直接告诉我即可。"
+        else:
+            response = (
+                f"我明白您的问题。当前处于离线演示模式，暂时无法进行开放式大模型生成。"
+                f"我仍可基于{name}的系统数据处理医保权益、健康画像、报销、政策、脑电、"
+                "医学影像和数字人体档案相关问题；请补充您希望查询的具体方向。"
+            )
+        return {"response": response, "data": {"mode": "offline_general"}}
 
     async def _handle_policy_agent(self, message: str, user_profile: dict | None = None) -> dict[str, Any]:
         """处理政策查询智能体
@@ -1300,6 +1368,11 @@ class Orchestrator:
                 "对比同一部位不同时间的记录",
                 "上传 CT/MRI 报告，自动归档到对应部位",
             ],
+            "general": [
+                "查看我的健康画像",
+                "查看我的医保权益",
+                "打开数字人体档案",
+            ],
         }
         suggestions = suggestions_map.get(agent_type, [
             "您可以问我关于医保报销比例的问题",
@@ -1314,6 +1387,7 @@ class Orchestrator:
             "security": "security_agent",
             "eeg": "eeg_agent",
             "body": "body_agent",
+            "general": "assistant_agent",
         }.get(agent_type, "orchestrator_agent")
         return {
             "agent_type": agent_type_label,

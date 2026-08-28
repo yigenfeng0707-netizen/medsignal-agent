@@ -21,8 +21,8 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-yibao}:${POSTGRES_PASSWORD:-yibao123}@postgres:5432/${POSTGRES_DB:-yibao}
       - REDIS_URL=redis://redis:6379
       - LLM_API_KEY=${LLM_API_KEY:-}
-      - LLM_BASE_URL=${LLM_BASE_URL:-https://token.sensenova.cn/v1}
-      - LLM_MODEL=${LLM_MODEL:-sensenova-6.7-flash-lite}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://aiping.cn/api/v1}
+      - LLM_MODEL=${LLM_MODEL:-Kimi-K3}
       - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-}
       - DASHSCOPE_BASE_URL=${DASHSCOPE_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
       - DASHSCOPE_MODEL=${DASHSCOPE_MODEL:-qwen-plus}
@@ -32,6 +32,7 @@ services:
       - YIBAO_SESSION_SECRET=${YIBAO_SESSION_SECRET:-please-change-this}
       - CORS_ORIGINS=${CORS_ORIGINS:-*}
       - CHROMA_PERSIST_DIR=/app/chroma_data
+      - DEMO_OFFLINE=${DEMO_OFFLINE:-true}
     depends_on:
       postgres:
         condition: service_healthy
@@ -59,14 +60,20 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-yibao}:${POSTGRES_PASSWORD:-yibao123}@postgres:5432/${POSTGRES_DB:-yibao}
       - REDIS_URL=redis://redis:6379
       - LLM_API_KEY=${LLM_API_KEY:-}
-      - LLM_BASE_URL=${LLM_BASE_URL:-https://token.sensenova.cn/v1}
-      - LLM_MODEL=${LLM_MODEL:-sensenova-6.7-flash-lite}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://aiping.cn/api/v1}
+      - LLM_MODEL=${LLM_MODEL:-Kimi-K3}
       - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-}
+      - DASHSCOPE_BASE_URL=${DASHSCOPE_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      - DASHSCOPE_MODEL=${DASHSCOPE_MODEL:-qwen-plus}
+      - VISION_API_KEY=${VISION_API_KEY:-}
+      - VISION_BASE_URL=${VISION_BASE_URL:-https://aiping.cn/api/v1}
+      - VISION_MODEL=${VISION_MODEL:-GLM-4.6V}
       - OCR_API_KEY=${OCR_API_KEY:-}
       - YIBAO_API_KEY=${YIBAO_API_KEY}
       - YIBAO_SESSION_SECRET=${YIBAO_SESSION_SECRET}
       - CORS_ORIGINS=${CORS_ORIGINS}
       - CHROMA_PERSIST_DIR=/app/chroma_data
+      - DEMO_OFFLINE=${DEMO_OFFLINE:-false}
     depends_on:
       postgres:
         condition: service_healthy

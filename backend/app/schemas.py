@@ -8,6 +8,15 @@ class ChatRequest(BaseModel):
     conversation_id: str | None = None
 
 
+class UserCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=50)
+    age: int = Field(..., ge=0, le=130)
+    gender: str = Field(..., pattern=r"^(男|女|其他)$")
+    city: str = Field(..., min_length=1, max_length=50)
+    insurance_type: str = Field(..., min_length=1, max_length=50)
+    employee_status: str = Field(..., min_length=1, max_length=30)
+
+
 class PreReviewRequest(BaseModel):
     total_amount: float = Field(..., ge=0)
     visit_type: str = Field(default="门诊")

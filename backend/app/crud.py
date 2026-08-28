@@ -17,6 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import (
     BodyDocument,
     BodyRecord,
+    ChatConversation,
+    ChatMessage,
     DataAuthorization,
     EEGRecord,
     ImagingRecord,
@@ -51,6 +53,69 @@ async def get_users(db: AsyncSession, limit: int = 50) -> list[User]:
 async def get_user_count(db: AsyncSession) -> int:
     result = await db.execute(select(func.count(User.id)))
     return int(result.scalar() or 0)
+
+
+async def create_user(db: AsyncSession, **values) -> User:
+    user = User(**values)
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+async def get_conversation(
+    db: AsyncSession, conversation_id: str
+) -> ChatConversation | None:
+    result = await db.execute(
+        select(ChatConversation).where(ChatConversation.id == conversation_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def create_conversation(
+    db: AsyncSession, conversation_id: str, user_id: str | int, title: str
+) -> ChatConversation:
+    conversation = ChatConversation(
+        id=conversation_id,
+        user_id=_normalize_user_id(user_id),
+        title=title[:100] or "新对话",
+    )
+    db.add(conversation)
+    await db.flush()
+    return conversation
+
+
+async def append_chat_message(
+    db: AsyncSession,
+    conversation_id: str,
+    role: str,
+    content: str,
+    agent_type: str | None = None,
+) -> ChatMessage:
+    message = ChatMessage(
+        conversation_id=conversation_id,
+        role=role,
+        content=content,
+        agent_type=agent_type,
+    )
+    db.add(message)
+    conversation = await get_conversation(db, conversation_id)
+    if conversation:
+        conversation.updated_at = datetime.now(UTC)
+    await db.flush()
+    return message
+
+
+async def get_conversation_messages(
+    db: AsyncSession, conversation_id: str, limit: int = 100
+) -> list[ChatMessage]:
+    result = await db.execute(
+        select(ChatMessage)
+        .where(ChatMessage.conversation_id == conversation_id)
+        .order_by(ChatMessage.id)
+        .limit(limit)
+    )
+    return list(result.scalars().all())
 
 
 # ============================================================

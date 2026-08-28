@@ -44,6 +44,7 @@ const agentColorMap: Record<string, string> = {
   security_agent: "bg-cyan-100 text-cyan-700",
   eeg_agent: "bg-fuchsia-100 text-fuchsia-700",
   orchestrator_agent: "bg-gradient-to-r from-blue-500 to-purple-500 text-white",
+  assistant_agent: "bg-sky-100 text-sky-700",
   "权益管家": "bg-blue-100 text-blue-700",
   "报销助手": "bg-orange-100 text-orange-700",
   "健康卫士": "bg-green-100 text-green-700",
@@ -59,6 +60,7 @@ const agentLabelMap: Record<string, string> = {
   security_agent: "安全守门",
   eeg_agent: "脑电卫士",
   orchestrator_agent: "编排智能体",
+  assistant_agent: "MedSignal 助手",
 };
 
 /**
@@ -93,6 +95,12 @@ export default function HomePage() {
   const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { userId, currentUser } = useUser();
+  const [conversationId, setConversationId] = useState<string>();
+
+  useEffect(() => {
+    setMessages([]);
+    setConversationId(undefined);
+  }, [userId]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -128,8 +136,9 @@ export default function HomePage() {
       // P2-1：复合意图走多智能体协作，单意图走普通 chat
       const isMulti = detectMultiIntent(content);
       const res = isMulti
-        ? await sendComplexChat({ message: content, user_id: userId })
-        : await sendChatMessage({ message: content, user_id: userId });
+        ? await sendComplexChat({ message: content, user_id: userId, conversation_id: conversationId })
+        : await sendChatMessage({ message: content, user_id: userId, conversation_id: conversationId });
+      if (res.conversation_id) setConversationId(res.conversation_id);
 
       const agentsInvoked = isMulti
         ? (((res as unknown as Record<string, unknown>).agents_invoked as string[]) ?? []).map((a: string) => agentLabelMap[a] || a)
@@ -176,7 +185,7 @@ export default function HomePage() {
   const showWelcome = messages.length === 0;
 
   return (
-    <div className="flex h-screen flex-col bg-gradient-to-b from-background to-background/80">
+    <div className="flex h-[calc(100vh-3.5rem)] flex-col bg-gradient-to-b from-background to-background/80">
       {/* Header */}
       <header className="border-b border-border/50 bg-white/80 backdrop-blur-sm px-6 py-3">
         <div className="flex items-center justify-between">

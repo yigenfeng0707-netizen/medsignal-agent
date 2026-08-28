@@ -31,6 +31,31 @@
 }
 ```
 
+首次请求未传 `conversation_id` 时后端会自动创建；后续请求携带响应中的 ID 即可延续并保存同一会话。
+
+### POST `/api/agents/complex-chat`
+复合问题会并行调度多个专业智能体，响应结构与普通对话一致，并额外返回 `agents_invoked`、`multi_agent` 和 `intent_weights`。
+
+### GET `/api/agents/conversations/{conversation_id}`
+返回已持久化的会话标题、所属用户及按时间排序的用户/助手消息。
+
+### GET `/api/users`
+返回可供全站切换的用户列表。
+
+### POST `/api/users`
+新增用户并返回自动生成的数字 ID 和 `public_id`；新增后可立即用于聊天和数字人体档案。
+
+```json
+{
+  "name": "林女士",
+  "age": 41,
+  "gender": "女",
+  "city": "杭州",
+  "insurance_type": "职工医保",
+  "employee_status": "在职"
+}
+```
+
 ---
 
 ## 2. 医保待遇
