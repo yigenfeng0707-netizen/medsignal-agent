@@ -5,6 +5,7 @@ P0 升级冒烟测试：用 TestClient 验证所有 Router 真实数据链路
 覆盖：agents / coverage / claims / health / policy / security
 """
 
+import asyncio
 import json
 import os
 import sys
@@ -20,7 +21,18 @@ except Exception:
 
 from fastapi.testclient import TestClient
 
+from app.database import engine, init_db
 from app.main import app
+
+
+# 幂等补齐开发库表结构（新增模型时旧库自动升级，不触发 LLM/知识库初始化）
+# 用后立即 dispose 连接池：避免跨事件循环复用 aiosqlite 连接导致 database is locked
+async def _ensure_schema():
+    await init_db()
+    await engine.dispose()
+
+
+asyncio.run(_ensure_schema())
 
 client = TestClient(app)
 

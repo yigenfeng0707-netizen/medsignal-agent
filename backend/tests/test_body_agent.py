@@ -14,7 +14,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import crud  # noqa: E402
 from app.models import Base, User  # noqa: E402
-from app.services.body import extractor, taxonomy as tx  # noqa: E402
+from app.services.body import extractor  # noqa: E402
+from app.services.body import taxonomy as tx
 from app.services.orchestrator import Orchestrator  # noqa: E402
 
 

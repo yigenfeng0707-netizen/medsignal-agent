@@ -79,7 +79,7 @@ async def upload_document(user_id: str, file: UploadFile = File(...), db: AsyncS
             ),
             timeout=45.0,
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning("档案管家处理上传超时(45s)")
-        raise HTTPException(status_code=504, detail="档案管家处理超时，请稍后重试")
+        raise HTTPException(status_code=504, detail="档案管家处理超时，请稍后重试") from None
     return result

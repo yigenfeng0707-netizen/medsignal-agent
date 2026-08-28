@@ -70,6 +70,8 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
     elif conversation.user_id != user.id:
         raise HTTPException(status_code=409, detail="该会话属于其他用户")
     await crud.append_chat_message(db, conversation_id, "user", message)
+    # 立即提交：释放 SQLite 写锁，避免后续 body 智能体自开 session 写库时死锁
+    await db.commit()
 
     # 1. 从数据库查询真实用户画像（用于个性化 LLM 上下文）
     user_profile = None
@@ -205,6 +207,8 @@ async def complex_chat(
     elif conversation.user_id != user.id:
         raise HTTPException(status_code=409, detail="该会话属于其他用户")
     await crud.append_chat_message(db, conversation_id, "user", message)
+    # 立即提交：释放 SQLite 写锁，避免并行智能体自开 session 写库时死锁
+    await db.commit()
 
     user_profile = None
     try:

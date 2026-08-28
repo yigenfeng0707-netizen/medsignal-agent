@@ -12,7 +12,6 @@ MedSignal - LLM 服务封装
 import asyncio
 import json
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -420,7 +419,7 @@ class LLMService:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _parse_json_response(text: str) -> Optional[dict | list]:
+    def _parse_json_response(text: str) -> dict | list | None:
         """尝试从 LLM 响应中解析 JSON（对象或数组）
 
         处理可能的 markdown 代码块包裹等情况。

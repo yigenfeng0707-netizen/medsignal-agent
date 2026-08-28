@@ -17,7 +17,7 @@ import json
 import logging
 import re
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -106,7 +106,7 @@ def _contained(excerpt: str, source: str) -> bool:
     return match.size / len(e) >= 0.6
 
 
-def _validate(items: Any, source: str) -> Optional[list[dict]]:
+def _validate(items: Any, source: str) -> list[dict] | None:
     if isinstance(items, dict):
         items = items.get("records") or items.get("items") or items.get("data")
     if not isinstance(items, list):
