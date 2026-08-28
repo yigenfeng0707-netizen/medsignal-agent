@@ -145,3 +145,6 @@ video-demo/remake/tts/
 video-demo/remake/segments/
 video-demo/remake/scenes/
 video-demo/remake/output/
+
+# ==================== 工具临时解包目录 ====================
+.tmp/
