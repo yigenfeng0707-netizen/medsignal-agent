@@ -126,11 +126,34 @@ jobs:
           git remote add origin "https://oauth2:${MSCORE_TOKEN}@www.modelscope.cn/studios/${SPACE_OWNER}/${SPACE_NAME}.git"
           # 魔搭创空间默认分支为 master，且禁止 force push：
           # 若远程已有初始化文件（README/.gitattributes），先合并再推送，避免 [rejected]
-          git fetch origin master -q 2>/dev/null || true
+          # （2026-08-28 教训：fetch 网络抖动被静默吞掉 → 合并被跳过 → push 被 reject）
+          fetch_tries=3
+          fetched=1
+          for i in $(seq 1 ${fetch_tries}); do
+            if git fetch origin master; then fetched=0; break; fi
+            echo "::warning::fetch origin/master 第 ${i} 次失败，重试..."
+            sleep 5
+          done
+          if [ "${fetched}" -ne 0 ]; then
+            echo "::error::无法拉取魔搭远程 master，放弃推送以避免 [rejected]"
+            exit 1
+          fi
           if git rev-parse --verify origin/master >/dev/null 2>&1; then
             git merge origin/master --allow-unrelated-histories -X ours --no-edit -q
           fi
-          git push origin HEAD:master 2>&1 | sed "s/${MSCORE_TOKEN}/***/g"
+          push_tries=3
+          pushed=1
+          for i in $(seq 1 ${push_tries}); do
+            if git push origin HEAD:master 2>&1 | sed "s/${MSCORE_TOKEN}/***/g"; then pushed=0; break; fi
+            echo "::warning::push 第 ${i} 次失败，重试..."
+            sleep 5
+            git fetch origin master || true
+            git merge origin/master --allow-unrelated-histories -X ours --no-edit -q || true
+          done
+          if [ "${pushed}" -ne 0 ]; then
+            echo "::error::推送魔搭创空间失败（重试 ${push_tries} 次后仍失败）"
+            exit 1
+          fi
           echo "::notice::已推送至 https://www.modelscope.cn/studios/${SPACE_OWNER}/${SPACE_NAME}"
 
       # 魔搭平台对 git push 不一定自动触发构建（曾出现推送后镜像长时间不更新的情况），

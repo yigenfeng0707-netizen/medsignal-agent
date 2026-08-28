@@ -23,14 +23,12 @@ from app import crud
 from app.config import settings
 from app.database import get_db
 from app.models import (
+    BodyRecord,
     ChatConversation,
     ChatMessage,
     EEGRecord,
     ImagingRecord,
-    BodyRecord,
     MedicalRecord,
-    MedicationRecord,
-    User,
 )
 
 logger = logging.getLogger(__name__)
