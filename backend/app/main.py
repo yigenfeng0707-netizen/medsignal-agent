@@ -19,6 +19,7 @@ from app.routers import (
     imaging,
     policy,
     security,
+    users,
 )
 from app.services import orchestrator
 
@@ -65,6 +66,7 @@ app.include_router(security.router)
 app.include_router(eeg.router)
 app.include_router(imaging.router)
 app.include_router(body_archive.router)
+app.include_router(users.router)
 
 _digital_body_dir = Path(__file__).resolve().parent / "static" / "digital-body"
 if _digital_body_dir.is_dir():
@@ -183,30 +185,3 @@ async def demo_login(phone: str = "13800000001"):
         "expires_in": 86400,
         "message": "登录成功（Demo 模式，验证码固定为 1234）",
     }
-
-
-@app.get("/api/users")
-async def list_demo_users():
-    """Demo 用户列表（用户切换器用，P3-2）
-
-    返回数据库中的演示用户。前端 user-context 也有 mock 兜底。
-    """
-    from app import crud
-    from app.database import async_session
-
-    async with async_session() as db:
-        users = await crud.get_users(db, limit=20)
-        return {
-            "users": [
-                {
-                    "id": u.id,
-                    "name": u.name,
-                    "age": u.age,
-                    "gender": u.gender,
-                    "city": u.city,
-                    "insurance_type": u.insurance_type,
-                    "employee_status": u.employee_status,
-                }
-                for u in users
-            ]
-        }

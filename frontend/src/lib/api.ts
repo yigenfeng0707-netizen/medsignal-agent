@@ -33,6 +33,7 @@ import {
   type ImagingStudyResponse,
   type ImagingStudyTypeInfo,
   type ImagingRecordItem,
+  type UserInfo,
 } from "./mock-data";
 
 // API 基址规则：
@@ -394,6 +395,16 @@ export async function getUsers(): Promise<Array<{ id: number; name: string; age:
     return data.users as never;
   }
   return [];
+}
+
+export type CreateUserRequest = Omit<UserInfo, "id" | "conditions">;
+
+/** 新增用户；成功后可立即用于聊天与数字人体档案。 */
+export async function createUser(req: CreateUserRequest): Promise<UserInfo | null> {
+  return apiFetch<UserInfo>("/api/users", {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
 }
 
 /** 可信数据空间数据流转记录（P2-2 可视化用） */

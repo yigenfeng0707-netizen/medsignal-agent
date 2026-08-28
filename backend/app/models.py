@@ -37,6 +37,40 @@ class User(Base):
     imaging_records = relationship("ImagingRecord", back_populates="user")
     body_archive_records = relationship("BodyArchiveRecord", back_populates="user")
     body_archive_materials = relationship("BodyArchiveMaterial", back_populates="user")
+    chat_conversations = relationship("ChatConversation", back_populates="user")
+
+
+class ChatConversation(Base):
+    __tablename__ = "chat_conversations"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    title = Column(String(100), nullable=False, default="新对话")
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+
+    user = relationship("User", back_populates="chat_conversations")
+    messages = relationship(
+        "ChatMessage",
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+        order_by="ChatMessage.id",
+    )
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(
+        String(36), ForeignKey("chat_conversations.id"), nullable=False, index=True
+    )
+    role = Column(String(20), nullable=False)
+    content = Column(Text, nullable=False)
+    agent_type = Column(String(50), nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+
+    conversation = relationship("ChatConversation", back_populates="messages")
 
 
 class InsuranceRecord(Base):

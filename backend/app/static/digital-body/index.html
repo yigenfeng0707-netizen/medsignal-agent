@@ -1362,7 +1362,10 @@ function hideLoading() {
   }
   /* 30 秒兜底：再慢也强制展示界面，避免用户以为卡死 */
   setTimeout(hideLoading, 30000);
-  setInterval(() => loadPatient(false), 5000);
+  /* 档案并非实时监护数据：降低轮询频率，并在页面不可见时暂停请求。 */
+  setInterval(() => {
+    if (document.visibilityState === 'visible') loadPatient(false);
+  }, 30000);
 })();
 
 /* ───────────────────────── 工具 ───────────────────────── */

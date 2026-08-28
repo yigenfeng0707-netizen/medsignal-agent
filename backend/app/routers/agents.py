@@ -9,8 +9,9 @@ P0-1 升级：激活真实 AI 链路
 """
 
 import logging
+from uuid import uuid4
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud
@@ -33,6 +34,20 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
     message = request.message
     user_id = request.user_id or "user_001"
     conversation_id = request.conversation_id
+
+    user = await crud.get_user(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail=f"用户 {user_id} 不存在")
+
+    conversation_id = conversation_id or str(uuid4())
+    conversation = await crud.get_conversation(db, conversation_id)
+    if conversation is None:
+        conversation = await crud.create_conversation(
+            db, conversation_id, user.id, message[:50]
+        )
+    elif conversation.user_id != user.id:
+        raise HTTPException(status_code=409, detail="该会话属于其他用户")
+    await crud.append_chat_message(db, conversation_id, "user", message)
 
     # 1. 从数据库查询真实用户画像（用于个性化 LLM 上下文）
     user_profile = None
@@ -69,6 +84,15 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
     # 4. 聚合结果（补充通用建议）
     final = orchestrator.aggregate_results(result, agent_type=agent_type)
 
+    await crud.append_chat_message(
+        db,
+        conversation_id,
+        "assistant",
+        final["response"],
+        final.get("agent_type"),
+    )
+    await db.commit()
+
     return {
         "agent_type": final.get("agent_type", f"{agent_type}_agent"),
         "response": final["response"],
@@ -77,6 +101,31 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
         "suggestions": final.get("suggestions", []),
         "user_profile": _brief_profile(user_profile),
         "conversation_id": conversation_id,
+    }
+
+
+@router.get("/conversations/{conversation_id}")
+async def get_conversation_history(
+    conversation_id: str, db: AsyncSession = Depends(get_db)
+):
+    conversation = await crud.get_conversation(db, conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="会话不存在")
+    messages = await crud.get_conversation_messages(db, conversation_id)
+    return {
+        "conversation_id": conversation.id,
+        "user_id": f"user_{conversation.user_id:03d}",
+        "title": conversation.title,
+        "messages": [
+            {
+                "id": item.id,
+                "role": item.role,
+                "content": item.content,
+                "agent_type": item.agent_type,
+                "created_at": item.created_at.isoformat(),
+            }
+            for item in messages
+        ],
     }
 
 
@@ -110,6 +159,19 @@ async def complex_chat(
     user_id = request.user_id or "user_001"
     conversation_id = request.conversation_id
 
+    user = await crud.get_user(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail=f"用户 {user_id} 不存在")
+    conversation_id = conversation_id or str(uuid4())
+    conversation = await crud.get_conversation(db, conversation_id)
+    if conversation is None:
+        conversation = await crud.create_conversation(
+            db, conversation_id, user.id, message[:50]
+        )
+    elif conversation.user_id != user.id:
+        raise HTTPException(status_code=409, detail="该会话属于其他用户")
+    await crud.append_chat_message(db, conversation_id, "user", message)
+
     user_profile = None
     try:
         user_profile = await crud.get_user_health_profile(db, user_id)
@@ -138,9 +200,15 @@ async def complex_chat(
     multi_agent = result.get("multi_agent", False)
     intent_weights = result.get("intent_weights", [])
 
+    response_text = result.get("response", "")
+    await crud.append_chat_message(
+        db, conversation_id, "assistant", response_text, "orchestrator_agent"
+    )
+    await db.commit()
+
     return {
         "agent_type": "orchestrator_agent",
-        "response": result.get("response", ""),
+        "response": response_text,
         "data": {
             **result.get("data", {}),
             "agents_invoked": agents_invoked,
