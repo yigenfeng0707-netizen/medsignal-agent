@@ -213,9 +213,9 @@ export default function HealthPage() {
           <h1 className="text-2xl font-bold text-foreground">健康画像</h1>
           <p className="text-sm text-muted-foreground">基于医保数据的个人健康风险评估与画像</p>
         </motion.div>
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <SkeletonCard />
-          <div className="col-span-2"><SkeletonCard /></div>
+          <div className="lg:col-span-2"><SkeletonCard /></div>
         </div>
       </div>
     );
@@ -237,7 +237,7 @@ export default function HealthPage() {
       </motion.div>
 
       {/* Top Section: Health Score + Radar Chart */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Health Score Card */}
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.1 }}>
           <Card className="bg-white rounded-xl shadow-sm border border-gray-100 h-full">
@@ -266,7 +266,7 @@ export default function HealthPage() {
         </motion.div>
 
         {/* Radar Chart */}
-        <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.15 }} className="col-span-2">
+        <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.15 }} className="lg:col-span-2">
           <Card className="bg-white rounded-xl shadow-sm border border-gray-100 h-full">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -300,7 +300,7 @@ export default function HealthPage() {
 
       {/* Alert Cards */}
       <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.2 }}>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {alerts.map((alert, i) => (
             <motion.div
               key={i}
@@ -336,7 +336,7 @@ export default function HealthPage() {
       </motion.div>
 
       {/* Medication Review + Health Trend */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Medication Review */}
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.35 }}>
           <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
@@ -408,7 +408,7 @@ export default function HealthPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
               {suggestions.map((s, i) => {
                 const IconComp = iconMap[s.icon];
                 return (

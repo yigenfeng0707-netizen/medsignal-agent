@@ -95,7 +95,7 @@ export default function DataSpacePage() {
   }, [userId]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-blue-50/30 p-6">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-blue-50/30 p-4 sm:p-6">
       <div className="mx-auto max-w-6xl space-y-6">
         {/* 页头 */}
         <div>
@@ -138,7 +138,7 @@ export default function DataSpacePage() {
 
         {/* 隐私计算演示：原始数据 vs 脱敏数据 */}
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-cyan-600" />
               <h2 className="text-lg font-bold text-slate-900">隐私计算：可用不可见</h2>
@@ -160,8 +160,8 @@ export default function DataSpacePage() {
             智能体在可信沙箱内只能看到脱敏后的数据，无法接触原始个人信息。
             切换开关对比两种数据呈现。
           </p>
-          <div className="overflow-hidden rounded-xl border border-slate-200">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="w-full min-w-[420px] text-sm">
               <thead className="bg-slate-50 text-xs text-slate-600">
                 <tr>
                   <th className="px-4 py-2.5 text-left font-medium">字段</th>
@@ -195,7 +195,7 @@ export default function DataSpacePage() {
 
         {/* 数据流转记录 */}
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
             <Boxes className="h-5 w-5 text-indigo-600" />
             <h2 className="text-lg font-bold text-slate-900">数据流转链路</h2>
             <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs text-indigo-600">

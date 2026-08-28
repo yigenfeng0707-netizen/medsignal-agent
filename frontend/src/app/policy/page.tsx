@@ -66,7 +66,7 @@ export default function PolicyPage() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="p-4 space-y-6 sm:p-6">
         <motion.div {...fadeIn}>
           <h1 className="text-2xl font-bold text-foreground">政策匹配</h1>
           <p className="text-sm text-muted-foreground">智能匹配适合您的医保政策与优惠</p>
@@ -83,10 +83,10 @@ export default function PolicyPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 space-y-6 sm:p-6">
       {/* Page Header */}
       <motion.div {...fadeIn}>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h1 className="text-2xl font-bold text-foreground">政策匹配</h1>
             <p className="text-sm text-muted-foreground">智能匹配适合您的医保政策与优惠</p>
@@ -105,8 +105,8 @@ export default function PolicyPage() {
       <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.1 }}>
         <Card className="bg-gradient-to-r from-purple-500 to-purple-600 border-0 text-white">
           <CardContent className="p-6">
-            <div className="flex items-center gap-6">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/20">
                 <Users className="h-6 w-6 text-white" />
               </div>
               <div className="flex-1">
@@ -115,7 +115,7 @@ export default function PolicyPage() {
                   糖尿病 · 高血压 | 缴费15年3个月 | 已匹配 {policies.length} 项政策
                 </p>
               </div>
-              <div className="text-right">
+              <div className="text-left sm:text-right">
                 <p className="text-sm text-white/70">预计可节省</p>
                 <p className="text-2xl font-bold">¥{totalSavings.toLocaleString()}<span className="text-sm font-normal text-white/70">/年</span></p>
               </div>
@@ -150,7 +150,7 @@ export default function PolicyPage() {
               onClick={() => setSelectedPolicy(policy)}
             >
               <CardContent className="p-6">
-                <div className="flex items-start gap-4">
+                <div className="flex flex-wrap items-start gap-4">
                   {/* Match Score */}
                   <div className="flex flex-col items-center">
                     <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-purple-50">
@@ -170,7 +170,7 @@ export default function PolicyPage() {
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground mb-2">{policy.matchReason}</p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         截止：{policy.deadline}
@@ -183,7 +183,7 @@ export default function PolicyPage() {
                   </div>
 
                   {/* Savings */}
-                  <div className="text-right shrink-0">
+                  <div className="ml-auto w-full shrink-0 text-right sm:ml-0 sm:w-auto">
                     <p className="text-lg font-bold text-green-600">{policy.savings}</p>
                     <Button
                       variant="ghost"
@@ -206,7 +206,7 @@ export default function PolicyPage() {
           {selectedPolicy && (
             <>
               <DialogHeader>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <DialogTitle className="text-xl">{selectedPolicy.title}</DialogTitle>
                   <Badge className="bg-purple-100 text-purple-700 border-0">
                     {selectedPolicy.category}

@@ -719,14 +719,14 @@ export default function EEGPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <MetricRing score={metrics.stress_index} label="压力指数" icon={Zap} />
                 <MetricRing score={metrics.attention_index} label="注意力" icon={Eye} />
                 <MetricRing score={metrics.sleep_quality} label="睡眠质量" icon={Moon} reverse />
                 <MetricRing score={metrics.cognitive_load} label="认知负荷" icon={Brain} />
               </div>
               {/* ⭐ 赛道7核心：脑血管风险 + 认知衰退 + 精神状态 */}
-              <div className="mt-4 grid grid-cols-3 gap-4">
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <MetricRing score={metrics.cerebrovascular_risk ?? 0} label="脑血管风险" icon={Heart} reverse />
                 <MetricRing score={metrics.cognitive_decline_risk ?? 0} label="认知衰退风险" icon={Brain} reverse />
                 <MetricRing score={metrics.mental_health?.overall_risk ?? 0} label="精神状态风险" icon={AlertTriangle} reverse />
@@ -744,7 +744,7 @@ export default function EEGPage() {
                 </div>
               )}
               {metrics.ratios && (
-                <div className="mt-4 grid grid-cols-4 gap-2 text-xs text-muted-foreground">
+                <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-muted-foreground sm:grid-cols-4">
                   <div className="text-center p-2 rounded bg-gray-50">
                     α/β = {metrics.ratios.alpha_beta}
                   </div>
@@ -765,7 +765,7 @@ export default function EEGPage() {
       )}
 
       {/* 波形 + 频段功率 */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.15 }}>
           <Card className="bg-white h-full">
             <CardHeader className="pb-2">
@@ -800,7 +800,7 @@ export default function EEGPage() {
                 style={{ height: 280 }}
                 notMerge
               />
-              <div className="mt-2 grid grid-cols-5 gap-1 text-xs">
+              <div className="mt-2 grid grid-cols-3 gap-1 text-xs sm:grid-cols-5">
                 {Object.entries(BAND_META).map(([k, v]) => (
                   <div key={k} className="text-center p-1.5 rounded bg-gray-50">
                     <div className="font-medium" style={{ color: v.color }}>
@@ -827,7 +827,7 @@ export default function EEGPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {alerts.map((alert, i) => (
                   <motion.div
                     key={i}

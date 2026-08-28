@@ -76,14 +76,14 @@ export default function SecurityPage() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="p-4 space-y-6 sm:p-6">
         <motion.div {...fadeIn}>
           <h1 className="text-2xl font-bold text-foreground">数据授权</h1>
           <p className="text-sm text-muted-foreground">管理您的数据授权，保护个人隐私</p>
         </motion.div>
         <SkeletonCard />
-        <div className="grid grid-cols-3 gap-6">
-          <div className="col-span-2"><SkeletonCard /></div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2"><SkeletonCard /></div>
           <SkeletonCard />
         </div>
       </div>
@@ -151,10 +151,10 @@ export default function SecurityPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 space-y-6 sm:p-6">
       {/* Page Header */}
       <motion.div {...fadeIn}>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h1 className="text-2xl font-bold text-foreground">数据授权</h1>
             <p className="text-sm text-muted-foreground">管理您的数据授权，保护个人隐私</p>
@@ -167,8 +167,8 @@ export default function SecurityPage() {
       <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.1 }}>
         <Card className="bg-gradient-to-r from-gray-700 to-gray-800 border-0 text-white">
           <CardContent className="p-6">
-            <div className="flex items-center gap-6">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/10">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white/10">
                 <Lock className="h-7 w-7 text-white" />
               </div>
               <div className="flex-1">
@@ -177,7 +177,7 @@ export default function SecurityPage() {
                   您已授权 {agents.length} 个智能体访问 {new Set(authMatrix.filter((a) => a.enabled).map((a) => a.data_type)).size} 类数据，所有授权均可随时撤销
                 </p>
               </div>
-              <div className="flex items-center gap-6">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                 <div className="text-center">
                   <p className="text-2xl font-bold">{data?.active_authorizations || 0}</p>
                   <p className="text-xs text-white/60">活跃授权</p>
@@ -196,9 +196,9 @@ export default function SecurityPage() {
         </Card>
       </motion.div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Authorization Matrix */}
-        <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.15 }} className="col-span-2">
+        <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.15 }} className="lg:col-span-2">
           <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -208,7 +208,7 @@ export default function SecurityPage() {
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-[560px]">
                   <thead>
                     <tr className="border-b border-border">
                       <th className="text-left text-xs font-medium text-muted-foreground pb-3 pr-4 w-48">
@@ -301,7 +301,7 @@ export default function SecurityPage() {
       </div>
 
       {/* Active Authorizations + Audit Log */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Active Authorizations */}
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.25 }}>
           <Card className="bg-white rounded-xl shadow-sm border border-gray-100">

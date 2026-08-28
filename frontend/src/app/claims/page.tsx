@@ -84,7 +84,7 @@ export default function ClaimsPage() {
       </motion.div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.1 }}>
           <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
             <CardContent className="p-6">
@@ -134,9 +134,9 @@ export default function ClaimsPage() {
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         {/* Upload Area + OCR Results */}
-        <div className="col-span-3 space-y-6">
+        <div className="col-span-1 space-y-6 lg:col-span-3">
           {/* Upload Area */}
           <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.25 }}>
             <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
@@ -289,7 +289,7 @@ export default function ClaimsPage() {
         </div>
 
         {/* Right Sidebar */}
-        <div className="col-span-2 space-y-6">
+        <div className="col-span-1 space-y-6 lg:col-span-2">
           {/* Required Documents Checklist */}
           <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.3 }}>
             <Card className="bg-white rounded-xl shadow-sm border border-gray-100">

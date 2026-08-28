@@ -154,7 +154,7 @@ export default function CoveragePage() {
           <p className="text-sm text-muted-foreground">全面了解您的医保权益与保障范围</p>
         </motion.div>
         <SkeletonCard />
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => <SkeletonCard key={i} />)}
         </div>
       </div>
@@ -220,7 +220,7 @@ export default function CoveragePage() {
       </motion.div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.15 }}>
           <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
             <CardContent className="p-6">
@@ -303,9 +303,9 @@ export default function CoveragePage() {
       </div>
 
       {/* Charts and Activity */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Payment History Chart */}
-        <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.35 }} className="col-span-2">
+        <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.35 }} className="col-span-1 lg:col-span-2">
           <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">

@@ -187,7 +187,7 @@ export default function HomePage() {
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col bg-gradient-to-b from-background to-background/80">
       {/* Header */}
-      <header className="border-b border-border/50 bg-white/80 backdrop-blur-sm px-6 py-3">
+      <header className="border-b border-border/50 bg-white/80 backdrop-blur-sm px-3 py-3 sm:px-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/20">
@@ -195,7 +195,7 @@ export default function HomePage() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-foreground">MedSignal</h1>
-              <p className="text-xs text-muted-foreground">多模态医疗信号智能体 · 关键医疗信号识别 × 患者信息连接</p>
+              <p className="hidden text-xs text-muted-foreground md:block">多模态医疗信号智能体 · 关键医疗信号识别 × 患者信息连接</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -208,7 +208,7 @@ export default function HomePage() {
       </header>
 
       {/* Chat Area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 sm:px-6">
         <div className="mx-auto max-w-3xl space-y-4">
           {/* 主动健康预警横幅（P2-3 范式创新） */}
           <ProactiveAlertBanner />
@@ -238,7 +238,7 @@ export default function HomePage() {
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-border/50 bg-white/80 backdrop-blur-sm px-6 py-4">
+      <div className="border-t border-border/50 bg-white/80 backdrop-blur-sm px-3 py-4 sm:px-6">
         <div className="mx-auto max-w-3xl">
           <div className="flex items-center gap-2 rounded-2xl border border-border bg-white px-4 py-2 shadow-sm transition-shadow focus-within:shadow-md focus-within:border-primary/30">
             <button className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
@@ -279,7 +279,7 @@ function ChatBubble({ message, onRetry, previousUserMessage }: { message: Messag
             <Bot className="h-4 w-4" />
           </AvatarFallback>
         </Avatar>
-        <div className="max-w-[75%] flex flex-col gap-1 items-start">
+        <div className="max-w-[85%] sm:max-w-[75%] flex flex-col gap-1 items-start">
           <Badge variant="secondary" className={`text-xs w-fit ${message.agentColor || ""}`}>
             {message.agent}
           </Badge>
@@ -305,7 +305,7 @@ function ChatBubble({ message, onRetry, previousUserMessage }: { message: Messag
           {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
         </AvatarFallback>
       </Avatar>
-      <div className={`max-w-[75%] ${isUser ? "items-end" : "items-start"} flex flex-col gap-1`}>
+      <div className={`max-w-[85%] sm:max-w-[75%] ${isUser ? "items-end" : "items-start"} flex flex-col gap-1`}>
         {!isUser && message.agent && (
           <Badge
             variant="secondary"
@@ -377,7 +377,7 @@ function WelcomeScreen({ onAction, userName, userConditions }: { onAction: (prom
           已关注您的健康状况：{userConditions.join("、")}
         </p>
       )}
-      <div className="grid grid-cols-2 gap-3 w-full max-w-lg">
+      <div className="grid grid-cols-1 gap-3 w-full max-w-lg sm:grid-cols-2 lg:grid-cols-3">
         {quickActions.map((action, i) => (
           <motion.button
             key={action.label}
