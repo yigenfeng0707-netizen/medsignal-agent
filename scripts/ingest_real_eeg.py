@@ -8,14 +8,17 @@
 manifest.json 索引。
 
 数据源（--source）：
-  demo        内置合成信号验证端到端管线（无需下载，无 pyedflib 依赖）
-  local       本地 EDF/EDF+/CSV 目录导入
-  physionet   PhysioNet eegmmidb 单文件直链下载（无需账号）
+  demo          内置合成信号验证端到端管线（无需下载，无 pyedflib 依赖）
+  local         本地 EDF/EDF+/CSV 目录导入
+  physionet     PhysioNet eegmmidb 单文件直链下载（无需账号）
+  eegemotions27 EEGEmotions-27 情绪数据集（88 人×27 情绪，Emotiv X 256Hz）
 
 用法示例：
   python scripts/ingest_real_eeg.py --source demo
   python scripts/ingest_real_eeg.py --source local --dir path/to/edf --limit 10
   python scripts/ingest_real_eeg.py --source physionet --subjects S001,S002 --runs 1,2
+  python scripts/ingest_real_eeg.py --source eegemotions27
+  python scripts/ingest_real_eeg.py --source eegemotions27 --pairs 10:5,10:17,10:20
   python scripts/ingest_real_eeg.py --list
 
 EDF 解析：内置纯 Python 解析器（EDF/EDF+ 固定头 + 定长数据记录），
@@ -23,6 +26,7 @@ EDF 解析：内置纯 Python 解析器（EDF/EDF+ 固定头 + 定长数据记�
 
 许可说明：
   - eegmmidb：ODC-By v1.0（需署名 Schalk et al. 2004 / PhysioNet）
+  - eegemotions27：CC BY-NC 4.0（需署名 Phuong et al. 2025 IEEE Access，非商业）
   - OpenNeuro CC0 数据集：调研报告见 docs/EEG数据集调研.md
   - 本脚本仅下载/处理单文件级小样本，不做全量镜像
 
@@ -393,6 +397,87 @@ def source_physionet(subjects: list, runs: list) -> list:
 
 
 # ------------------------------------------------------------
+# 数据源：EEGEmotions-27（情绪诱发，GitHub huytungst/EEGEmotions-27）
+# ------------------------------------------------------------
+
+# 27 种细粒度情绪标签（数据集官方 Emotion ID 映射）
+EEGEMOTIONS27_EMOTIONS = {
+    1: "admiration", 2: "adoration", 3: "aesthetic", 4: "amusement",
+    5: "anger", 6: "anxiety", 7: "awes", 8: "awkwardness",
+    9: "boredom", 10: "calmness", 11: "confusion", 12: "craving",
+    13: "disgust", 14: "empathic pain", 15: "entrancement", 16: "excitement",
+    17: "fear", 18: "horror", 19: "interest", 20: "joy",
+    21: "nostalgia", 22: "relief", 23: "romance", 24: "sadness",
+    25: "satisfaction", 26: "sexual desire", 27: "surprised",
+}
+
+# Emotiv X 头环 14 通道顺序（emotivX_channels_location.ced）
+EMOTIV_X_CHANNELS = ["AF3", "F7", "F3", "FC5", "T7", "P7", "O1",
+                      "O2", "P8", "T8", "FC6", "F4", "F8", "AF4"]
+
+EEGEMOTIONS27_SAMPLE_RATE = 256
+# Emotiv 14-bit ADC 标定：0.51 μV/LSB（接入前去直流偏移再标定）
+EMOTIV_UV_PER_LSB = 0.51
+
+# 默认样本：受试者 10 的 5 个代表性情绪（anger/fear/joy/calmness/sadness）
+EEGEMOTIONS27_DEFAULT_PAIRS = [(10, 5), (10, 17), (10, 20), (10, 10), (10, 24)]
+
+
+def _parse_eegemotions27(path: Path):
+    """解析 EEGEmotions-27 文本文件（tab 分隔 14 列，无表头）。
+
+    返回 (signals, channels, sample_rate)：逐通道去均值后按 0.51 μV/LSB
+    标定为 μV 量级（指标基于频段比值，标定仅影响幅度类质量判定）。
+    """
+    arr = np.loadtxt(path, delimiter="\t", ndmin=2)
+    if arr.ndim != 2 or arr.shape[1] != len(EMOTIV_X_CHANNELS):
+        raise ValueError(f"列数异常: {arr.shape}（预期 14 通道）")
+    signals = [(arr[:, i] - arr[:, i].mean()) * EMOTIV_UV_PER_LSB
+               for i in range(arr.shape[1])]
+    return signals, list(EMOTIV_X_CHANNELS), EEGEMOTIONS27_SAMPLE_RATE
+
+
+def source_eegemotions27(pairs: list) -> list:
+    """下载并接入 EEGEmotions-27 情绪样本。
+
+    pairs: [(participant, emotion_id), ...]；公开数据集仅含自评 4-5 分的
+    有效诱发 trial，若指定文件不存在则跳过并告警。
+    """
+    entries = []
+    for participant, emotion_id in pairs:
+        emotion = EEGEMOTIONS27_EMOTIONS.get(int(emotion_id), f"emotion{emotion_id}")
+        url = ("https://raw.githubusercontent.com/huytungst/EEGEmotions-27/main/"
+               f"eeg_raw/{participant}_{emotion_id}.0.txt")
+        dest = RAW_DIR / "eegemotions27" / f"p{int(participant):02d}_e{int(emotion_id):02d}.txt"
+        if not download(url, dest):
+            log.warning("跳过 %s（该受试者-情绪组合不在公开数据集中）", dest.name)
+            continue
+        try:
+            sigs, chans, sr = _parse_eegemotions27(dest)
+            record_id = f"emo27_p{int(participant):02d}_e{int(emotion_id):02d}"
+            e = ingest_one_recording(
+                sigs, chans, sr, "eegemotions27", record_id,
+                mental_state="auto",  # 由引擎按频段比值自动推断，不作先验假设
+                meta={
+                    "participant": int(participant),
+                    "emotion_id": int(emotion_id),
+                    "emotion": emotion,
+                    "paradigm": f"情绪诱发（视频片段）· {emotion}",
+                    "device": "Emotiv X 头环（14 通道，256Hz）",
+                    "channels_layout": "Emotiv EPOC（AF3/F7/.../AF4）",
+                    "unit_conversion": f"去均值 × {EMOTIV_UV_PER_LSB} μV/LSB",
+                    "license": "CC BY-NC 4.0 (huytungst/EEGEmotions-27)",
+                    "citation": "Phuong et al. 2025, IEEE Access, DOI:10.1109/ACCESS.2025.3620677",
+                },
+            )
+            e["origin_file"] = dest.name
+            entries.append(e)
+        except Exception as ex:
+            log.warning("导入失败 %s: %s", dest.name, ex)
+    return entries
+
+
+# ------------------------------------------------------------
 # 数据源：demo（合成信号验证管线，无需下载）
 # ------------------------------------------------------------
 
@@ -450,13 +535,16 @@ def print_summary() -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="MedSignal 真实公开 EEG 数据集接入")
-    parser.add_argument("--source", choices=["demo", "local", "physionet"],
+    parser.add_argument("--source", choices=["demo", "local", "physionet", "eegemotions27"],
                         default="demo", help="数据源")
     parser.add_argument("--dir", help="local 模式的 EEG 文件目录")
     parser.add_argument("--subjects", default="S001",
                         help="physionet 模式：受试者（逗号分隔，如 S001,S002）")
     parser.add_argument("--runs", default="1,2",
                         help="physionet 模式：run 编号（1/2=基线，3/4=运动任务）")
+    parser.add_argument("--pairs", default="",
+                        help="eegemotions27 模式：受试者:情绪ID（逗号分隔，如 10:5,10:17；"
+                             "缺省为受试者10的 anger/fear/joy/calmness/sadness 五情绪样本）")
     parser.add_argument("--limit", type=int, default=10, help="local 模式最多导入数（0=不限）")
     parser.add_argument("--list", action="store_true", help="仅查看 manifest 概览")
     args = parser.parse_args()
@@ -475,6 +563,13 @@ def main() -> int:
         subjects = [s for s in args.subjects.split(",") if s.strip()]
         runs = [int(r) for r in args.runs.split(",") if r.strip()]
         entries = source_physionet(subjects, runs)
+    elif args.source == "eegemotions27":
+        if args.pairs:
+            pairs = [tuple(int(x) for x in p.split(":"))
+                     for p in args.pairs.split(",") if ":" in p]
+        else:
+            pairs = EEGEMOTIONS27_DEFAULT_PAIRS
+        entries = source_eegemotions27(pairs)
     elif args.source == "demo":
         entries = source_demo()
 

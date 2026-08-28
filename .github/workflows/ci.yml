@@ -1,5 +1,5 @@
 # ============================================================
-# 医保智脑 CI/CD Pipeline
+# MedSignal CI/CD Pipeline
 # ============================================================
 # 触发：push 到 main/master、Pull Request
 # 阶段：lint → test → build
@@ -39,7 +39,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install ruff pytest-cov
+          pip install ruff pytest-cov pytest-asyncio
 
       - name: Lint with ruff
         run: ruff check app/ tests/

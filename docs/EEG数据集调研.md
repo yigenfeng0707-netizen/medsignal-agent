@@ -1,9 +1,14 @@
 # EEG 公开数据集调研与真实数据接入方案
 
 > MedSignal 项目 — 真实 EEG 数据接入专项调研
-> 调研日期：2026-08-27
-> 调研范围：4 个公开 EEG 数据集（PhysioNet eegmmidb + OpenNeuro ds008108 / ds008496 / ds007955）
+> 调研日期：2026-08-27（2026-08-28 增补 EEGEmotions-27 并接入）
+> 调研范围：5 个公开 EEG 数据集（PhysioNet eegmmidb + OpenNeuro ds008108 / ds008496 / ds007955 + GitHub EEGEmotions-27）
 > 关联文档：[`EEG设备接入指南.md`](./EEG设备接入指南.md)（v2.2 真实设备接入方案）
+
+> **接入状态（2026-08-28）**：
+> - ✅ **已接入 PhysioNet eegmmidb**（运动执行/想象基线，ODC-By）：`python scripts/ingest_real_eeg.py --source physionet`
+> - ✅ **已接入 EEGEmotions-27**（情绪诱发，CC BY-NC 4.0）：`python scripts/ingest_real_eeg.py --source eegemotions27`
+> - 双源真实数据已登记 `data/real_eeg/manifest.json`，可通过 `GET /api/eeg/real/list` 查询（`?source=` 按数据源过滤）
 
 ---
 
@@ -15,6 +20,7 @@
   - [2.2 OpenNeuro ds008108 — OSA 认知障碍多模态数据集](#22-openneuro-ds008108--osa-认知障碍多模态数据集)
   - [2.3 OpenNeuro ds008496 — Gen-AI 学生学习过程数据集](#23-openneuro-ds008496--gen-ai-学生学习过程数据集)
   - [2.4 OpenNeuro ds007955 — 情绪词联想数据集](#24-openneuro-ds007955--情绪词联想数据集)
+  - [2.5 GitHub EEGEmotions-27 — 27 类细粒度情绪数据集（已接入）](#25-github-eegemotions-27--27-类细粒度情绪数据集已接入)
 - [三、与 MedSignal 五维指标的适配性分析](#三与-medsignal-五维指标的适配性分析)
 - [四、接入优先级推荐](#四接入优先级推荐)
 - [五、本地 EEG 引擎现状（代码勘察）](#五本地-eeg-引擎现状代码勘察)
@@ -154,6 +160,35 @@
 | 引用要求 | 引用 DOI 及配套论文（含 Front. Hum. Neurosci. 2024 实时 EEG 情绪识别论文） |
 
 **特点**：四个数据集中唯一带**明确情绪诱发范式**（恐惧相关词汇）且同步采集**自主神经信号（EDA）**的数据集——EDA 是情绪唤醒度的经典生理金标准，可与引擎的 emotion_arousal 指标做外部一致性校验；配套发表的实时情绪识别论文（PCA + 树模型）提供了方法学参照。Fp1/Fp2 是前额 α 不对称性（引擎情绪 valence 计算的临床依据）的标准电极。**短板**：9 人 × 3 分钟，数据量最小，仅适合概念验证（PoC）与指标趋势验证，不足以支撑模型训练。
+
+---
+
+### 2.5 GitHub EEGEmotions-27 — 27 类细粒度情绪数据集（已接入）⭐
+
+**全名**：EEGEmotions-27: A Large-Scale EEG Dataset Annotated With 27 Fine-Grained Emotion Labels
+**主页**：<https://github.com/huytungst/EEGEmotions-27>
+**DOI**：[10.1109/ACCESS.2025.3620677](https://doi.org/10.1109/ACCESS.2025.3620677) ｜ 发布：2025 ｜ 贡献：Huy-Tung Phuong et al.
+
+| 元信息项 | 内容 |
+|---|---|
+| 受试者数 | 88 名（韩/越南籍） |
+| 通道数 | 14 通道 EEG（**Emotiv X 头环**，与《EEG设备接入指南》支持设备同源） |
+| 电极布局 | AF3、F7、F3、FC5、T7、P7、O1、O2、P8、T8、FC6、F4、F8、AF4（标准 Emotiv EPOC） |
+| 前额通道 | ✅ AF3、AF4（引擎 `CHANNEL_MAP` 已预置 `AF3→AF7 / AF4→AF8` 映射） |
+| 采样率 | **256 Hz**（与引擎 `SAMPLE_RATE` 完全一致） |
+| 记录时长 | 每次 trial 约 20-30 秒（单个情绪视频片段） |
+| 数据格式 | 纯文本 tab 分隔 14 列（无表头），文件名 `{受试者ID}_{情绪ID}.0.txt` |
+| 任务范式 | 情绪视频片段诱发 → 自评（仅公开自评 4-5 分的有效诱发 trial） |
+| 标注情况 | 27 种细粒度情绪标签（admiration/adoration/…/surprised），是目前情绪类别最细的公开 EEG 数据集 |
+| 许可证 | **CC BY-NC 4.0**（非商业，需署名） |
+| AI 训练 | ✅ 允许（非商业用途，须署名引用 IEEE Access 2025 两篇论文） |
+| 下载方式 | GitHub 直链（raw.githubusercontent.com），无需注册 |
+
+**已接入（2026-08-28）**：`scripts/ingest_real_eeg.py --source eegemotions27`，默认接入受试者 10 的 5 个代表性情绪样本（anger/fear/joy/calmness/sadness）。
+接入要点：
+1. 文本解析：`np.loadtxt` tab 分隔 → 14 列按 `emotivX_channels_location.ced` 顺序命名；
+2. 量纲标定：原始 ADC 值（均值 ≈4300 LSB）逐通道去均值后 × 0.51 μV/LSB 标定（Emotiv 14-bit ADC）；五维指标基于频段比值，不受直流偏移影响；
+3. 溯源登记：manifest 条目含 participant/emotion_id/emotion/paradigm/license/citation，`GET /api/eeg/real/list?source=eegemotions27` 可查。
 
 ---
 
@@ -376,12 +411,13 @@ assess_real_session(user_id, signals, channels, sample_rate,
 
 | 数据集 | 许可证 | 商用 | AI 训练 | 义务 |
 |---|---|---|---|---|
-| eegmmidb | ODC-By 1.0 | ✅ | ✅ | 署名（引用 Schalk 2009 + Goldberger 2000 + BCI2000 论文） |
+| eegmmidb（✅已接入） | ODC-By 1.0 | ✅ | ✅ | 署名（引用 Schalk 2009 + Goldberger 2000 + BCI2000 论文） |
+| eegemotions27（✅已接入） | **CC BY-NC 4.0** | ❌（非商业） | ✅（非商业） | 署名（引用 Phuong et al. 2025 IEEE Access，DOI:10.1109/ACCESS.2025.3620677） |
 | ds008108 | CC0 | ✅ | ✅ | 无法律义务，建议学术礼节性引用 DOI |
 | ds008496 | CC0 | ✅ | ✅ | 同上 |
 | ds007955 | CC0 | ✅ | ✅ | 同上（建议引用 Front. Hum. Neurosci. 2024 论文） |
 
-**结论：四个数据集全部允许 AI 训练与商业用途**，MedSignal（医疗 AI 比赛项目）接入无合规障碍。建议在项目申报书/答辩材料的数据来源声明中统一列出四个 DOI。
+**结论**：已接入的 eegmmidb（ODC-By）允许商用；**eegemotions27 为 CC BY-NC 4.0（禁止商用，允许非商业用途下的使用/改编与署名）**——MedSignal 为非商业比赛/科研演示项目，接入合规，但需在数据来源声明中明确标注该数据集仅限非商业使用。建议在项目申报书/答辩材料的数据来源声明中统一列出各 DOI。
 
 ---
 
@@ -411,6 +447,14 @@ datalad clone https://github.com/OpenNeuroDatasets/ds008496.git
 #   https://openneuro.org/datasets/ds007955/versions/1.0.0/download
 datalad clone https://github.com/OpenNeuroDatasets/ds007955.git
 
+# ── 5. GitHub EEGEmotions-27（CC BY-NC 4.0，直链免注册）──
+#   单文件直链（{受试者ID}_{情绪ID}.0.txt，如 10_5.0.txt = 受试者10·anger）
+#   https://raw.githubusercontent.com/huytungst/EEGEmotions-27/main/eeg_raw/10_5.0.txt
+#   一键接入（默认受试者10 的 anger/fear/joy/calmness/sadness 五情绪）：
+python scripts/ingest_real_eeg.py --source eegemotions27
+#   自定义样本：
+python scripts/ingest_real_eeg.py --source eegemotions27 --pairs 10:5,12:17,10:20
+
 # ── 接入依赖安装 ────────────────────────────────────────────
 pip install pyedflib    # EDF 解析（ds008108 / eegmmidb）
 pip install mne         # EEGLAB .set 解析（ds008496 / ds007955）
@@ -421,6 +465,7 @@ pip install mne         # EEGLAB .set 解析（ds008496 / ds007955）
 ## 参考链接
 
 - PhysioNet eegmmidb：<https://physionet.org/content/eegmmidb/1.0.0/>（DOI: 10.13026/C28G6P）
+- GitHub EEGEmotions-27：<https://github.com/huytungst/EEGEmotions-27>（DOI: 10.1109/ACCESS.2025.3620677）
 - OpenNeuro ds008108：<https://openneuro.org/datasets/ds008108/versions/1.0.0>（DOI: 10.18112/openneuro.ds008108.v1.0.0）
 - OpenNeuro ds008496：<https://openneuro.org/datasets/ds008496/versions/1.0.1>（DOI: 10.18112/openneuro.ds008496.v1.0.1）
 - OpenNeuro ds007955：<https://openneuro.org/datasets/ds007955/versions/1.0.0>（DOI: 10.18112/openneuro.ds007955.v1.0.0）

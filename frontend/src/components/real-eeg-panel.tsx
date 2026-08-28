@@ -49,6 +49,7 @@ const BAND_META: Record<string, { label: string; color: string }> = {
 const SOURCE_META: Record<string, { label: string; real: boolean }> = {
   physionet: { label: "PhysioNet eegmmidb", real: true },
   eegmmidb: { label: "PhysioNet eegmmidb", real: true },
+  eegemotions27: { label: "EEGEmotions-27 情绪", real: true },
   local: { label: "本地导入", real: true },
   demo: { label: "合成验证", real: false },
 };
