@@ -6,6 +6,8 @@ class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=2000)
     user_id: str = Field(default="user_001")
     conversation_id: str | None = None
+    # 前端携带的最近对话历史（role+content），用于上下文连续性与指代消解
+    history: list[dict[str, str]] | None = None
 
 
 class PreReviewRequest(BaseModel):
@@ -17,6 +19,13 @@ class PreReviewRequest(BaseModel):
 class DataQueryRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=500)
     user_id: str | None = None
+
+
+class DrugRegisterRequest(BaseModel):
+    """用户确认后将扫描到的药品登记到用药记录"""
+    user_id: str = Field(default="user_001")
+    drug: dict = Field(default_factory=dict)
+    category: str | None = None
 
 
 class PolicySearchRequest(BaseModel):

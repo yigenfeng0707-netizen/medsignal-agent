@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.auth import generate_session_token
 from app.config import settings
 from app.database import init_db
-from app.routers import agents, body, claims, coverage, data, eeg, health_profile, imaging, policy, security
+from app.routers import agents, body, claims, coverage, data, drugs, eeg, health_profile, imaging, policy, security
 from app.services import orchestrator
 
 
@@ -54,6 +54,7 @@ app.include_router(eeg.router)
 app.include_router(imaging.router)
 app.include_router(data.router)
 app.include_router(body.router)
+app.include_router(drugs.router)
 
 
 @app.get("/api/health")
@@ -145,6 +146,20 @@ async def detailed_health_check():
         "available": data_engine_ok,
         "warehouse_tables": warehouse_tables,
         "query_modes": ["template", "nl2sql"],
+    }
+
+    # 药品卫士引擎（拍照识别 × 用药安全）
+    try:
+        from app.services.drug_scan import engine as drug_scan_engine
+        drug_engine_ok = True
+        drug_modes = ["vision", "ocr_llm", "mock"]
+    except Exception:
+        drug_engine_ok = False
+        drug_modes = []
+    deps["drug_engine"] = {
+        "available": drug_engine_ok,
+        "recognition_modes": drug_modes,
+        "endpoints": ["/api/drugs/scan", "/api/drugs/register"],
     }
 
     all_ok = (

@@ -107,17 +107,32 @@ class LLMService:
         self._fallback_initialized = False
 
         self._init_client()
-        if fallback_api_key:
+        if fallback_api_key and not self._is_placeholder_key(fallback_api_key):
             self._init_fallback_client()
+        elif fallback_api_key:
+            # 占位符密钥（如 your-xxx）会导致每次主力模型波动都附带 401 报错噪音，直接禁用备选层
+            logger.warning("备选模型密钥为占位符，已禁用 DashScope 备选层（主力模型不受影响）")
+            self._fallback_initialized = False
+
+    @staticmethod
+    def _is_placeholder_key(key: str) -> bool:
+        """识别 .env 模板里未替换的占位符密钥。"""
+        k = (key or "").strip().lower()
+        return (not k) or k.startswith("your-") or k in ("placeholder", "sk-xxx", "changeme")
 
     def _init_client(self):
-        """初始化主力模型 OpenAI 客户端（aiping 网关 Kimi-K3）"""
+        """初始化主力模型 OpenAI 客户端（aiping 网关 Kimi-K3）
+
+        推理模型单次生成实测 20–60s：timeout 必须大于单次生成时长，且禁用 SDK 重试，
+        否则 30s 超时×3 次重试会把单次对话拖到 90s+，击穿路由层超时保护。
+        """
         try:
             from openai import OpenAI
             self._client = OpenAI(
                 api_key=self._api_key,
                 base_url=self._base_url,
-                timeout=30.0,
+                timeout=90.0,
+                max_retries=0,
             )
             self._initialized = True
             logger.info("主力 LLM 客户端初始化成功 (model=%s, base_url=%s)", self._model, self._base_url)
@@ -135,7 +150,8 @@ class LLMService:
             self._fallback_client = OpenAI(
                 api_key=self._fallback_api_key,
                 base_url=self._fallback_base_url,
-                timeout=25.0,
+                timeout=60.0,
+                max_retries=0,
             )
             self._fallback_initialized = True
             logger.info("备选 LLM 客户端初始化成功 (model=%s, base_url=%s)", self._fallback_model, self._fallback_base_url)
@@ -160,7 +176,8 @@ class LLMService:
         Returns:
             模型生成的回复文本
         """
-        # 尝试主力模型（aiping 网关 Kimi-K3，推理模型需较大 max_tokens）。
+        # 尝试主力模型（aiping 网关 Kimi-K3，推理模型需较大 max_tokens：
+        # 思考过程与正文共用额度，2048 会被 reasoning 吃光导致正文为空）。
         # 同步 SDK 必须用 asyncio.to_thread 包装，否则会阻塞事件循环，
         # 导致路由层的 asyncio.wait_for 超时保护失效（曾引发线上 504）。
         if self._initialized:
@@ -170,7 +187,7 @@ class LLMService:
                     model=self._model,
                     messages=messages,
                     temperature=temperature,
-                    max_tokens=2048,
+                    max_tokens=4096,
                 )
                 choice = response.choices[0]
                 # 推理模型：content 可能为空，reasoning 字段包含思考过程

@@ -30,7 +30,7 @@ export function ChatInput({ onSend, placeholder = "输入您的问题...", disab
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-1 items-center gap-2">
       <Input
         value={value}
         onChange={(e) => setValue(e.target.value)}

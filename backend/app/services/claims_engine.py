@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
@@ -393,3 +394,267 @@ def _builtin_rules() -> dict:
             "cross_region_penalty": -0.05, "rate_floor": 0.50, "rate_ceiling": 0.96,
         },
     }
+
+
+# ----------------------------------------------------------------------
+# 上传资料联合预审（报销助手 × 档案管家 协同）
+# ----------------------------------------------------------------------
+
+_INVOICE_WORDS = ("发票", "票据", "价税合计", "收费凭证", "结算单", "invoice", "receipt")
+_LIST_WORDS = ("费用清单", "明细清单", "费用明细", "收费明细")
+# 住院/门诊费用清单常见费用项目词（OCR 文本常缺失“清单”字样，用项目词兼容）
+_FEE_ITEM_WORDS = ("床位费", "护理费", "诊查费", "西药费", "中成药费", "中草药费",
+                   "治疗费", "检查费", "化验费", "材料费", "手术费", "输液费")
+# 金额前缀词（含小写合计与传统字形）；允许较长间隔以跨过“大写…”等干扰文本
+_AMOUNT_RE = re.compile(r"(?:价税合计|金额合计|小写|合計|金额|金額|总额|總額|合计)[^\d\n]{0,12}([0-9]+(?:\.[0-9]{1,2})?)")
+
+REQUIRED_DOC_CATEGORIES = ("发票/票据", "费用清单", "病历文本", "检查报告")
+
+
+def classify_uploaded_doc(filename: str, doc_kind: str, text: str) -> str:
+    """面向报销流程的存档资料二次分类：发票 / 费用清单 / 病历文本 / 检查报告 / 其他。
+
+    优先级：强发票信号（价税合计/票据号码类） > 强清单信号（清单/明细/分类小计/费用项目词）
+    > 弱发票词（发票/票据字样）。费用清单常带“发票”水印字样，不可仅凭该词判发票。
+    """
+    t = text or ""
+    name = filename or ""
+    strong_invoice = any(w in t for w in ("价税合计", "收费凭证", "结算单", "票据代码", "票据号码")) \
+        or any(w in name for w in ("发票", "receipt", "invoice"))
+    if strong_invoice:
+        return "发票/票据"
+    fee_hits = sum(1 for w in _FEE_ITEM_WORDS if w in t)
+    if any(w in t for w in _LIST_WORDS) or "清单" in t or "分类小计" in t \
+            or "清单" in name or "明细" in name or fee_hits >= 2:
+        return "费用清单"
+    if any(w in t for w in _INVOICE_WORDS):
+        return "发票/票据"
+    if doc_kind in ("CT报告", "MRI报告"):
+        return "检查报告"
+    if doc_kind == "病历文本":
+        return "病历文本"
+    return "其他"
+
+
+def extract_invoice_amount(text: str) -> float | None:
+    """从发票文本提取合计金额；多个候选取最大值。"""
+    vals: list[float] = []
+    for v in _AMOUNT_RE.findall(text or ""):
+        try:
+            vals.append(float(v))
+        except ValueError:
+            continue
+    return max(vals) if vals else None
+
+
+def summarize_doc_content(text: str, max_len: int = 60) -> str:
+    """从转录文本提炼一行主要内容（供预审回复引用，避免只报分类不报内容）。"""
+    parts = [seg.strip() for seg in (text or "").split() if len(seg.strip()) >= 2]
+    if not parts:
+        return ""
+    brief = "、".join(parts)
+    return brief[:max_len] + ("…" if len(brief) > max_len else "")
+
+
+def clean_doc_content(text: str, max_len: int = 300) -> str:
+    """转录文本清理为可读摘录（分步明细中逐字引用用）。"""
+    joined = " ".join((text or "").split())
+    return joined[:max_len] + ("…" if len(joined) > max_len else "")
+
+
+def review_uploaded_documents(docs: list[dict], insurance_type: str = "职工医保") -> dict:
+    """上传资料联合预审：二次分类 + 金额提取 + 完整性核对 + 报销引擎测算。
+
+    docs: [{"filename", "doc_kind", "extracted_text"}]
+    返回 documents / total_amount / completeness / estimate / response（报销助手意见文本）。
+    """
+    classified: list[dict] = []
+    total = 0.0
+    for d in docs:
+        kind = classify_uploaded_doc(d.get("filename", ""), d.get("doc_kind", ""), d.get("extracted_text", ""))
+        amount = extract_invoice_amount(d.get("extracted_text", "")) if kind == "发票/票据" else None
+        if amount is not None:
+            total += amount
+        classified.append({
+            "filename": d.get("filename", ""),
+            "archive_kind": d.get("doc_kind", ""),
+            "claim_kind": kind,
+            "amount": amount,
+            "content_brief": summarize_doc_content(d.get("extracted_text", "")),
+            "content_full": clean_doc_content(d.get("extracted_text", "")),
+        })
+
+    present = {c["claim_kind"] for c in classified}
+    completeness = [
+        {"name": req, "status": "uploaded" if req in present else "missing"}
+        for req in REQUIRED_DOC_CATEGORIES
+    ]
+    missing = [c["name"] for c in completeness if c["status"] == "missing"]
+
+    estimate = None
+    if total > 0:
+        estimate = calculate(ClaimsInput(
+            total_amount=total, visit_type="门诊", insurance_type=insurance_type,
+            hospital_level="二级", chronic_disease=False,
+        )).to_dict()
+
+    read_lines = []
+    for c in classified:
+        line = f"- 《{c['filename']}》识别为{c['claim_kind']}"
+        if c["amount"] is not None:
+            line += f"，金额 {c['amount']:.2f} 元"
+        if c["content_brief"]:
+            line += f"\n  内容摘要：{c['content_brief']}"
+        read_lines.append(line)
+
+    parts = ["从您上传的资料中读到：", "\n".join(read_lines)]
+    parts.append(
+        "\n材料完整性核对：\n"
+        + "\n".join(f"{'✅' if c['status'] == 'uploaded' else '❌'} {c['name']}" for c in completeness)
+    )
+    if missing:
+        parts.append(f"\n缺少：{'、'.join(missing)}。可后续补传，不影响已上传材料的预审。")
+    if estimate is not None:
+        parts.append(
+            f"\n预审测算（发票合计 {total:.2f} 元，{insurance_type}·门诊·二级医院）："
+            f"统筹预计支付约 {estimate['estimated_reimbursement']:.2f} 元，"
+            f"个人负担约 {estimate['out_of_pocket']:.2f} 元。"
+        )
+    else:
+        parts.append("\n未从发票中读取到金额，暂不做测算；补传含金额的发票后可自动测算。")
+    parts.append("\nℹ️ 以上为 AI 预审意见，正式审核由医保经办机构完成，办理时限 15–30 个工作日。")
+
+    return {
+        "documents": classified,
+        "total_amount": round(total, 2) if total else None,
+        "completeness": completeness,
+        "estimate": estimate,
+        "response": "\n".join(parts),
+    }
+
+
+async def _recent_review_payload(db, user_id: str, limit: int, within_minutes: int):
+    """加载用户近期存档资料与险种；无近期资料返回 None。"""
+    from app import crud
+
+    docs = await crud.list_recent_body_documents(db, user_id, limit=limit, within_minutes=within_minutes)
+    if not docs:
+        return None
+
+    insurance_type = "职工医保"
+    try:
+        user = await crud.get_user(db, user_id)
+        if user is not None and getattr(user, "insurance_type", None):
+            insurance_type = user.insurance_type
+    except Exception:
+        pass
+
+    payload = [
+        {"filename": d.filename, "doc_kind": d.doc_kind, "extracted_text": d.extracted_text}
+        for d in docs
+    ]
+    return payload, insurance_type
+
+
+async def build_uploaded_prereview(db, user_id: str, limit: int = 10,
+                                   within_minutes: int = 120) -> dict | None:
+    """读取用户最近存档的上传资料并联合预审；无近期资料返回 None。
+
+    返回 {response, documents, total_amount, completeness, estimate}，
+    response 为 档案管家存档汇总 × 报销助手预审意见 的融合文本。
+    """
+    loaded = await _recent_review_payload(db, user_id, limit, within_minutes)
+    if not loaded:
+        return None
+    payload, insurance_type = loaded
+
+    review = review_uploaded_documents(payload, insurance_type=insurance_type)
+    archive_lines = "\n".join(f"✅ 《{d['filename']}》（{d['doc_kind']}）已存档" for d in payload)
+    review["response"] = (
+        "**【档案管家】**\n"
+        f"{archive_lines}\n\n---\n\n"
+        f"**【报销助手】**\n{review['response']}"
+    )
+    return review
+
+
+def build_prereview_detail_text(review: dict, insurance_type: str) -> str:
+    """将预审结果展开为分步推导明细（追问“具体细节/怎么算”时使用）。"""
+    estimate = review.get("estimate")
+    missing = [c["name"] for c in review["completeness"] if c["status"] == "missing"]
+
+    lines = ["把刚才的预审意见展开说明：", "\n**📄 资料识别明细**"]
+    for c in review["documents"]:
+        line = f"- 《{c['filename']}》：存档类型“{c['archive_kind']}” → 报销材料类型“{c['claim_kind']}”"
+        if c["amount"] is not None:
+            line += f"，提取金额 {c['amount']:.2f} 元"
+        lines.append(line)
+        if c.get("content_full"):
+            lines.append(f"  > 识别到的内容：{c['content_full']}")
+
+    if estimate:
+        e = estimate
+        lines.append(f"\n**🧮 测算推导过程**（{insurance_type}·门诊·二级医院）")
+        all_class_a = e["class_b"] == 0 and e["self_paid_items"] == 0
+        lines.append(
+            f"1. 发票合计 {e['total_amount']:.2f} 元"
+            + ("（未提供费用明细，按全额甲类估算）" if all_class_a else "")
+        )
+        if not all_class_a:
+            lines.append(
+                f"2. 费用分类：甲类 {e['class_a']:.2f} 元、乙类 {e['class_b']:.2f} 元、自费 {e['self_paid_items']:.2f} 元；"
+                f"乙类先自付 {e['class_b_deduction']:.2f} 元"
+            )
+        after_deductible = max(0.0, e["reimbursable_amount"] - e["effective_deductible"])
+        lines.append(f"3. 进入统筹基数 {e['reimbursable_amount']:.2f} 元，扣除起付线 {e['effective_deductible']:.2f} 元，剩余 {after_deductible:.2f} 元")
+        lines.append(
+            f"4. 按报销比例 {e['reimbursement_ratio'] * 100:.1f}% 计算："
+            f"基本医保统筹支付 {after_deductible:.2f} × {e['reimbursement_ratio'] * 100:.0f}% = {e['reimbursed_basic']:.2f} 元"
+        )
+        if e["capped"]:
+            lines.append(f"5. 已触及封顶线 {e['cap']:.0f} 元，超出部分由个人负担")
+        if e["big_insurance"] > 0:
+            tier_desc = "；".join(
+                f"{t['label']} {t['segment']:.2f} 元 × {t['rate'] * 100:.0f}% = {t['reimbursed']:.2f} 元"
+                for t in e["big_insurance_tiers"]
+            )
+            lines.append(f"5. 大病保险二次报销 {e['big_insurance']:.2f} 元（{tier_desc}）")
+        else:
+            big_deductible = load_rules().get("big_insurance", {}).get("deductible", 15000)
+            lines.append(f"5. 大病保险：个人自付未达到大病起付线 {big_deductible:.0f} 元，未触发二次报销")
+        # 个人负担构成（起付线 + 乙类先自付 + 自费 + 比例自付）
+        ratio_self_pay = max(0.0, after_deductible - e["reimbursed_basic"])
+        composition = [f"起付线 {e['effective_deductible']:.2f} 元"]
+        if e["class_b_deduction"]:
+            composition.append(f"乙类先自付 {e['class_b_deduction']:.2f} 元")
+        if e["self_paid_items"]:
+            composition.append(f"自费项目 {e['self_paid_items']:.2f} 元")
+        if ratio_self_pay:
+            composition.append(f"比例自付 {ratio_self_pay:.2f} 元")
+        lines.append(
+            f"6. 汇总：统筹预计支付 {e['estimated_reimbursement']:.2f} 元；"
+            f"个人负担 {e['out_of_pocket']:.2f} 元 = {' + '.join(composition)}"
+        )
+        lines.append(
+            f"\n**📋 规则依据**：{insurance_type}·门诊·二级医院 —— 起付线 {e['deductible']} 元，"
+            f"报销比例 {e['reimbursement_ratio'] * 100:.0f}%，年度封顶线 {e['cap']:.0f} 元。"
+        )
+    else:
+        lines.append("\n未从发票中提取到金额，暂无法展开测算；补传含合计金额的发票后可自动推导。")
+    if missing:
+        lines.append(f"\n材料提醒：仍缺少{'、'.join(missing)}，补传不影响已上传材料的预审。")
+    lines.append("\nℹ️ 以上为 AI 预审意见，正式审核由医保经办机构完成，办理时限 15–30 个工作日。")
+    return "\n".join(lines)
+
+
+async def build_uploaded_prereview_detail(db, user_id: str, limit: int = 10,
+                                          within_minutes: int = 120) -> dict | None:
+    """预审结果的分步推导明细版（追问“具体细节/怎么算”时用）；无近期资料返回 None。"""
+    loaded = await _recent_review_payload(db, user_id, limit, within_minutes)
+    if not loaded:
+        return None
+    payload, insurance_type = loaded
+
+    review = review_uploaded_documents(payload, insurance_type=insurance_type)
+    review["response"] = "**【报销助手】**\n" + build_prereview_detail_text(review, insurance_type)
+    return review

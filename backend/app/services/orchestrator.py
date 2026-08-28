@@ -53,6 +53,9 @@ class Orchestrator:
         "data": ["查数据", "数据库", "湖仓", "数据湖", "数据目录", "数据资产", "数据质量",
                  "数据血缘", "有多少条", "多少条记录", "统计", "汇总", "数据分析",
                  "查询数据", "数据查询", "TOP10", "用药排行", "缴费统计"],
+        # 药品卫士：拍照识别药品/核验批准文号与有效期（避开 health_profile 的“用药”）
+        "drug": ["药品识别", "扫药", "扫描药品", "拍照识别", "药盒", "药品包装",
+                 "批准文号", "国药准字", "药品有效期", "药品过期", "这个药", "是什么药"],
     }
 
     # Mock 数据（降级方案）
@@ -95,6 +98,11 @@ class Orchestrator:
                         "支持自然语言智能查询（如“帮我汇总就医费用”），每次查询均展示 SQL 与统计口径。",
             "data": {"warehouse_tables": 10, "query_source": "template"},
         },
+        "drug": {
+            "response": "药品卫士已就绪：请通过首页“药品识别”入口拍摄药盒或包装照片，"
+                        "我会识别通用名、批准文号与有效期，核查与您现有用药的相互作用。是否加入用药记录由您决定。",
+            "data": {"scan_entry": "/api/drugs/scan", "recognition_modes": ["vision", "ocr_llm"]},
+        },
     }
 
     def __init__(self):
@@ -102,6 +110,10 @@ class Orchestrator:
         self._llm: LLMService | None = None
         self._kb: KnowledgeBase | None = None
         self._services_initialized = False
+        # user_id -> 活跃业务流程（如 claims_prereview），用于歧义消息的上下文路由
+        self._active_flows: dict[str, str] = {}
+        # user_id -> 最近一次确认路由的智能体，用于追问/细节类消息的连续性路由
+        self._last_agent: dict[str, str] = {}
 
     async def initialize_services(self) -> None:
         """初始化 LLM 和知识库服务
@@ -172,9 +184,13 @@ class Orchestrator:
     async def intent_recognition(self, message: str) -> str:
         """根据用户消息识别意图，返回对应的智能体类型
 
-        优先使用 LLM 进行意图识别，不可用时降级到关键词匹配。
+        关键词命中时直接判定（毫秒级）；仅零命中时才用 LLM 消歧，
+        避免每条消息都多一次 20s+ 的 LLM 往返。
         """
-        # 优先使用 LLM
+        if self.has_keyword_intent(message):
+            return self._keyword_intent(message)
+
+        # 零关键词命中：优先使用 LLM 消歧（模糊表达），置信度不足则兜底 coverage
         if self._llm is not None:
             try:
                 intent_result = await self._llm.extract_intent(message)
@@ -205,6 +221,135 @@ class Orchestrator:
             return "coverage"
         return best
 
+    # ------------------------------------------------------------------
+    # 对话上下文感知：连续性 / 意图消歧 / 资料感知
+    # ------------------------------------------------------------------
+
+    _READING_VERBS = ("读到", "看到", "解读", "解释", "分析", "里面", "内容", "信息",
+                      "说了啥", "写了啥", "啥意思", "这些", "刚才", "上传的", "那些")
+
+    # 追问/要求展开类信号词（零关键词命中时用于连续性路由）
+    _FOLLOWUP_MARKERS = ("详细", "具体", "细节", "展开", "继续", "接着", "再多", "更多",
+                         "为什么", "怎么算", "怎么来的", "依据", "说说", "讲讲", "解释",
+                         "啥意思", "上面", "刚才", "这个", "这些", "那么")
+
+    # 助手回复中的智能体署名 → 智能体类型（前端 history 携带完整回复文本）
+    _AGENT_SIGNATURES = (
+        ("报销助手", "claims"),
+        ("档案管家", "body"),
+        ("权益管家", "coverage"),
+        ("政策参谋", "policy"),
+        ("健康管家", "health_profile"),
+        ("药品卫士", "drug"),
+    )
+
+    def has_keyword_intent(self, message: str) -> bool:
+        """消息自身是否命中任一智能体关键词。"""
+        return any(kw in message for kws in self.AGENT_KEYWORDS.values() for kw in kws)
+
+    def note_intent(self, user_id: str | None, intent: str) -> None:
+        """记录用户活跃业务流程与最近智能体：
+        claims 意图出现后，后续歧义消息优先路由回报销流程；
+        最近智能体用于追问/细节类消息的连续性路由。"""
+        if not user_id:
+            return
+        if intent == "claims":
+            self._active_flows[user_id] = "claims_prereview"
+        if intent:
+            self._last_agent[user_id] = intent
+
+    def followup_intent(
+        self, message: str, history: list[dict] | None = None, user_id: str | None = None,
+    ) -> str | None:
+        """追问/细节类消息的连续性路由。
+
+        仅在消息零关键词命中时介入：消息含追问信号词，且上一轮助手回复带智能体署名
+        （如【报销助手】），则路由回同一智能体，保持对话连续性。不适用返回 None。
+        """
+        if self.has_keyword_intent(message):
+            return None
+        if not any(w in message for w in self._FOLLOWUP_MARKERS):
+            return None
+        for h in reversed(history or []):
+            if h.get("role") != "assistant":
+                continue
+            content = str(h.get("content") or "")
+            for signature, agent in self._AGENT_SIGNATURES:
+                if signature in content:
+                    return agent
+            break  # 只看最近一轮助手回复，无署名则不介入
+        return self._last_agent.get(user_id) if user_id else None
+
+    def context_intent(
+        self, message: str, history: list[dict] | None = None,
+        has_recent_docs: bool = False, user_id: str | None = None,
+    ) -> str | None:
+        """上下文感知意图消歧。
+
+        仅在消息本身零关键词命中（否则将兜底到 coverage）时介入：
+        最近历史含上传动作或用户有近期存档资料，且当前消息为阅读/指代类问句，
+        则路由到读资料的智能体（报销流程活跃时优先报销助手）。不适用返回 None。
+        """
+        scores = {a: sum(1 for kw in kws if kw in message) for a, kws in self.AGENT_KEYWORDS.items()}
+        if scores[max(scores, key=scores.get)] > 0:
+            return None  # 消息自身有明确意图，走正常路由
+
+        recent_upload = any(
+            "上传" in str(h.get("content") or "")
+            for h in (history or [])[-4:] if h.get("role") == "user"
+        )
+        if not (recent_upload or has_recent_docs):
+            return None
+        if not any(w in message for w in self._READING_VERBS):
+            return None
+        if user_id and self._active_flows.get(user_id) == "claims_prereview":
+            return "claims"
+        # 无内存流程状态时（如服务重启后），从最近助手回复的署名推断归属智能体
+        for h in reversed(history or []):
+            if h.get("role") != "assistant":
+                continue
+            content = str(h.get("content") or "")
+            for signature, agent in self._AGENT_SIGNATURES:
+                if signature in content:
+                    return agent
+            break
+        return "body"
+
+    @staticmethod
+    def format_history_block(history: list[dict] | None, max_turns: int = 8) -> str:
+        """将前端携带的 history 压缩为提示词上下文块（指代消解/连续性）。"""
+        if not history:
+            return ""
+        lines = [
+            f"{'用户' if h.get('role') == 'user' else '助手'}: {str(h.get('content') or '')[:200]}"
+            for h in history[-max_turns:]
+        ]
+        return "最近对话历史（结合上下文理解用户当前问题）：\n" + "\n".join(lines)
+
+    async def recent_documents_context(self, db, user_id: str | None,
+                                       limit: int = 5, within_minutes: int = 120) -> str:
+        """用户最近上传资料上下文块（文件名+类型+原文摘录），供各智能体引用解读。"""
+        if db is None or not user_id:
+            return ""
+        try:
+            from app import crud
+            docs = await crud.list_recent_body_documents(
+                db, user_id, limit=limit, within_minutes=within_minutes,
+            )
+        except Exception as e:
+            logger.warning("查询最近上传资料失败: %s", e)
+            return ""
+        if not docs:
+            return ""
+        lines = []
+        for d in docs:
+            excerpt = " ".join((d.extracted_text or "").split())[:400]
+            lines.append(
+                f"- 《{d.filename}》（{d.doc_kind}）：{excerpt}" if excerpt
+                else f"- 《{d.filename}》（{d.doc_kind}）"
+            )
+        return "用户最近上传的医疗资料（档案管家存档，可据此引用解读，不得编造）：\n" + "\n".join(lines)
+
     def multi_intent_recognition(self, message: str) -> list[tuple[str, float]]:
         """多意图识别：返回 [(intent, weight), ...]，按权重降序
 
@@ -228,44 +373,64 @@ class Orchestrator:
 
     async def handle_complex_query(
         self, message: str, user_id: str | None = None, user_profile: dict | None = None,
+        history: list[dict] | None = None, extra_context: str | None = None,
+        offline_claims_response: str | None = None,
     ) -> dict[str, Any]:
         """处理复合意图查询：并行调度多 Agent + 结果融合
 
         这是 P2-1 多智能体协作的核心。例如：
         "我父亲做心脏搭桥能报多少，有哪些政策能省 钱" → coverage + policy + claims 并行
+
+        extra_context：对话历史+最近上传资料上下文块（与 /chat 同源），
+        贯穿到各 Agent 与融合提示词；
+        offline_claims_response：离线模式下报销助手的真实资料预审结果，
+        命中 claims 意图时替换 mock，避免各智能体回复与用户资料脱节。
         """
         intents = self.multi_intent_recognition(message)
         logger.info("复合意图识别: %s", intents)
 
         # 单意图直接走 route_to_agent
         if len(intents) == 1:
-            result = await self.route_to_agent(intents[0][0], message, user_id, user_profile)
+            result = await self.route_to_agent(
+                intents[0][0], message, user_id, user_profile, extra_context=extra_context,
+            )
             return {**result, "agents_invoked": [intents[0][0]], "multi_agent": False}
 
-        # 多意图：并行调度（asyncio.gather）+ 单 Agent 超时保护
-        # 修复 Render 免费套餐 60s 超时问题：每个 Agent 限制 20s，并行总耗时 ≤ 20s + 融合 20s
+        # 多意图：并行调度（asyncio.gather）+ 单 Agent 超时保护。
+        # 在线模式推理模型单次生成实测 20–55s，携带大段资料上下文时可达 90s+，
+        # 单 Agent 预算给足 120s；离线模式规则引擎毫秒级返回，不受影响。
         import asyncio
 
         async def _run_one(intent: str, weight: float) -> tuple[str, "dict | None"]:
             try:
                 r = await asyncio.wait_for(
-                    self.route_to_agent(intent, message, user_id, user_profile),
-                    timeout=20.0,
+                    self.route_to_agent(intent, message, user_id, user_profile, extra_context=extra_context),
+                    timeout=120.0,
                 )
                 return intent, r
             except TimeoutError:
-                logger.warning("Agent %s 执行超时(20s)，跳过", intent)
+                logger.warning("Agent %s 执行超时(120s)，跳过", intent)
                 return intent, None
             except Exception as e:
                 logger.error("Agent %s 执行失败: %s", intent, e)
                 return intent, None
 
-        tasks = [_run_one(intent, weight) for intent, weight in intents[:3]]
-        gathered = await asyncio.gather(*tasks)
+        dispatch_intents = intents[:3]
         agent_results: dict[str, dict] = {}
-        for intent, r in gathered:
-            if r is not None:
-                agent_results[intent] = r
+        # 离线模式 + 近期上传资料 + 命中 claims：报销助手直接给出真实预审，不再参与并行调度（避免 mock）
+        if offline_claims_response and any(i == "claims" for i, _ in dispatch_intents):
+            agent_results["claims"] = {
+                "response": offline_claims_response,
+                "agent_type": "claims_agent",
+                "data": {"offline_review": True},
+            }
+            dispatch_intents = [(i, w) for i, w in dispatch_intents if i != "claims"]
+
+        if dispatch_intents:
+            gathered = await asyncio.gather(*[_run_one(i, w) for i, w in dispatch_intents])
+            for intent, r in gathered:
+                if r is not None:
+                    agent_results[intent] = r
 
         # 若所有 Agent 都超时/失败，用兜底
         if not agent_results:
@@ -277,14 +442,14 @@ class Orchestrator:
                 "intent_weights": [{"intent": i, "weight": round(w, 2)} for i, w in intents],
             }
 
-        # 结果融合（带超时保护，超时降级到拼接）
+        # 结果融合（带超时保护，超时降级到拼接；在线模式融合生成同样需要 20–55s，预算 90s）
         try:
             fused = await asyncio.wait_for(
-                self._fuse_multi_agent_results(message, intents, agent_results),
-                timeout=20.0,
+                self._fuse_multi_agent_results(message, intents, agent_results, extra_context=extra_context),
+                timeout=90.0,
             )
         except TimeoutError:
-            logger.warning("LLM 融合超时(20s)，降级拼接")
+            logger.warning("LLM 融合超时(90s)，降级拼接")
             fused = self._fuse_fallback(intents, agent_results)
 
         return {
@@ -302,6 +467,7 @@ class Orchestrator:
             "health_profile": "健康卫士", "policy": "政策参谋",
             "security": "安全守门", "eeg": "脑电卫士",
             "imaging": "影像卫士", "body": "档案管家", "data": "数据管家",
+            "drug": "药品卫士",
         }
         parts = []
         for intent, result in agent_results.items():
@@ -316,7 +482,7 @@ class Orchestrator:
 
     async def _fuse_multi_agent_results(
         self, message: str, intents: list[tuple[str, float]],
-        agent_results: dict[str, dict],
+        agent_results: dict[str, dict], extra_context: str | None = None,
     ) -> dict[str, Any]:
         """融合多 Agent 结果为一段连贯回答，标注来源 Agent。"""
         agent_names = {
@@ -324,6 +490,7 @@ class Orchestrator:
             "health_profile": "健康卫士", "policy": "政策参谋",
             "security": "安全守门", "eeg": "脑电卫士",
             "imaging": "影像卫士", "body": "档案管家", "data": "数据管家",
+            "drug": "药品卫士",
         }
 
         # 优先用 LLM 融合
@@ -341,11 +508,15 @@ class Orchestrator:
                     "请将它们融合成一段连贯、完整、不重复的回答。"
                     "保留各智能体的关键结论，用【智能体名】标注信息来源。"
                     "如果某些信息重复，合并表述。最后给出 1-2 条综合建议。"
+                    "若提供了用户资料/对话上下文，回答必须贴合这些信息，不得编造。"
                 )
+                user_content = f"用户问题：{message}\n\n各智能体回答：\n\n" + "\n\n".join(agent_outputs)
+                if extra_context:
+                    user_content += f"\n\n{extra_context}"
                 fused = await self._llm.chat(
                     messages=[
                         {"role": "system", "content": fusion_prompt},
-                        {"role": "user", "content": f"用户问题：{message}\n\n各智能体回答：\n\n" + "\n\n".join(agent_outputs)},
+                        {"role": "user", "content": user_content},
                     ],
                     temperature=0.4,
                 )
@@ -378,7 +549,7 @@ class Orchestrator:
 
     async def route_to_agent(
         self, agent_type: str, message: str, user_id: str | None = None,
-        user_profile: dict | None = None,
+        user_profile: dict | None = None, extra_context: str = "",
     ) -> dict[str, Any]:
         """路由到对应智能体处理请求
 
@@ -399,18 +570,20 @@ class Orchestrator:
         elif agent_type == "health_profile":
             return await self._handle_health_agent(message, user_id, user_profile)
         elif agent_type == "coverage":
-            return await self._handle_coverage_agent(message, user_profile)
+            return await self._handle_coverage_agent(message, user_profile, extra_context)
         elif agent_type == "eeg":
             return await self._handle_eeg_agent(message, user_id, user_profile)
         elif agent_type == "imaging":
             return await self._handle_imaging_agent(message, user_id, user_profile)
         elif agent_type == "body":
-            return await self._handle_body_agent(message, user_id, user_profile)
+            return await self._handle_body_agent(message, user_id, user_profile, extra_context=extra_context)
         elif agent_type == "data":
             return await self._handle_data_agent(message, user_id, user_profile)
+        elif agent_type == "drug":
+            return await self._handle_drug_agent(message, user_id, user_profile)
         else:
             # claims / security 等暂时使用 LLM 或 mock
-            return await self._handle_generic_agent(agent_type, message, user_profile)
+            return await self._handle_generic_agent(agent_type, message, user_profile, extra_context)
 
     async def _handle_policy_agent(self, message: str, user_profile: dict | None = None) -> dict[str, Any]:
         """处理政策查询智能体
@@ -573,7 +746,8 @@ class Orchestrator:
         # 降级：mock 数据
         return self.MOCK_RESPONSES.get("health_profile", {"response": "暂无法处理该请求", "data": {}})
 
-    async def _handle_coverage_agent(self, message: str, user_profile: dict | None = None) -> dict[str, Any]:
+    async def _handle_coverage_agent(self, message: str, user_profile: dict | None = None,
+                                     extra_context: str = "") -> dict[str, Any]:
         """处理报销待遇智能体
 
         尝试从知识库检索相关报销政策，再用 LLM 生成回答。
@@ -612,7 +786,7 @@ class Orchestrator:
                         )
                     answer = await self._llm.chat_with_rag(
                         system_prompt=sys_prompt,
-                        user_message=message,
+                        user_message=f"{extra_context}\n\n用户问题：{message}" if extra_context else message,
                         context=context,
                     )
                     return {
@@ -881,7 +1055,8 @@ class Orchestrator:
         }
 
     async def _handle_generic_agent(self, agent_type: str, message: str,
-                                    user_profile: dict | None = None) -> dict[str, Any]:
+                                    user_profile: dict | None = None,
+                                    extra_context: str = "") -> dict[str, Any]:
         """处理通用智能体（claims / security 等）
 
         优先使用专业 Agent 提示词 + LLM 对话，不可用时降级到 mock 数据。
@@ -903,6 +1078,8 @@ class Orchestrator:
                         f"{user_profile.get('insurance_type', '')}，慢病：{'、'.join(user_profile.get('chronic_diseases', []) or ['无'])}]\n\n"
                         f"用户问题：{message}"
                     )
+                if extra_context:
+                    user_msg = f"{extra_context}\n\n{user_msg}"
 
                 answer = await self._llm.chat(
                     messages=[
@@ -1106,7 +1283,7 @@ class Orchestrator:
         parts.append(f"\nℹ️ {extractor.DISCLAIMER}")
         return "\n".join(parts)
 
-    async def _polish_body_response(self, message: str, structured: str) -> str:
+    async def _polish_body_response(self, message: str, structured: str, extra_context: str = "") -> str:
         """LLM 润色（15s 超时）；严格限定不得新增档案外信息、不得诊断。失败返回结构化回答。"""
         if self._llm is None:
             return structured
@@ -1123,7 +1300,9 @@ class Orchestrator:
                 self._llm.chat(
                     [
                         {"role": "system", "content": sys_prompt},
-                        {"role": "user", "content": f"用户消息：{message}\n\n档案管家执行结果：\n{structured}"},
+                        {"role": "user", "content": (
+                            f"{extra_context}\n\n" if extra_context else ""
+                        ) + f"用户消息：{message}\n\n档案管家执行结果：\n{structured}"},
                     ],
                     temperature=0.3,
                 ),
@@ -1167,7 +1346,7 @@ class Orchestrator:
 
     async def _handle_body_agent(
         self, message: str, user_id: str | None = None,
-        user_profile: dict | None = None, db=None,
+        user_profile: dict | None = None, db=None, extra_context: str = "",
     ) -> dict[str, Any]:
         """档案管家：规划 → 工具（归档/检索/对比/追问/交接）→ 组织回答。只整理，不诊断。
 
@@ -1197,7 +1376,7 @@ class Orchestrator:
                 state = await _run(session)
 
         structured = self._compose_body_response(state)
-        response = await self._polish_body_response(message, structured)
+        response = await self._polish_body_response(message, structured, extra_context)
         return {"response": response, "data": self._body_data(state), "evidence": self._body_evidence(state)}
 
     async def handle_body_document(
@@ -1345,6 +1524,51 @@ class Orchestrator:
         return structured
 
     # ------------------------------------------------------------------
+    # 药品卫士（拍照识别 × 用药安全）
+    # ------------------------------------------------------------------
+
+    async def _handle_drug_agent(
+        self, message: str, user_id: str | None = None, user_profile: dict | None = None,
+    ) -> dict[str, Any]:
+        """药品卫士：处理聊天中的药品类文字问答，并引导拍照识别。
+
+        聊天仅支持文字；药盒照片扫描走专用端点 POST /api/drugs/scan
+        （识别后是否登记用药记录由用户确认）。
+        """
+        mock = self.MOCK_RESPONSES["drug"]
+        if self._llm is None:
+            return dict(mock)
+        try:
+            from app.prompts.agent_prompts import DRUG_AGENT_PROMPT
+
+            profile_ctx = ""
+            if user_profile and user_profile.get("found"):
+                profile_ctx = (
+                    f"\n\n## 用户情况\n姓名：{user_profile.get('name', '')}，"
+                    f"年龄：{user_profile.get('age', '')}，"
+                    f"慢病：{'、'.join(user_profile.get('chronic_diseases', []) or ['无'])}。"
+                )
+            sys_prompt = (
+                DRUG_AGENT_PROMPT + profile_ctx
+                + "\n\n当前为文字对话：若用户想识别具体药品，请引导其使用首页“药品识别”入口上传药盒照片。"
+            )
+            answer = await asyncio.wait_for(
+                self._llm.chat(
+                    [
+                        {"role": "system", "content": sys_prompt},
+                        {"role": "user", "content": message},
+                    ],
+                    temperature=0.4,
+                ),
+                timeout=15.0,
+            )
+            if answer and answer.strip():
+                return {"response": answer.strip(), "data": {"agent": "drug_agent"}}
+        except Exception as e:
+            logger.warning("药品卫士 LLM 回答失败，降级 mock: %s", e)
+        return dict(mock)
+
+    # ------------------------------------------------------------------
     # 结果聚合
     # ------------------------------------------------------------------
 
@@ -1391,6 +1615,11 @@ class Orchestrator:
                 "看看我的用药 TOP10",
                 "湖仓里有哪些数据资产",
             ],
+            "drug": [
+                "如何拍照识别药盒？",
+                "怎么查看药品有效期和批准文号？",
+                "把扫描到的药加入用药记录",
+            ],
         }
         suggestions = suggestions_map.get(agent_type, [
             "您可以问我关于医保报销比例的问题",
@@ -1406,6 +1635,7 @@ class Orchestrator:
             "eeg": "eeg_agent",
             "body": "body_agent",
             "data": "data_agent",
+            "drug": "drug_agent",
         }.get(agent_type, "orchestrator_agent")
         return {
             "agent_type": agent_type_label,
