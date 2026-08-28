@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Activity, Box, Database, HeartPulse, Orbit, Radio, ShieldCheck } from "lucide-react";
+import { Activity, Box, Database, FileText, HeartPulse, Orbit, Radio, ShieldCheck, Users } from "lucide-react";
 
 import { ApiStatusIndicator } from "@/components/api-status-indicator";
 import { DidaYiLogo } from "@/components/didayi-logo";
@@ -21,6 +21,7 @@ export default function BodyArchivePage() {
     const params = new URLSearchParams({ patient: userId });
     return `${base}/digital-body/index.html?${params.toString()}`;
   }, [userId]);
+  const archiveBase = `${API_BASE || ""}/digital-body`;
 
   return (
     <div className="didayi-page space-y-5">
@@ -63,6 +64,15 @@ export default function BodyArchivePage() {
             </div>
           </div>
         ))}
+      </section>
+
+      <section className="flex flex-wrap gap-3">
+        <a href={`${archiveBase}/cohort.html`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700">
+          <Users className="h-4 w-4" />10 人数据整合总览
+        </a>
+        <a href={`${archiveBase}/dossier.html?patient=${userId}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-sky-700 shadow-sm transition hover:bg-sky-50">
+          <FileText className="h-4 w-4" />{currentUser.name}全量档案与下载
+        </a>
       </section>
 
       <section className="overflow-hidden rounded-3xl border border-sky-100 bg-[#f4fbff] shadow-[0_22px_55px_rgba(44,142,184,.14)]">

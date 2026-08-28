@@ -20,10 +20,12 @@ description: 在 MedSignal 项目中把用户的病例、体检和检查资料�
 - 档案管家路由（对话/上传）：`backend/app/routers/body.py`（`/api/body/*`）
 - 3D 查看器适配路由：`backend/app/routers/body_archive.py`（`/api/body-archive/*`）
 - 分类与抽取：`backend/app/services/body/`（taxonomy.py 器官契约 + extractor.py 信息抽取）
-- 数据模型：`backend/app/models.py` 中的 `BodyRecord` / `BodyDocument`（只增不删）
+- 数据模型：`backend/app/models.py` 中的 `BodyRecord` / `BodyDocument` / `BodyArchiveFile`（只增不删，测试附件按用户存入数据库）
 - 3D 查看器：`backend/app/static/digital-body/index.html`（main.py 挂载于 `/digital-body`）
 - GLB 模型：`backend/app/static/digital-body/models/`
 - 前端入口：`frontend/src/app/body-archive/page.tsx`（iframe 嵌入查看器）
+- 完整档案页：`/digital-body/dossier.html?patient=user_001`（预览、上传、单人导出）
+- 10 人总览页：`/digital-body/cohort.html`（逐人数据覆盖矩阵、AI 总表、总 ZIP）
 - 模型来源和许可：[references/models.md](references/models.md)
 
 ## 接入 API
@@ -37,7 +39,8 @@ python .agents/skills/digital-human-body-archive/scripts/ingest.py \
 
 默认 API 为 `http://127.0.0.1:8000`，可用 `--api` 或 `MEDSIGNAL_API_URL` 修改。生产环境启用 `YIBAO_API_KEY` 时同时传 `--api-key`。
 
-资料接口仅登记文件名与备注，不保存原始文件：
+资料登记接口只保存名称与备注；需要原样预览和下载时，使用
+`POST /api/body-archive/patients/<user_id>/files` 上传，测试阶段文件二进制按患者 ID 隔离存入数据库（单文件最多 25 MB）。
 
 ```bash
 python .agents/skills/digital-human-body-archive/scripts/ingest.py \
@@ -50,6 +53,7 @@ python .agents/skills/digital-human-body-archive/scripts/ingest.py \
 - 只追加，不提供更新或删除入口。
 - 不猜日期、器官或左右侧。
 - 患者数据属于敏感医疗信息；不得提交真实患者资料、数据库文件或上传原件到 Git。
+- 仓库内公开 CT/PET/SVG 仅为带来源和许可的教学参考素材，必须与患者附件明确隔离。
 - 查看器固定显示非诊断免责声明，不得移除。
 - 3D 模型是解剖位置参考，不是临床测量或诊断工具。
 
