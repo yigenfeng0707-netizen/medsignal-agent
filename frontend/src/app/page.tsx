@@ -185,7 +185,7 @@ export default function HomePage() {
   const showWelcome = messages.length === 0;
 
   return (
-    <div className="flex h-screen flex-col bg-gradient-to-b from-background to-background/80">
+    <div className="flex h-[calc(100vh-3.5rem)] flex-col bg-gradient-to-b from-background to-background/80">
       {/* Header */}
       <header className="border-b border-border/50 bg-white/80 backdrop-blur-sm px-6 py-3">
         <div className="flex items-center justify-between">
