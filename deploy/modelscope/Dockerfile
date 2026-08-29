@@ -96,9 +96,12 @@ RUN cd /app/backend && timeout 300 python -c "import asyncio, json; from pathlib
 # 持久化目录：/mnt/workspace 为魔搭创空间持久化挂载点（重启/迁移不丢数据）
 RUN mkdir -p /app/backend/data /mnt/workspace/data
 
-# 前端 standalone 产物（本项目无 frontend/public，故不复制静态资源）
+# 前端 standalone 产物 + 静态资源
+# ⚠️ standalone 输出不包含 public/，必须显式复制
+# （DidaYi 品牌 LOGO 等 /branding/* 资源在此目录，遗漏会 404）
 COPY --from=frontend-builder /build/frontend/.next/standalone ./frontend
 COPY --from=frontend-builder /build/frontend/.next/static ./frontend/.next/static
+COPY --from=frontend-builder /build/frontend/public ./frontend/public
 
 COPY entrypoint.sh ./
 RUN chmod +x entrypoint.sh
