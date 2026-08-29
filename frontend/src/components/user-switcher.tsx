@@ -85,7 +85,7 @@ export function UserSwitcher() {
         className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium shadow-sm transition hover:bg-slate-50"
         aria-label="切换演示用户"
       >
-        <Users className="h-4 w-4 text-blue-600" />
+        <Users className="h-4 w-4 text-cyan-600" />
         <span className="hidden sm:inline">
           <span className="text-slate-500">演示用户：</span>
           <span className="font-semibold text-slate-900">{currentUser.name}</span>
@@ -102,7 +102,7 @@ export function UserSwitcher() {
       {open && (
         <div className="absolute right-0 z-50 mt-2 w-80 max-h-[70vh] overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
           <div className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-slate-700 border-b border-slate-100 mb-1">
-            <Users className="h-4 w-4 text-blue-600" />
+            <Users className="h-4 w-4 text-cyan-600" />
             切换演示用户
           </div>
           <button
@@ -110,7 +110,7 @@ export function UserSwitcher() {
               setAddOpen(true);
               setOpen(false);
             }}
-            className="mb-1 flex w-full items-center gap-2 rounded-lg border border-dashed border-blue-200 px-3 py-2.5 text-sm font-medium text-blue-700 transition hover:bg-blue-50"
+            className="mb-1 flex w-full items-center gap-2 rounded-lg border border-dashed border-cyan-200 px-3 py-2.5 text-sm font-medium text-cyan-700 transition hover:bg-cyan-50"
           >
             <Plus className="h-4 w-4" />
             添加新用户
@@ -124,7 +124,7 @@ export function UserSwitcher() {
               }}
               className={cn(
                 "flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition hover:bg-slate-50",
-                u.id === currentUser.id && "bg-blue-50"
+                u.id === currentUser.id && "bg-cyan-50"
               )}
             >
               <div
@@ -132,7 +132,7 @@ export function UserSwitcher() {
                   "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold",
                   u.gender === "女"
                     ? "bg-pink-100 text-pink-700"
-                    : "bg-blue-100 text-blue-700"
+                    : "bg-cyan-100 text-cyan-700"
                 )}
               >
                 {u.name.slice(-1)}
@@ -154,7 +154,7 @@ export function UserSwitcher() {
                 </div>
               </div>
               {u.id === currentUser.id && (
-                <Check className="h-4 w-4 shrink-0 text-blue-600" />
+                <Check className="h-4 w-4 shrink-0 text-cyan-600" />
               )}
             </button>
           ))}

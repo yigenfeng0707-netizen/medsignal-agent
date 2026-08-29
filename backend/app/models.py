@@ -7,6 +7,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+    LargeBinary,
     String,
     Text,
 )
@@ -37,6 +38,7 @@ class User(Base):
     imaging_records = relationship("ImagingRecord", back_populates="user")
     body_documents = relationship("BodyDocument", back_populates="user")
     body_records = relationship("BodyRecord", back_populates="user")
+    body_archive_files = relationship("BodyArchiveFile", back_populates="user")
     chat_conversations = relationship("ChatConversation", back_populates="user")
 
 
@@ -62,9 +64,7 @@ class ChatMessage(Base):
     __tablename__ = "chat_messages"
 
     id = Column(Integer, primary_key=True, index=True)
-    conversation_id = Column(
-        String(36), ForeignKey("chat_conversations.id"), nullable=False, index=True
-    )
+    conversation_id = Column(String(36), ForeignKey("chat_conversations.id"), nullable=False, index=True)
     role = Column(String(20), nullable=False)
     content = Column(Text, nullable=False)
     agent_type = Column(String(50), nullable=True)
@@ -118,7 +118,6 @@ class MedicationRecord(Base):
     user = relationship("User", back_populates="medication_records")
 
 
-
 class PolicyDocument(Base):
     __tablename__ = "policy_documents"
 
@@ -151,6 +150,7 @@ class EEGRecord(Base):
     存储每次 EEG 会话的评估结果摘要，用于历史趋势分析。
     完整波形数据较大，不入库（实时生成即可）。
     """
+
     __tablename__ = "eeg_records"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -180,6 +180,7 @@ class ImagingRecord(Base):
     存储每次影像 AI 分析会话的结果摘要（影像数据以确定性合成参数
     study_type + seed + findings 可随时复现，不存大体积 base64）。
     """
+
     __tablename__ = "imaging_records"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -207,6 +208,7 @@ class BodyDocument(Base):
 
     只保存解析出的文本（不存文件二进制），用于版本追溯：每条 BodyRecord 可回指来源文档。
     """
+
     __tablename__ = "body_documents"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -229,6 +231,7 @@ class BodyRecord(Base):
     新信息永远追加，不覆盖历史；batch_id 标记同一次归档周期（版本分组）。
     不含任何推断或诊断字段。
     """
+
     __tablename__ = "body_records"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -253,3 +256,26 @@ class BodyRecord(Base):
 
     user = relationship("User", back_populates="body_records")
     document = relationship("BodyDocument", back_populates="records")
+
+
+class BodyArchiveFile(Base):
+    """数字人体档案原始附件。
+
+    测试阶段直接存入数据库，确保图片、PDF、CSV 可按用户隔离预览和下载；
+    生产环境应迁移到受控对象存储并保留本表元数据与审计关联。
+    """
+
+    __tablename__ = "body_archive_files"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    stored_name = Column(String(160), nullable=False)
+    filename = Column(String(200), nullable=False)
+    mime_type = Column(String(100), nullable=False)
+    category = Column(String(40), default="原始资料")
+    note = Column(String(200), default="")
+    size_bytes = Column(Integer, nullable=False)
+    content = Column(LargeBinary, nullable=False)
+    uploaded_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+
+    user = relationship("User", back_populates="body_archive_files")

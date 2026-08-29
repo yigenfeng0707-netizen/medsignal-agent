@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { DidaYiLogo } from "@/components/didayi-logo";
 import {
   Home,
   Shield,
@@ -37,15 +38,10 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-          <Shield className="h-5 w-5 text-primary-foreground" />
-        </div>
-        <span className="text-lg font-bold text-sidebar-foreground">
-          MedSignal
-        </span>
+      <div className="flex h-[84px] items-center border-b border-sky-100 px-5">
+        <DidaYiLogo />
       </div>
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -54,28 +50,28 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                  ? "bg-gradient-to-r from-cyan-400 to-sky-500 text-white shadow-lg shadow-cyan-500/20"
+                  : "text-slate-600 hover:bg-white/80 hover:text-cyan-700"
               )}
             >
-              <item.icon className={cn("h-5 w-5", isActive && "text-primary")} />
+              <item.icon className={cn("h-5 w-5", isActive && "text-white")} />
               {item.label}
             </Link>
           );
         })}
       </nav>
-      <div className="border-t border-sidebar-border p-4">
+      <div className="border-t border-sky-100 bg-white/45 p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-100 text-cyan-600">
             <Heart className="h-4 w-4" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-medium text-sidebar-foreground">
-              MedSignal 助手
+            <span className="text-sm font-medium text-slate-700">
+              嘀嗒医助手
             </span>
-            <span className="text-xs text-sidebar-foreground/50">
+            <span className="text-xs leading-relaxed text-slate-400">
               关键医疗信号识别 × 患者信息连接
             </span>
           </div>
@@ -88,7 +84,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 /** 桌面端（lg 及以上）固定侧栏；小屏由 ConditionalSidebar 渲染抽屉。 */
 export function Sidebar() {
   return (
-    <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 border-r border-sidebar-border bg-sidebar lg:block">
+    <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 border-r border-sky-100 bg-[linear-gradient(180deg,#f8fdff_0%,#eef9ff_58%,#e8f6fd_100%)] shadow-[12px_0_32px_rgba(49,142,184,.10)] lg:block">
       <SidebarNav />
     </aside>
   );

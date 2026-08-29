@@ -151,7 +151,7 @@ export async function sendChatMessage(
   // 降级：使用模拟数据
   const mock = mockChatResponses[req.message];
   return {
-    agent_type: mock?.agent || "医保智脑",
+    agent_type: mock?.agent || "嘀嗒医助手",
     response:
       mock?.content ||
       "收到您的问题，正在为您分析中...我会尽快给出详细解答。",

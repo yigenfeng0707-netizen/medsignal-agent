@@ -12,7 +12,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Network,
   ShieldCheck,
   Lock,
   Database,
@@ -27,6 +26,7 @@ import {
 import { useUser } from "@/lib/user-context";
 import { getDataFlow } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { BrandedPageHeader } from "@/components/branded-page-header";
 
 interface FlowStep {
   step: string;
@@ -95,37 +95,28 @@ export default function DataSpacePage() {
   }, [userId]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-blue-50/30 p-4 sm:p-6">
+    <div className="didayi-page">
       <div className="mx-auto max-w-6xl space-y-6">
         {/* 页头 */}
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20">
-              <Network className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">可信数据空间</h1>
-              <p className="text-xs text-slate-500">
-                数据可用不可见 · 原始数据不出域 · 全链路可追溯（为{" "}
-                <span className="font-medium text-slate-700">{currentUser.name}</span> 提供）
-              </p>
-            </div>
-          </div>
-        </div>
+        <BrandedPageHeader
+          title="可信数据空间"
+          description={<>数据可用不可见 · 原始数据不出域 · 全链路可追溯（为 <span className="font-semibold text-slate-700">{currentUser.name}</span> 提供）</>}
+          badge="可信流转"
+        />
 
         {/* 核心理念 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            { icon: EyeOff, title: "数据可用不可见", desc: "智能体获取计算结果，无法看到原始明细", color: "from-cyan-500 to-blue-500" },
-            { icon: Lock, title: "原始数据不出域", desc: "数据在沙箱内计算，不离开可信数据空间", color: "from-blue-500 to-indigo-500" },
-            { icon: Fingerprint, title: "全链路可追溯", desc: "每次访问区块链存证，哈希不可篡改", color: "from-indigo-500 to-purple-500" },
+            { icon: EyeOff, title: "数据可用不可见", desc: "智能体获取计算结果，无法看到原始明细", color: "from-cyan-400 to-cyan-600" },
+            { icon: Lock, title: "原始数据不出域", desc: "数据在沙箱内计算，不离开可信数据空间", color: "from-sky-500 to-[#0876a8]" },
+            { icon: Fingerprint, title: "全链路可追溯", desc: "每次访问区块链存证，哈希不可篡改", color: "from-[#ff9b7f] to-[#ff7051]" },
           ].map((item, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+              className="didayi-card p-5"
             >
               <div className={cn("mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br text-white", item.color)}>
                 <item.icon className="h-5 w-5" />
@@ -137,7 +128,7 @@ export default function DataSpacePage() {
         </div>
 
         {/* 隐私计算演示：原始数据 vs 脱敏数据 */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="didayi-card p-6">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-cyan-600" />
@@ -194,7 +185,7 @@ export default function DataSpacePage() {
         </div>
 
         {/* 数据流转记录 */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="didayi-card p-6">
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <Boxes className="h-5 w-5 text-indigo-600" />
             <h2 className="text-lg font-bold text-slate-900">数据流转链路</h2>
@@ -280,7 +271,7 @@ export default function DataSpacePage() {
         </div>
 
         {/* 区块链存证模拟 */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="didayi-card p-6">
           <div className="mb-4 flex items-center gap-2">
             <Fingerprint className="h-5 w-5 text-purple-600" />
             <h2 className="text-lg font-bold text-slate-900">区块链存证模拟</h2>
@@ -316,7 +307,7 @@ export default function DataSpacePage() {
               <p className="mb-1 font-semibold text-slate-900">对齐浙江省医保行业可信数据空间战略</p>
               <p>
                 浙江省医保行业可信数据空间（「1+3+N」框架）已被国家数据局确定为全国重点联系示范场景。
-                MedSignal 通过隐私计算、联邦查询、区块链存证等技术，在保护个人隐私的前提下释放医疗数据价值，
+                嘀嗒医通过隐私计算、联邦查询、区块链存证等技术，在保护个人隐私的前提下释放医疗数据价值，
                 完美契合「数据要素×医疗健康」国家战略。
               </p>
             </div>

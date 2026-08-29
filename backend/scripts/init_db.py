@@ -41,6 +41,7 @@ from app.models import (
     User,
 )
 from app.services.eeg import engine as eeg_engine
+from app.services.body_archive_dossier import seed_demo_archive
 
 
 def get_database_url() -> str:
@@ -238,7 +239,10 @@ async def init_database(data_path: str):
             await session.execute(select(func.count(User.id)))
         ).scalar()
     if existing_count and existing_count > 0:
-        print(f"\n⏭️  users 表已有 {existing_count} 条数据，跳过初始化（幂等保护）")
+        print(f"\n⏭️  users 表已有 {existing_count} 条数据，跳过基础数据初始化（幂等保护）")
+        async with async_session_factory() as session:
+            archive_result = await seed_demo_archive(session)
+        print(f"✅ 数字人体完整档案: {archive_result}")
         await engine.dispose()
         print("🎉 跳过完成")
         return
@@ -272,6 +276,10 @@ async def init_database(data_path: str):
             # EEG 记录（BCI×医保创新）
             print("\n[5/5] 生成 EEG 脑电记录...")
             await insert_eeg_records(session, mock_data["users"], id_map)
+
+        async with async_session_factory() as session:
+            archive_result = await seed_demo_archive(session)
+        print(f"  ✅ 数字人体完整档案: {archive_result}")
 
     # 验证
     print("\n📋 验证数据...")

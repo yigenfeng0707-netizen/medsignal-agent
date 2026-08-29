@@ -10,6 +10,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Activity, Bell } from "lucide-react";
 
 export function ConditionalSidebar({ children }: { children: React.ReactNode }) {
   const [navOpen, setNavOpen] = useState(false);
@@ -17,9 +18,9 @@ export function ConditionalSidebar({ children }: { children: React.ReactNode }) 
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 lg:ml-64">
-        {/* 顶部固定栏：小屏汉堡导航 + 用户切换器 */}
-        <div className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-slate-100 bg-white/80 px-3 backdrop-blur sm:px-6">
+      <main className="flex-1 bg-sky-50/70 lg:ml-64">
+        {/* 顶部固定栏：小屏汉堡导航 + 品牌标识 + 用户切换器 */}
+        <div className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-sky-100/90 bg-white/80 px-3 backdrop-blur-xl sm:px-6 lg:h-[72px] lg:px-7">
           <div className="flex min-w-0 items-center gap-2">
             {/* 小屏（<lg）：汉堡按钮唤起抽屉导航 */}
             <Sheet open={navOpen} onOpenChange={setNavOpen}>
@@ -36,11 +37,23 @@ export function ConditionalSidebar({ children }: { children: React.ReactNode }) 
                 <SidebarNav onNavigate={() => setNavOpen(false)} />
               </SheetContent>
             </Sheet>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600">
+              <Activity className="h-4 w-4" />
+            </span>
             <span className="truncate text-sm font-medium text-slate-500">
-              统一医疗智能体工作台
+              嘀嗒医 · 智能健康工作台
             </span>
           </div>
-          <UserSwitcher />
+          <div className="flex items-center gap-3">
+            <button
+              aria-label="消息提醒"
+              className="relative hidden h-10 w-10 items-center justify-center rounded-xl border border-sky-100 bg-white text-slate-500 shadow-sm transition hover:bg-sky-50 hover:text-cyan-600 sm:flex"
+            >
+              <Bell className="h-4 w-4" />
+              <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#FF7A59]" />
+            </button>
+            <UserSwitcher />
+          </div>
         </div>
         {children}
       </main>

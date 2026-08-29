@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // 本地生产验证使用独立目录，避免覆盖正在运行的开发预览样式。
+  distDir: process.env.NEXT_DISABLE_STANDALONE === "1" ? ".next-build" : ".next",
   // Docker 使用 standalone；Windows 无符号链接权限时可禁用，仅用于本地构建验证。
   output: process.env.NEXT_DISABLE_STANDALONE === "1" ? undefined : "standalone",
   // 魔搭创空间同域部署：ENABLE_API_PROXY=1 时把 /api/* 代理到容器内 FastAPI(8000)

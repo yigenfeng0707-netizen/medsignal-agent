@@ -60,7 +60,7 @@ const agentLabelMap: Record<string, string> = {
   security_agent: "安全守门",
   eeg_agent: "脑电卫士",
   orchestrator_agent: "编排智能体",
-  assistant_agent: "MedSignal 助手",
+  assistant_agent: "嘀嗒医助手",
 };
 
 /**
@@ -124,7 +124,7 @@ export default function HomePage() {
       id: loadingId,
       role: "assistant",
       content: "",
-      agent: "MedSignal",
+      agent: "嘀嗒医",
       agentColor: "bg-blue-100 text-blue-700",
       timestamp: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }),
       isLoading: true,
@@ -165,7 +165,7 @@ export default function HomePage() {
         id: (Date.now() + 2).toString(),
         role: "assistant",
         content: "抱歉，处理您的请求时出现了问题，请稍后重试。",
-        agent: "MedSignal",
+        agent: "嘀嗒医",
         agentColor: "bg-blue-100 text-blue-700",
         timestamp: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }),
         error: true,
@@ -185,17 +185,17 @@ export default function HomePage() {
   const showWelcome = messages.length === 0;
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col bg-gradient-to-b from-background to-background/80">
+    <div className="flex h-[calc(100vh-4.5rem)] flex-col bg-gradient-to-b from-transparent to-sky-50/30">
       {/* Header */}
-      <header className="border-b border-border/50 bg-white/80 backdrop-blur-sm px-3 py-3 sm:px-6">
+      <header className="border-b border-sky-100/80 bg-white/55 px-3 py-3 backdrop-blur-sm sm:px-6 lg:px-7">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-sky-500 shadow-lg shadow-cyan-500/20">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground">MedSignal</h1>
-              <p className="hidden text-xs text-muted-foreground md:block">多模态医疗信号智能体 · 关键医疗信号识别 × 患者信息连接</p>
+              <h1 className="text-lg font-bold text-slate-800">AI 健康对话</h1>
+              <p className="hidden text-xs text-muted-foreground md:block">医疗信号识别 · 患者信息连接</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -208,8 +208,8 @@ export default function HomePage() {
       </header>
 
       {/* Chat Area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 sm:px-6">
-        <div className="mx-auto max-w-3xl space-y-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 lg:px-7 lg:py-5">
+        <div className="mx-auto max-w-5xl space-y-4">
           {/* 主动健康预警横幅（P2-3 范式创新） */}
           <ProactiveAlertBanner />
 
@@ -238,9 +238,9 @@ export default function HomePage() {
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-border/50 bg-white/80 backdrop-blur-sm px-3 py-4 sm:px-6">
-        <div className="mx-auto max-w-3xl">
-          <div className="flex items-center gap-2 rounded-2xl border border-border bg-white px-4 py-2 shadow-sm transition-shadow focus-within:shadow-md focus-within:border-primary/30">
+      <div className="border-t border-sky-100/80 bg-white/85 px-3 py-4 backdrop-blur-sm sm:px-6 lg:px-7">
+        <div className="mx-auto max-w-5xl">
+          <div className="flex items-center gap-2 rounded-2xl border border-sky-100 bg-white px-4 py-2 shadow-[0_8px_22px_rgba(32,118,164,.08)] transition-shadow focus-within:border-cyan-400/50 focus-within:shadow-md">
             <button className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
               <Paperclip className="h-4 w-4" />
             </button>
@@ -365,19 +365,39 @@ function WelcomeScreen({ onAction, userName, userConditions }: { onAction: (prom
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
-      className="flex flex-col items-center py-8"
+      className="w-full py-2"
     >
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-xl shadow-blue-500/25 mb-4">
-        <Sparkles className="h-8 w-8 text-white" />
-      </div>
-      <h2 className="text-2xl font-bold text-foreground mb-1">MedSignal</h2>
-      <p className="text-muted-foreground mb-1">您好，{userName}！我是您的多模态医疗信号智能体</p>
-      {userConditions.length > 0 && (
-        <p className="text-xs text-orange-600 mb-6">
-          已关注您的健康状况：{userConditions.join("、")}
-        </p>
-      )}
-      <div className="grid grid-cols-1 gap-3 w-full max-w-lg sm:grid-cols-2 lg:grid-cols-3">
+      <section className="relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-100 via-cyan-50 to-white px-5 py-7 shadow-[0_14px_36px_rgba(30,134,185,.10)] sm:px-8">
+        <div className="absolute -right-14 -top-20 h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl" />
+        <div className="absolute bottom-0 right-24 h-28 w-28 rounded-full bg-orange-200/25 blur-2xl" />
+        <div className="relative flex items-center justify-between gap-8">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/75 px-3 py-1 text-xs font-medium text-cyan-700 shadow-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              健康守护中
+            </div>
+            <h2 className="text-2xl font-bold tracking-tight text-slate-800 sm:text-3xl">你好，{userName}</h2>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">我是嘀嗒医，帮你识别关键医疗信号，读懂报告、管理健康档案，并快速连接医保服务。</p>
+            {userConditions.length > 0 && (
+              <p className="mt-3 text-xs font-medium text-[#d56c4f]">已关注：{userConditions.join("、")}</p>
+            )}
+          </div>
+          <div className="relative hidden h-36 w-44 shrink-0 overflow-hidden sm:block">
+            <div className="absolute inset-5 rounded-full bg-cyan-200/35 blur-2xl" />
+            <img src="/branding/didayi-mascot.png" alt="嘀嗒医健康机器人" className="relative h-full w-full translate-y-[7%] scale-[1.2] object-contain drop-shadow-[0_16px_22px_rgba(33,161,194,.18)]" />
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-5">
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-slate-800">快捷服务</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">从常用任务开始，嘀嗒医会自动匹配专业智能体</p>
+          </div>
+          <span className="hidden text-xs font-medium text-cyan-600 sm:inline">智能服务中心</span>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {quickActions.map((action, i) => (
           <motion.button
             key={action.label}
@@ -385,17 +405,37 @@ function WelcomeScreen({ onAction, userName, userConditions }: { onAction: (prom
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.3 + i * 0.1 }}
             onClick={() => onAction(action.prompt)}
-            className="flex items-center gap-3 rounded-xl border border-border bg-white p-4 text-left transition-all hover:shadow-md hover:border-primary/20 hover:-translate-y-0.5"
+            className="group flex min-h-[112px] flex-col items-start gap-3 rounded-2xl border border-sky-100 bg-white/90 p-4 text-left shadow-[0_8px_20px_rgba(36,110,151,.06)] transition-all hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-[0_12px_26px_rgba(36,150,196,.13)]"
           >
-            <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${action.color}`}>
+            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${action.color} transition-transform group-hover:scale-105`}>
               <action.icon className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-medium text-foreground">{action.label}</p>
+              <p className="text-sm font-semibold text-slate-700">{action.label}</p>
+              <p className="mt-1 text-xs text-slate-400">一键开始</p>
             </div>
           </motion.button>
         ))}
-      </div>
+        </div>
+      </section>
+
+      <section className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="rounded-2xl border border-sky-100 bg-white/90 p-5 shadow-[0_8px_20px_rgba(36,110,151,.06)]">
+          <p className="text-xs font-medium text-slate-400">今日健康状态</p>
+          <div className="mt-3 flex items-end justify-between"><span className="text-3xl font-bold text-emerald-500">良好</span><Heart className="h-7 w-7 text-emerald-400" /></div>
+          <p className="mt-2 text-xs text-slate-500">持续关注健康信号变化</p>
+        </div>
+        <div className="rounded-2xl border border-sky-100 bg-white/90 p-5 shadow-[0_8px_20px_rgba(36,110,151,.06)]">
+          <p className="text-xs font-medium text-slate-400">待处理事项</p>
+          <div className="mt-3 flex items-end justify-between"><span className="text-3xl font-bold text-sky-500">2 项</span><FileText className="h-7 w-7 text-sky-400" /></div>
+          <p className="mt-2 text-xs text-slate-500">报告解读与权益查询可随时开始</p>
+        </div>
+        <div className="rounded-2xl border border-sky-100 bg-white/90 p-5 shadow-[0_8px_20px_rgba(36,110,151,.06)]">
+          <p className="text-xs font-medium text-slate-400">智能体协作</p>
+          <div className="mt-3 flex items-end justify-between"><span className="text-3xl font-bold text-[#ff8a65]">在线</span><Sparkles className="h-7 w-7 text-[#ff8a65]" /></div>
+          <p className="mt-2 text-xs text-slate-500">脑电、影像与健康信号已就绪</p>
+        </div>
+      </section>
     </motion.div>
   );
 }

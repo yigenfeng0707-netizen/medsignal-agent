@@ -3,21 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>数字人体档案 · 沉浸式健康档案交互界设计</title>
+<title>嘀嗒医 · 数字人体健康档案</title>
 <style>
   :root {
-    --bg-0: #02060e;
-    --bg-1: #051428;
-    --cyan: #4fd8ff;
-    --cyan-soft: #88e3ff;
+    --bg-0: #f3fbff;
+    --bg-1: #dff4fb;
+    --cyan: #20bde0;
+    --cyan-soft: #63cfe8;
     --pink: #ff5fa8;
     --amber: #ffc34d;
     --green: #5ee08a;
-    --panel-bg: rgba(6, 18, 36, 0.62);
-    --panel-border: rgba(79, 216, 255, 0.42);
-    --panel-border-strong: rgba(79, 216, 255, 0.9);
-    --text: #d8ecff;
-    --muted: #6f8aaa;
+    --coral: #ff7a59;
+    --panel-bg: rgba(255, 255, 255, 0.84);
+    --panel-border: rgba(32, 189, 224, 0.30);
+    --panel-border-strong: rgba(32, 189, 224, 0.78);
+    --text: #173b56;
+    --muted: #68849a;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; }
@@ -29,9 +30,9 @@
   body::before {
     content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
     background:
-      radial-gradient(ellipse 70% 55% at 50% 25%, rgba(20, 80, 130, 0.55) 0%, transparent 70%),
-      radial-gradient(ellipse 40% 30% at 15% 90%, rgba(255, 95, 168, 0.12) 0%, transparent 70%),
-      radial-gradient(ellipse 40% 30% at 85% 90%, rgba(80, 120, 255, 0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 70% 55% at 50% 25%, rgba(102, 214, 240, 0.30) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 30% at 15% 90%, rgba(255, 171, 145, 0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 30% at 85% 90%, rgba(111, 195, 255, 0.15) 0%, transparent 70%),
       var(--bg-0);
   }
 
@@ -51,14 +52,19 @@
 
   /* ── 顶部标题 ── */
   #hud-title {
-    position: fixed; top: 38px; left: 50%; transform: translateX(-50%);
-    z-index: 6; font-size: 22px; letter-spacing: 8px; font-weight: 600;
-    background: linear-gradient(180deg, #fff 0%, var(--cyan) 80%);
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 0 18px rgba(79,216,255,0.55));
+    position: fixed; top: 25px; left: 50%; transform: translateX(-50%);
+    z-index: 6; display: flex; align-items: center; gap: 12px;
+    filter: drop-shadow(0 5px 14px rgba(49,151,187,0.18));
     white-space: nowrap; padding: 0 80px;
   }
+  #hud-title .brand-mark { width: 46px; height: 46px; flex-shrink: 0; object-fit: contain; transform: scale(1.18) translateY(3px); }
+  #hud-title .brand-copy { display: flex; flex-direction: column; gap: 3px; }
+  #hud-title .brand-name {
+    font-size: 19px; letter-spacing: 5px; font-weight: 700;
+    background: linear-gradient(180deg, #173b56 0%, #159fc1 86%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  #hud-title .brand-sub { color: var(--cyan-soft); font-size: 9px; letter-spacing: 3.5px; font-weight: 400; opacity: .72; }
   #hud-title::before, #hud-title::after {
     content: ''; position: absolute; top: 50%; width: 70px; height: 1px;
   }
@@ -77,14 +83,14 @@
     color: var(--cyan-soft); font-weight: 300;
   }
   .corner-tag .lbl { color: var(--muted); }
-  .corner-tag b { color: #fff; font-weight: 500; letter-spacing: 1.5px; }
+  .corner-tag b { color: #244b66; font-weight: 600; letter-spacing: 1.5px; }
   .corner-tag.tl { top: 50px; left: 40px; }
   .corner-tag.tr { top: 50px; right: 40px; text-align: right; }
 
   /* ── 患者选择器 + 视图模式 + 图层控制 ── */
   #left-controls { position: fixed; top: 100px; left: 50px; z-index: 7; display: flex; flex-direction: column; gap: 12px; width: 208px; }
   #patient-select {
-    background: rgba(6,18,36,0.7); color: var(--text); border: 1px solid var(--panel-border);
+    background: rgba(255,255,255,0.82); color: var(--text); border: 1px solid var(--panel-border);
     border-radius: 2px; padding: 7px 22px 7px 12px; font-size: 13px;
     appearance: none; outline: none; cursor: pointer; width: 100%;
     backdrop-filter: blur(8px);
@@ -96,7 +102,7 @@
   }
   #patient-select:hover { border-color: var(--panel-border-strong); }
   #viewmode, #layers {
-    background: rgba(6,18,36,0.6); border: 1px solid var(--panel-border);
+    background: rgba(255,255,255,0.76); border: 1px solid var(--panel-border);
     backdrop-filter: blur(8px); padding: 10px 14px;
     font-size: 12px; color: var(--text); line-height: 2;
   }
@@ -111,7 +117,7 @@
   .vm-btn:last-child { margin-bottom: 0; }
   .vm-btn:hover { border-color: var(--panel-border-strong); color: var(--text); }
   .vm-btn.active {
-    background: rgba(79,216,255,0.18); color: #fff;
+    background: rgba(32,189,224,0.16); color: #126d86;
     border-color: var(--cyan); box-shadow: 0 0 12px rgba(79,216,255,0.3);
   }
   .vm-btn .sub { display: block; font-size: 10px; color: var(--muted); letter-spacing: 0.5px; margin-top: 2px; }
@@ -123,7 +129,7 @@
   #hint {
     position: fixed; top: 100px; right: 50px; z-index: 6;
     font-size: 11px; color: var(--muted); letter-spacing: 1px;
-    border: 1px solid var(--panel-border); background: rgba(6,18,36,0.5);
+    border: 1px solid var(--panel-border); background: rgba(255,255,255,0.76);
     padding: 7px 14px; backdrop-filter: blur(6px);
   }
 
@@ -131,7 +137,7 @@
   #timeline {
     position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%);
     z-index: 9; display: flex; align-items: center; gap: 14px;
-    background: rgba(6,18,36,0.66); border: 1px solid var(--panel-border);
+    background: rgba(255,255,255,0.84); border: 1px solid var(--panel-border);
     backdrop-filter: blur(10px); padding: 12px 20px 8px; border-radius: 2px;
     width: min(760px, 86vw);
   }
@@ -176,13 +182,13 @@
     cursor: pointer; letter-spacing: 1px; transition: all .15s;
   }
   #tl-now:hover { color: var(--cyan); border-color: var(--cyan); }
-  #tl-title { position: absolute; top: -7px; left: 14px; font-size: 9px; letter-spacing: 2px; color: var(--muted); background: rgba(6,18,36,0.9); padding: 0 6px; }
+  #tl-title { position: absolute; top: -7px; left: 14px; font-size: 9px; letter-spacing: 2px; color: var(--muted); background: rgba(244,251,255,0.96); padding: 0 6px; }
 
   /* ── 底部 HUD 信息条 ── */
   #hud-bottom {
     position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
     z-index: 6; display: flex; gap: 28px; align-items: center;
-    background: rgba(6,18,36,0.6); border: 1px solid var(--panel-border);
+    background: rgba(255,255,255,0.82); border: 1px solid var(--panel-border);
     backdrop-filter: blur(8px); padding: 10px 26px; border-radius: 2px;
   }
   .hud-stat { font-size: 11px; letter-spacing: 1.5px; display: flex; align-items: center; gap: 8px; }
@@ -200,8 +206,8 @@
   #badge-layer { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
   .organ-badge {
     position: absolute; transform: translate(-50%, -50%);
-    background: rgba(8, 32, 56, 0.78); border: 1px solid var(--panel-border);
-    color: #fff; font-size: 12px; line-height: 1.2;
+    background: rgba(255, 255, 255, 0.90); border: 1px solid var(--panel-border);
+    color: var(--text); font-size: 12px; line-height: 1.2;
     padding: 7px 12px 8px; min-width: 96px;
     backdrop-filter: blur(6px);
     box-shadow: 0 0 16px rgba(79,216,255,0.28), inset 0 0 12px rgba(79,216,255,0.08);
@@ -222,7 +228,7 @@
   }
   .organ-badge.hover { transform: translate(-50%, -50%) scale(1.05); }
   .organ-badge .badge-date { display: block; color: var(--cyan-soft); font-size: 11px; margin-bottom: 3px; letter-spacing: 1px; }
-  .organ-badge .badge-stage { display: block; color: #fff; font-size: 13px; font-weight: 500; letter-spacing: 1px; }
+  .organ-badge .badge-stage { display: block; color: var(--text); font-size: 13px; font-weight: 600; letter-spacing: 1px; }
   .organ-badge .arrow {
     position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%);
     width: 0; height: 0;
@@ -236,7 +242,7 @@
   /* ── tooltip ── */
   #tooltip {
     position: fixed; z-index: 12; display: none; pointer-events: none;
-    background: rgba(6, 18, 32, 0.95); border: 1px solid var(--panel-border);
+    background: rgba(255, 255, 255, 0.96); border: 1px solid var(--panel-border);
     border-radius: 3px; padding: 9px 12px; max-width: 280px;
     box-shadow: 0 4px 18px rgba(0,0,0,0.5); font-size: 12px;
   }
@@ -291,7 +297,7 @@
 
   .record-card {
     position: relative;
-    background: rgba(20, 40, 64, 0.4); border: 1px solid rgba(80,180,255,0.2);
+    background: rgba(246, 252, 255, 0.92); border: 1px solid rgba(80,180,255,0.24);
     padding: 12px 14px 10px; margin-bottom: 10px;
   }
   .record-card::before {
@@ -336,7 +342,7 @@
   #panel-footer {
     padding: 10px 26px; border-top: 1px solid var(--panel-border);
     font-size: 10px; color: var(--muted); line-height: 1.6;
-    background: rgba(2,6,14,0.6);
+    background: rgba(245,251,255,0.88);
   }
   #empty-records { color: var(--muted); font-size: 12px; padding: 16px 0; text-align: center; letter-spacing: 1px; }
 
@@ -344,7 +350,7 @@
   #loading {
     position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 16px;
-    background: radial-gradient(ellipse at center, #051428 0%, #02060e 100%);
+    background: radial-gradient(ellipse at center, #e4f8ff 0%, #f7fcff 100%);
     color: var(--cyan); font-size: 14px; letter-spacing: 6px;
     transition: opacity .5s;
   }
@@ -379,7 +385,8 @@
 
 <div id="hud-title">
   <span class="deco-l"></span>
-  沉浸式健康档案交互界设计
+  <img class="brand-mark" src="branding/didayi-mascot.png" alt="">
+  <span class="brand-copy"><span class="brand-name">嘀嗒医 · 数字人体档案</span><span class="brand-sub">DIGITAL BODY HEALTH ARCHIVE</span></span>
   <span class="deco-r"></span>
 </div>
 
@@ -441,7 +448,7 @@
 
 <div id="loading">
   <div class="spinner"></div>
-  <div>LOADING&nbsp;ANATOMY&nbsp;MODEL</div>
+  <div>嘀嗒医&nbsp;·&nbsp;LOADING&nbsp;ANATOMY</div>
   <div id="loading-progress">正在加载真实解剖模型…</div>
 </div>
 
@@ -544,7 +551,7 @@ const PROPORTION_ORGANS = {
 /* ───────────────────────── 场景 ───────────────────────── */
 const container = document.getElementById('canvas-container');
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x020610, 0.085);
+scene.fog = new THREE.FogExp2(0xeaf8fd, 0.045);
 
 const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 100);
 camera.position.set(0, 0.45, 4.8);
@@ -572,7 +579,7 @@ const rimLight = new THREE.PointLight(0x4fd8ff, 1.2, 14);
 rimLight.position.set(-2.5, 1.5, -3);
 scene.add(rimLight);
 
-const grid = new THREE.GridHelper(12, 60, 0x1a5a90, 0x0a3050);
+const grid = new THREE.GridHelper(12, 60, 0x62c9df, 0xb8e6f0);
 grid.position.y = -1.78;
 grid.material.transparent = true;
 grid.material.opacity = 0.55;

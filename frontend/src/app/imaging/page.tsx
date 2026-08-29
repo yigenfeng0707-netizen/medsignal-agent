@@ -33,6 +33,7 @@ import {
 } from "@/lib/api";
 import { useUser } from "@/lib/user-context";
 import { ApiStatusIndicator } from "@/components/api-status-indicator";
+import { BrandedPageHeader } from "@/components/branded-page-header";
 import { RealImagingPanel } from "@/components/real-imaging-panel";
 import type {
   ImagingStudyResponse,
@@ -284,42 +285,14 @@ export default function ImagingPage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="didayi-page space-y-5">
       <motion.div {...fadeIn}>
-        <div className="relative overflow-hidden rounded-xl border border-sky-500/20 bg-gradient-to-r from-sky-50/80 via-white to-indigo-50/80 px-5 py-4 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.25]"
-            style={{
-              backgroundImage:
-                "linear-gradient(rgba(56,189,248,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.08) 1px, transparent 1px)",
-              backgroundSize: "24px 24px",
-            }}
-          />
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-400/60 to-transparent" />
-          <div className="relative flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500/20 to-indigo-500/20 ring-1 ring-sky-400/40">
-                  <ScanLine className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h1 className="bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
-                      影像卫士 · AI 医学影像标注工作台
-                    </h1>
-                    <span className="rounded-full border border-sky-400/40 bg-sky-400/10 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-sky-600">
-                      AI 预标注 × 医师复核
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-sm text-muted-foreground">
-                    关键医疗信号识别 · AI 病灶检测预标注 → 医师逐框复核 → 结构化报告与医保政策联动（本次患者：{currentUser.name}）
-                  </p>
-                </div>
-              </div>
-            </div>
-            <ApiStatusIndicator />
-          </div>
-        </div>
+        <BrandedPageHeader
+          title="影像卫士 · AI 医学影像标注工作台"
+          description={<>AI 病灶检测预标注 → 医师逐框复核 → 结构化报告与医保政策联动（当前患者：<span className="font-semibold text-slate-700">{currentUser.name}</span>）</>}
+          badge="AI 预标注 × 医师复核"
+          status={<ApiStatusIndicator />}
+        />
       </motion.div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

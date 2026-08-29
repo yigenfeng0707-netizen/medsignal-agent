@@ -16,6 +16,8 @@ import {
   Moon,
   ChevronRight,
   Loader2,
+  ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import ReactEChartsCore from "echarts-for-react/lib/core";
@@ -31,6 +33,7 @@ import { getHealthProfile } from "@/lib/api";
 import { useUser } from "@/lib/user-context";
 import type { HealthProfile } from "@/lib/mock-data";
 import { ApiStatusIndicator } from "@/components/api-status-indicator";
+import { DidaYiLogo } from "@/components/didayi-logo";
 
 echarts.use([RadarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
 
@@ -56,9 +59,9 @@ function HealthScoreRing({ score }: { score: number }) {
   const offset = circumference - (score / 100) * circumference;
 
   const getColor = (s: number) => {
-    if (s >= 80) return "#22c55e";
+    if (s >= 80) return "#16b8c8";
     if (s >= 60) return "#f59e0b";
-    return "#ef4444";
+    return "#ff7a59";
   };
 
   const color = getColor(score);
@@ -72,7 +75,7 @@ function HealthScoreRing({ score }: { score: number }) {
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#f3f4f6"
+          stroke="#e9f7fb"
           strokeWidth={strokeWidth}
         />
         <circle
@@ -98,7 +101,7 @@ function HealthScoreRing({ score }: { score: number }) {
 
 function SkeletonCard() {
   return (
-    <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+    <Card className="didayi-card">
       <CardContent className="p-6">
         <div className="flex items-center justify-center h-32">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -111,7 +114,7 @@ function SkeletonCard() {
 export default function HealthPage() {
   const [data, setData] = useState<HealthProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const { userId } = useUser();
+  const { currentUser, userId } = useUser();
 
   useEffect(() => {
     setLoading(true);
@@ -145,16 +148,16 @@ export default function HealthPage() {
           {
             value: radarData.map((d) => d.value),
             name: "当前评分",
-            areaStyle: { color: "rgba(34, 197, 94, 0.15)" },
-            lineStyle: { color: "#22c55e", width: 2 },
-            itemStyle: { color: "#22c55e" },
+            areaStyle: { color: "rgba(25, 190, 210, 0.16)" },
+            lineStyle: { color: "#19bed2", width: 2 },
+            itemStyle: { color: "#19bed2" },
           },
           {
             value: radarData.map((d) => d.target),
             name: "目标评分",
-            areaStyle: { color: "rgba(59, 130, 246, 0.08)" },
-            lineStyle: { color: "#3b82f6", width: 2, type: "dashed" as const },
-            itemStyle: { color: "#3b82f6" },
+            areaStyle: { color: "rgba(255, 122, 89, 0.06)" },
+            lineStyle: { color: "#ff7a59", width: 2, type: "dashed" as const },
+            itemStyle: { color: "#ff7a59" },
           },
         ],
       },
@@ -192,10 +195,10 @@ export default function HealthPage() {
         smooth: true,
         symbol: "circle",
         symbolSize: 8,
-        lineStyle: { color: "#f59e0b", width: 3 },
-        itemStyle: { color: "#f59e0b", borderColor: "#fff", borderWidth: 2 },
+        lineStyle: { color: "#19bed2", width: 3 },
+        itemStyle: { color: "#19bed2", borderColor: "#fff", borderWidth: 2 },
         areaStyle: {
-          color: "rgba(245, 158, 11, 0.1)",
+          color: "rgba(25, 190, 210, 0.1)",
         },
         markLine: {
           silent: true,
@@ -208,12 +211,12 @@ export default function HealthPage() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="didayi-page space-y-6">
         <motion.div {...fadeIn}>
-          <h1 className="text-2xl font-bold text-foreground">健康画像</h1>
-          <p className="text-sm text-muted-foreground">基于医保数据的个人健康风险评估与画像</p>
+          <h1 className="text-2xl font-bold text-slate-800">健康画像</h1>
+          <p className="text-sm text-slate-500">正在为 {currentUser.name} 汇总健康数据…</p>
         </motion.div>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="grid gap-5 lg:grid-cols-3">
           <SkeletonCard />
           <div className="lg:col-span-2"><SkeletonCard /></div>
         </div>
@@ -224,23 +227,39 @@ export default function HealthPage() {
   const healthScore = data?.health_score || 72;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="didayi-page space-y-5">
       {/* Page Header */}
       <motion.div {...fadeIn}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">健康画像</h1>
-            <p className="text-sm text-muted-foreground">基于医保数据的个人健康风险评估与画像</p>
+        <div className="relative overflow-hidden rounded-3xl border border-sky-100 bg-[linear-gradient(120deg,#e9faff_0%,#f6fdff_55%,#fff7f3_100%)] px-6 py-5 shadow-[0_14px_36px_rgba(30,134,185,.09)] lg:px-8">
+          <div className="absolute -right-10 -top-20 h-52 w-52 rounded-full bg-cyan-300/20 blur-3xl" />
+          <div className="relative flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
+            <div className="flex items-start gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 to-sky-500 text-white shadow-lg shadow-cyan-500/20">
+                <Sparkles className="h-6 w-6" />
+              </span>
+              <div>
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-bold tracking-tight text-slate-800">健康画像</h1>
+                  <span className="rounded-full border border-cyan-200 bg-white/75 px-2.5 py-1 text-[11px] font-semibold text-cyan-700">智能评估</span>
+                </div>
+                <p className="text-sm leading-6 text-slate-500">
+                  基于 <span className="font-semibold text-slate-700">{currentUser.name}</span> 的就医、用药与健康记录，持续呈现个人健康趋势。
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 rounded-2xl border border-white/80 bg-white/70 px-4 py-3 shadow-sm backdrop-blur-sm">
+              <DidaYiLogo />
+              <div className="hidden border-l border-sky-100 pl-4 sm:block"><ApiStatusIndicator /></div>
+            </div>
           </div>
-          <ApiStatusIndicator />
         </div>
       </motion.div>
 
       {/* Top Section: Health Score + Radar Chart */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid gap-5 lg:grid-cols-3">
         {/* Health Score Card */}
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.1 }}>
-          <Card className="bg-white rounded-xl shadow-sm border border-gray-100 h-full">
+          <Card className="didayi-card h-full">
             <CardContent className="p-6 flex flex-col items-center justify-center h-full">
               <HealthScoreRing score={healthScore} />
               <div className="mt-4 text-center">
@@ -267,20 +286,20 @@ export default function HealthPage() {
 
         {/* Radar Chart */}
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.15 }} className="lg:col-span-2">
-          <Card className="bg-white rounded-xl shadow-sm border border-gray-100 h-full">
+          <Card className="didayi-card h-full">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-green-500" />
+                  <Activity className="h-4 w-4 text-cyan-500" />
                   五维健康评估
                 </CardTitle>
                 <div className="flex items-center gap-4 text-xs">
                   <span className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-green-500" />
+                    <span className="h-2 w-2 rounded-full bg-cyan-500" />
                     当前评分
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-blue-500" />
+                    <span className="h-2 w-2 rounded-full bg-[#ff7a59]" />
                     目标评分
                   </span>
                 </div>
@@ -300,7 +319,7 @@ export default function HealthPage() {
 
       {/* Alert Cards */}
       <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.2 }}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {alerts.map((alert, i) => (
             <motion.div
               key={i}
@@ -309,7 +328,7 @@ export default function HealthPage() {
               transition={{ duration: 0.3, delay: 0.25 + i * 0.1 }}
             >
               <Card
-                className={`bg-white rounded-xl shadow-sm border-l-4 ${
+                className={`didayi-card border-l-4 ${
                   alert.severity === "high"
                     ? "border-l-red-500"
                     : alert.severity === "medium"
@@ -336,13 +355,13 @@ export default function HealthPage() {
       </motion.div>
 
       {/* Medication Review + Health Trend */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2">
         {/* Medication Review */}
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.35 }}>
-          <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <Card className="didayi-card h-full">
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Pill className="h-4 w-4 text-green-500" />
+                <Pill className="h-4 w-4 text-cyan-500" />
                 用药审查
               </CardTitle>
             </CardHeader>
@@ -355,7 +374,7 @@ export default function HealthPage() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-sm">
-                        <Pill className="h-4 w-4 text-green-500" />
+                        <Pill className="h-4 w-4 text-cyan-500" />
                       </div>
                       <div>
                         <p className="text-sm font-medium">{med.name}</p>
@@ -376,11 +395,11 @@ export default function HealthPage() {
 
         {/* Health Trend Chart */}
         <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.4 }}>
-          <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <Card className="didayi-card h-full">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <TrendingDown className="h-4 w-4 text-yellow-500" />
+                  <TrendingDown className="h-4 w-4 text-cyan-500" />
                   健康趋势
                 </CardTitle>
                 <Badge variant="secondary" className="text-xs">近6个月</Badge>
@@ -400,15 +419,15 @@ export default function HealthPage() {
 
       {/* Health Improvement Suggestions */}
       <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.45 }}>
-        <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <Card className="didayi-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Heart className="h-4 w-4 text-green-500" />
+              <Heart className="h-4 w-4 text-[#ff7a59]" />
               个性化健康改善建议
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
               {suggestions.map((s, i) => {
                 const IconComp = iconMap[s.icon];
                 return (
@@ -431,6 +450,10 @@ export default function HealthPage() {
           </CardContent>
         </Card>
       </motion.div>
+      <p className="flex items-start gap-2 px-1 text-xs leading-5 text-slate-400">
+        <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-500" />
+        画像用于整理和提示已有健康信息，不替代医生诊断；如有不适或指标异常，请及时咨询专业医疗人员。
+      </p>
     </div>
   );
 }
