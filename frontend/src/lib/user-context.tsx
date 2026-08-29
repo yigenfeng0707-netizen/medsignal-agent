@@ -15,6 +15,13 @@ import {
 } from "react";
 import { mockUsers, type UserInfo } from "./mock-data";
 import { createUser, getUsers, type CreateUserRequest } from "./api";
+import {
+  clearAuthSession,
+  fetchCurrentUser,
+  getStoredUser,
+  saveAuthSession,
+  type AuthUser,
+} from "./auth";
 
 interface UserContextValue {
   currentUser: UserInfo;
@@ -24,6 +31,10 @@ interface UserContextValue {
   users: UserInfo[];
   addUser: (input: CreateUserRequest) => Promise<UserInfo>;
   refreshUsers: () => Promise<void>;
+  // 邮箱登录体系：登录用户全站联动，退出回到演示用户
+  loginUser: (session: { token: string; user: AuthUser; expires_in: number }) => void;
+  logoutUser: () => void;
+  loggedIn: boolean;
 }
 
 const UserContext = createContext<UserContextValue | null>(null);
@@ -68,11 +79,47 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return normalized;
   }, []);
 
+  // 邮箱登录：并入用户列表并切换为当前用户（全站数据联动）
+  const loginUser = useCallback(
+    (session: { token: string; user: AuthUser; expires_in: number }) => {
+      const normalized: UserInfo = {
+        ...session.user,
+        conditions: session.user.conditions ?? [],
+      };
+      saveAuthSession(session);
+      setUsers((existing) => [...existing.filter((u) => u.id !== normalized.id), normalized]);
+      setCurrentUser(normalized);
+    },
+    [],
+  );
+
+  const logoutUser = useCallback(() => {
+    clearAuthSession();
+    setCurrentUser(mockUsers[0]);
+  }, []);
+
+  // 启动时恢复登录会话：token 有效则切回登录用户，失败静默清理（回到演示用户）
+  useEffect(() => {
+    void (async () => {
+      if (!getStoredUser()) return;
+      const user = await fetchCurrentUser();
+      if (user) {
+        const normalized: UserInfo = { ...user, conditions: user.conditions ?? [] };
+        setUsers((existing) => [...existing.filter((u) => u.id !== normalized.id), normalized]);
+        setCurrentUser(normalized);
+      } else {
+        clearAuthSession();
+      }
+    })();
+  }, []);
+
   const userId = `user_${String(currentUser.id).padStart(3, "0")}`;
+  // 演示用户无邮箱，email 存在即视为已登录
+  const loggedIn = Boolean(currentUser.email);
 
   return (
     <UserContext.Provider
-      value={{ currentUser, userId, setUser, setUserId, users, addUser, refreshUsers }}
+      value={{ currentUser, userId, setUser, setUserId, users, addUser, refreshUsers, loginUser, logoutUser, loggedIn }}
     >
       {children}
     </UserContext.Provider>

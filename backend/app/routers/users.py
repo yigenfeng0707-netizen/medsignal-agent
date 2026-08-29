@@ -15,6 +15,7 @@ def _user_payload(user) -> dict:
         "id": user.id,
         "public_id": f"user_{user.id:03d}",
         "name": user.name,
+        "email": user.email,
         "age": user.age,
         "gender": user.gender,
         "city": user.city,

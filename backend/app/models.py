@@ -28,6 +28,10 @@ class User(Base):
     city = Column(String(50), nullable=False)
     insurance_type = Column(String(50), nullable=False)
     employee_status = Column(String(30), nullable=False)
+    # 邮箱注册登录（Demo 演示用户无邮箱，字段可空）
+    email = Column(String(255), unique=True, index=True, nullable=True)
+    # PBKDF2-SHA256 哈希，格式：pbkdf2_sha256$<iterations>$<salt_hex>$<hash_hex>
+    password_hash = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     insurance_records = relationship("InsuranceRecord", back_populates="user")

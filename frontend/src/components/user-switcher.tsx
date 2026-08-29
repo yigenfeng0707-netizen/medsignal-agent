@@ -7,7 +7,8 @@
  */
 
 import { useState, useEffect, useRef, type FormEvent } from "react";
-import { Users, ChevronDown, Check, Plus, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { Users, ChevronDown, Check, Plus, Loader2, LogIn, LogOut, Mail } from "lucide-react";
 import { useUser } from "@/lib/user-context";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 
 export function UserSwitcher() {
-  const { currentUser, users, setUserId, addUser } = useUser();
+  const { currentUser, users, setUserId, addUser, loggedIn, logoutUser } = useUser();
   const [open, setOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -87,7 +88,7 @@ export function UserSwitcher() {
       >
         <Users className="h-4 w-4 text-cyan-600" />
         <span className="hidden sm:inline">
-          <span className="text-slate-500">演示用户：</span>
+          <span className="text-slate-500">{loggedIn ? "已登录：" : "演示用户："}</span>
           <span className="font-semibold text-slate-900">{currentUser.name}</span>
         </span>
         <span className="sm:hidden font-semibold">{currentUser.name}</span>
@@ -105,6 +106,34 @@ export function UserSwitcher() {
             <Users className="h-4 w-4 text-cyan-600" />
             切换演示用户
           </div>
+          {/* 邮箱登录体系：登录入口 / 登录态 */}
+          {loggedIn ? (
+            <div className="mb-1 rounded-lg bg-cyan-50/70 px-3 py-2.5 text-sm">
+              <div className="flex items-center gap-2 font-medium text-cyan-800">
+                <Mail className="h-4 w-4" />
+                <span className="truncate">{currentUser.email}</span>
+              </div>
+              <button
+                onClick={() => {
+                  logoutUser();
+                  setOpen(false);
+                }}
+                className="mt-2 flex items-center gap-1.5 text-xs font-medium text-slate-500 transition hover:text-red-600"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                退出登录（回到演示用户）
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              onClick={() => setOpen(false)}
+              className="mb-1 flex w-full items-center gap-2 rounded-lg border border-dashed border-cyan-200 px-3 py-2.5 text-sm font-medium text-cyan-700 transition hover:bg-cyan-50"
+            >
+              <LogIn className="h-4 w-4" />
+              邮箱登录 / 注册
+            </Link>
+          )}
           <button
             onClick={() => {
               setAddOpen(true);

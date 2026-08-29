@@ -11,6 +11,8 @@ export interface UserInfo {
   insurance_type: string;
   employee_status: string;
   conditions: string[];
+  /** 邮箱注册用户才有，演示用户为空 */
+  email?: string | null;
 }
 
 export interface PaymentRecord {

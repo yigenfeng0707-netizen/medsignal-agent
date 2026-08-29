@@ -6,12 +6,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.auth import generate_session_token
 from app.config import settings
 from app.database import init_db
 from app.routers import (
     admin,
     agents,
+    auth,
     body,
     body_archive,
     claims,
@@ -61,6 +61,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(agents.router)
 app.include_router(coverage.router)
@@ -206,19 +207,4 @@ async def detailed_health_check():
         "version": "3.0.0",
         "dependencies": deps,
         "demo_mode": orchestrator._llm is None,  # LLM 不可用时进入降级演示模式
-    }
-
-
-@app.post("/api/auth/login")
-async def demo_login(phone: str = "13800000001"):
-    """Demo 登录（手机号 + 验证码 mock），返回 token
-
-    路演时演示：输入手机号 → 收到验证码（mock 1234）→ 登录成功
-    """
-    token = generate_session_token(phone)
-    return {
-        "token": token,
-        "user_phone": phone,
-        "expires_in": 86400,
-        "message": "登录成功（Demo 模式，验证码固定为 1234）",
     }
