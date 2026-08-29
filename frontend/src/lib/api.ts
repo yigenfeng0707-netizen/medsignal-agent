@@ -4,7 +4,6 @@
 import {
   mockCoverageSummary,
   mockHealthProfile,
-  mockOCRResult,
   mockPreReviewResult,
   mockClaimsPreReview,
   mockPolicyMatch,
@@ -123,6 +122,8 @@ export interface ChatRequest {
   message: string;
   user_id: string;
   conversation_id?: string;
+  /** 最近对话历史（role+content），后端用于上下文连续性与指代消解 */
+  history?: Array<{ role: string; content: string }>;
 }
 
 export interface ChatResponse {
@@ -229,27 +230,28 @@ export async function getHealthTrends(
 }
 
 /** 上传发票 OCR 识别 */
-export async function uploadReceipt(file: File): Promise<OCRResult> {
-  const data = await apiUpload<{ ocr_result: Record<string, unknown>; confidence: number }>(
-    "/api/claims/ocr",
-    file,
-  );
-  if (data?.ocr_result) {
-    const r = data.ocr_result;
-    return {
-      hospital: (r.hospital as string) || "",
-      date: (r.visit_date as string) || "",
-      patient: (r.patient_name as string) || "",
-      department: (r.diagnosis as string) || "",
-      items: ((r.items as { name: string; amount: number }[]) || []).map((it) => ({
-        name: it.name,
-        price: it.amount,
-      })),
-      total: (r.total_amount as number) || 0,
-      confidence: data.confidence,
-    };
-  }
-  return mockOCRResult;
+export async function uploadReceipt(file: File): Promise<OCRResult | null> {
+  const data = await apiUpload<Record<string, unknown>>("/api/claims/ocr", file);
+  if (!data) return null;
+  // 兼容两种返回格式：后端现状直接返回 OCR 对象；{ ocr_result } 包裹格式作为旧契约兼容
+  const wrapped = data.ocr_result as Record<string, unknown> | undefined;
+  const r = (wrapped ?? data) as Record<string, unknown>;
+  const items = ((r.items as { name: string; amount: number }[]) || []).map((it) => ({
+    name: it.name,
+    price: Number(it.amount) || 0,
+  }));
+  // 识别结果无实质内容时返回 null，由调用方决定兜底策略
+  if (!r.hospital && items.length === 0 && !r.total_amount) return null;
+  return {
+    hospital: (r.hospital as string) || "",
+    date: (r.date as string) || (r.visit_date as string) || "",
+    patient: (r.patient_name as string) || "",
+    department: (r.department as string) || (r.diagnosis as string) || "",
+    visit_type: (r.visit_type as string) || "",
+    items,
+    total: Number(r.total_amount) || 0,
+    confidence: Number(wrapped ? data.confidence : r.confidence) || 0,
+  };
 }
 
 /** 报销预审 */
@@ -262,6 +264,111 @@ export async function preReviewClaim(
   });
   if (data) return data;
   return mockPreReviewResult;
+}
+
+/** 上传医疗资料给档案管家（图片视觉转录/OCR、PDF 文本层 → 归档回复） */
+export interface BodyUploadResult {
+  document_id: number | string;
+  doc_kind: string;
+  filename: string;
+  records_added: number;
+  agent_response: string;
+  disclaimer?: string;
+}
+
+export async function uploadBodyDocument(
+  userId: string,
+  file: File,
+): Promise<BodyUploadResult | null> {
+  try {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch(`${API_BASE}/api/body/${userId}/upload`, {
+      method: "POST",
+      body: form,
+      // 后端 45s 处理超时 + OCR/视觉转录耗时，预留 120s
+      signal: AbortSignal.timeout(120000),
+    });
+    if (!res.ok) return null;
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) return null;
+    return (await res.json()) as BodyUploadResult;
+  } catch {
+    return null;
+  }
+}
+
+// ==================== 药品卫士（药品拍照识别） ====================
+
+export interface DrugInfo {
+  generic_name: string;
+  brand_name: string;
+  spec: string;
+  dosage_form: string;
+  manufacturer: string;
+  approval_number: string;
+  batch_number: string;
+  production_date: string;
+  expiry_date: string;
+  otc_or_rx: string;
+  confidence: number;
+  notes: string;
+}
+
+export interface DrugInteractionWarning {
+  level?: string;
+  severity?: string;
+  icon?: string;
+  title?: string;
+  description?: string;
+  suggestion?: string;
+}
+
+export interface DrugScanResult {
+  not_a_drug: boolean;
+  detected?: string;
+  drug?: DrugInfo;
+  category?: string;
+  expiry?: { status: string; message: string };
+  interactions?: DrugInteractionWarning[];
+  source: string;
+  confirm_prompt?: string;
+  chat_response?: string;
+}
+
+/** 拍照识别药品（只读，不写库） */
+export async function scanDrug(userId: string, file: File): Promise<DrugScanResult | null> {
+  try {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch(
+      `${API_BASE}/api/drugs/scan?user_id=${encodeURIComponent(userId)}`,
+      {
+        method: "POST",
+        body: form,
+        // 后端 45s 识别超时 + 视觉模型耗时，预留 120s
+        signal: AbortSignal.timeout(120000),
+      },
+    );
+    if (!res.ok) return null;
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) return null;
+    return (await res.json()) as DrugScanResult;
+  } catch {
+    return null;
+  }
+}
+
+/** 用户确认后，把扫描到的药品登记到用药记录 */
+export async function registerDrug(
+  userId: string,
+  drug: DrugInfo,
+  category?: string,
+): Promise<{ registered: boolean; message: string } | null> {
+  return apiFetch<{ registered: boolean; message: string }>("/api/drugs/register", {
+    method: "POST",
+    body: JSON.stringify({ user_id: userId, drug, category: category || null }),
+  });
 }
 
 /** 获取政策匹配 */
@@ -382,10 +489,30 @@ export async function sendComplexChat(
   >("/api/agents/complex-chat", {
     method: "POST",
     body: JSON.stringify(req),
+    // 多智能体并行 + 融合在线模式耗时较长（后端总预算 220s），预留 240s 中断时限
+    signal: AbortSignal.timeout(240000),
   });
   if (data) return data;
   // 降级到普通 chat
   return sendChatMessage(req);
+}
+
+/** 报销流程联合预审：上传完成后 编排智能体 调度 档案管家×报销助手 解读已上传资料 */
+export interface PrereviewUploadedResult {
+  response: string;
+  agents_invoked: string[];
+  multi_agent: boolean;
+  documents: Array<{ filename: string; archive_kind: string; claim_kind: string; amount: number | null }>;
+  total_amount: number | null;
+  completeness: Array<{ name: string; status: string }>;
+  estimate: Record<string, unknown> | null;
+}
+
+export async function prereviewUploaded(userId: string): Promise<PrereviewUploadedResult | null> {
+  return apiFetch<PrereviewUploadedResult>(
+    `/api/claims/prereview-uploaded?user_id=${encodeURIComponent(userId)}`,
+    { method: "POST" },
+  );
 }
 
 /** 数据安全：获取所有用户（用户切换器用） */

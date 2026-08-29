@@ -64,3 +64,33 @@ async def pre_review(request: PreReviewRequest, db: AsyncSession = Depends(get_d
             {"name": "转诊单", "status": "not_required"},
         ],
     }
+
+
+@router.post("/prereview-uploaded")
+async def prereview_uploaded(user_id: str = "user_001", db: AsyncSession = Depends(get_db)):
+    """多文件上传后的编排预审：档案管家（存档汇总）× 报销助手（解读+完整性+测算）协同。
+
+    读取用户最近存档的上传资料（BodyDocument.extracted_text），不重复 OCR。
+    """
+    docs = await crud.list_recent_body_documents(db, user_id, limit=10, within_minutes=120)
+    if not docs:
+        return {
+            "response": "**【报销助手】**\n未检测到最近上传的报销材料，请先通过回形针上传发票、病历等资料，再发起预审。",
+            "agents_invoked": ["claims_agent"],
+            "multi_agent": False,
+            "documents": [],
+            "total_amount": None,
+            "completeness": [],
+            "estimate": None,
+        }
+
+    review = await claims_engine.build_uploaded_prereview(db, user_id)
+    return {
+        "response": review["response"],
+        "agents_invoked": ["body_agent", "claims_agent"],
+        "multi_agent": True,
+        "documents": review["documents"],
+        "total_amount": review["total_amount"],
+        "completeness": review["completeness"],
+        "estimate": review["estimate"],
+    }

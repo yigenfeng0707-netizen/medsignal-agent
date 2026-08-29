@@ -91,6 +91,7 @@ export interface OCRResult {
   date: string;
   patient: string;
   department: string;
+  visit_type?: string;
   items: OCRItem[];
   total: number;
   confidence: number;

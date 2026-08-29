@@ -16,6 +16,8 @@ from app.routers import (
     body_archive,
     claims,
     coverage,
+    data,
+    drugs,
     eeg,
     health_profile,
     imaging,
@@ -68,9 +70,11 @@ app.include_router(policy.router)
 app.include_router(security.router)
 app.include_router(eeg.router)
 app.include_router(imaging.router)
+app.include_router(data.router)
 app.include_router(body.router)
 app.include_router(body_archive.router)
 app.include_router(users.router)
+app.include_router(drugs.router)
 
 # 数字人体 3D 查看器（静态资源，前端 /body-archive 页面 iframe 嵌入）
 _digital_body_dir = Path(__file__).resolve().parent / "static" / "digital-body"
@@ -164,6 +168,34 @@ async def detailed_health_check():
         "available": _digital_body_dir.is_dir(),
         "viewer": "/digital-body/index.html",
         "api": "/api/body-archive/patients",
+    }
+
+    # 湖仓一体数据引擎（数据管家模块）
+    try:
+        from app.services.data_lake import engine as data_lake_engine
+        data_engine_ok = True
+        warehouse_tables = len(data_lake_engine.WAREHOUSE_TABLES)
+    except Exception:
+        data_engine_ok = False
+        warehouse_tables = 0
+    deps["data_engine"] = {
+        "available": data_engine_ok,
+        "warehouse_tables": warehouse_tables,
+        "query_modes": ["template", "nl2sql"],
+    }
+
+    # 药品卫士引擎（拍照识别 × 用药安全）
+    try:
+        from app.services.drug_scan import engine as drug_scan_engine
+        drug_engine_ok = True
+        drug_modes = ["vision", "ocr_llm", "mock"]
+    except Exception:
+        drug_engine_ok = False
+        drug_modes = []
+    deps["drug_engine"] = {
+        "available": drug_engine_ok,
+        "recognition_modes": drug_modes,
+        "endpoints": ["/api/drugs/scan", "/api/drugs/register"],
     }
 
     all_ok = (

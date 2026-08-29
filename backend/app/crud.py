@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -546,13 +546,33 @@ async def create_body_document(
     doc_kind: str,
     extracted_text: str,
 ) -> BodyDocument:
-    """存档一份上传资料（只存解析文本）。"""
+    """存档一份上传资料（只存解析文本）。
+
+    OCR 失败导致文本为空时，若同名资料已有非空存档，继承其文本与类型，
+    避免转录服务抖动把档案降级为空内容。
+    """
+    uid = _normalize_user_id(user_id)
+    text = extracted_text or ""
+    if not text.strip():
+        stmt = (
+            select(BodyDocument)
+            .where(BodyDocument.user_id == uid, BodyDocument.filename == filename[:200])
+            .order_by(desc(BodyDocument.uploaded_at), desc(BodyDocument.id))
+            .limit(5)
+        )
+        for prev in (await db.execute(stmt)).scalars().all():
+            if (prev.extracted_text or "").strip():
+                text = prev.extracted_text
+                if doc_kind == "其他" and prev.doc_kind:
+                    doc_kind = prev.doc_kind
+                logger.warning("本次转录为空，继承同名历史存档文本: %s", filename)
+                break
     doc = BodyDocument(
-        user_id=_normalize_user_id(user_id),
+        user_id=uid,
         filename=filename[:200],
         mime_type=mime_type[:80],
         doc_kind=doc_kind,
-        extracted_text=extracted_text,
+        extracted_text=text,
     )
     db.add(doc)
     await db.commit()
@@ -620,6 +640,34 @@ async def get_body_documents(
         .limit(limit)
     )
     return list(result.scalars().all())
+
+
+async def list_recent_body_documents(
+    db: AsyncSession, user_id: str | int, limit: int = 5, within_minutes: int = 120
+) -> list[BodyDocument]:
+    """用户最近上传的医疗资料存档（按上传时间倒序），用于对话上下文感知与报销联合预审。
+
+    同一 filename 重复上传时只保留最新一条存档，避免预审金额重复累计。
+    """
+    uid = _normalize_user_id(user_id)
+    cutoff = datetime.now(UTC) - timedelta(minutes=within_minutes)
+    stmt = (
+        select(BodyDocument)
+        .where(BodyDocument.user_id == uid, BodyDocument.uploaded_at >= cutoff)
+        .order_by(desc(BodyDocument.uploaded_at), desc(BodyDocument.id))
+        .limit(max(limit * 3, 30))
+    )
+    result = await db.execute(stmt)
+    latest: dict[str, BodyDocument] = {}
+    with_content: dict[str, BodyDocument] = {}
+    for doc in result.scalars().all():  # 已按时间倒序，首次命中即最新
+        latest.setdefault(doc.filename, doc)
+        if (doc.extracted_text or "").strip():
+            with_content.setdefault(doc.filename, doc)
+    # 优先取“最新且有内容”的存档，避免转录失败的空行覆盖有效识别结果
+    picked = {**latest, **with_content}
+    unique = sorted(picked.values(), key=lambda d: (d.uploaded_at, d.id), reverse=True)
+    return unique[:limit]
 
 
 async def get_body_organ_summary(db: AsyncSession, user_id: str | int) -> dict:
