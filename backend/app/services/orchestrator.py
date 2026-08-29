@@ -453,6 +453,11 @@ class Orchestrator:
             logger.warning("LLM 融合超时(90s)，降级拼接")
             fused = self._fuse_fallback(intents, agent_results)
 
+        # 防御：融合返回异常结构（如 None）时降级拼接，避免 TypeError 透传 500
+        if not isinstance(fused, dict):
+            logger.warning("LLM 融合返回非结构化结果，降级拼接")
+            fused = self._fuse_fallback(intents, agent_results)
+
         return {
             **fused,
             "agents_invoked": list(agent_results.keys()),

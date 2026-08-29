@@ -157,10 +157,11 @@ class TestComplexQuery:
     async def test_fusion_timeout_uses_fuse_fallback(self, orch, monkeypatch):
         import asyncio
 
-        async def slow_fuse(message, intents, agent_results):
-            await asyncio.sleep(30)
+        async def slow_fuse(message, intents, agent_results, **kwargs):
+            # 融合预算 90s，直接抛超时异常确定性触发降级分支（真实超时等待过久）
+            raise asyncio.TimeoutError
 
-        async def quick_route(agent_type, message, user_id=None, user_profile=None):
+        async def quick_route(agent_type, message, user_id=None, user_profile=None, **kwargs):
             return {"response": f"{agent_type}-resp", "data": {}}
 
         monkeypatch.setattr(orch, "_fuse_multi_agent_results", slow_fuse)
@@ -172,7 +173,7 @@ class TestComplexQuery:
     async def test_llm_fusion_used_when_available(self, orch, monkeypatch):
         orch._llm = FakeLLM(chat_reply="融合后的综合回答")
 
-        async def quick_route(agent_type, message, user_id=None, user_profile=None):
+        async def quick_route(agent_type, message, user_id=None, user_profile=None, **kwargs):
             return {"response": f"{agent_type}-resp", "data": {}}
 
         monkeypatch.setattr(orch, "route_to_agent", quick_route)
