@@ -287,7 +287,7 @@ export default function AdminPage() {
                   {loggingIn ? "登录中…" : "登录管理后台"}
                 </Button>
                 <p className="text-center text-[11px] text-muted-foreground">
-                  默认账号 admin / MedSignal@2026，可在 backend/.env 修改
+                  管理员账号由部署环境变量 ADMIN_USERNAME / ADMIN_PASSWORD 配置
                 </p>
               </div>
             </CardContent>
