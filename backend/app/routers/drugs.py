@@ -56,7 +56,7 @@ async def scan_drug(
             drug_engine.recognize_drug(contents, filename=file.filename or "drug.jpg", llm=orchestrator._llm),
             timeout=45.0,
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning("药品识别超时(45s)，降级 mock")
         drug, source = drug_engine.mock_drug_result(), "mock"
 
@@ -74,7 +74,7 @@ async def register_drug(request: DrugRegisterRequest, db: AsyncSession = Depends
     try:
         info = await drug_engine.register_drug(db, request.user_id, drug, category=request.category or "")
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
     # 登记后以最新用药列表复核相互作用（含新登记的药本身）
     existing = await _existing_med_names(db, request.user_id)

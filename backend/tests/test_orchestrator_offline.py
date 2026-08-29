@@ -155,11 +155,10 @@ class TestComplexQuery:
         assert "超时" in result["response"]
 
     async def test_fusion_timeout_uses_fuse_fallback(self, orch, monkeypatch):
-        import asyncio
 
         async def slow_fuse(message, intents, agent_results, **kwargs):
             # 融合预算 90s，直接抛超时异常确定性触发降级分支（真实超时等待过久）
-            raise asyncio.TimeoutError
+            raise TimeoutError
 
         async def quick_route(agent_type, message, user_id=None, user_profile=None, **kwargs):
             return {"response": f"{agent_type}-resp", "data": {}}

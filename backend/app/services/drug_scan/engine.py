@@ -49,7 +49,7 @@ def load_drug_rules() -> dict:
 # ============================================================
 
 def empty_drug() -> dict:
-    drug = {f: "" for f in DRUG_FIELDS}
+    drug = dict.fromkeys(DRUG_FIELDS, "")
     drug["confidence"] = 0.0
     drug["notes"] = ""
     return drug

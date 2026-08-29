@@ -13,7 +13,11 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.models import (  # noqa: E402
-    Base, InsuranceRecord, MedicalRecord, MedicationRecord, User,
+    Base,
+    InsuranceRecord,
+    MedicalRecord,
+    MedicationRecord,
+    User,
 )
 from app.services.data_lake import engine as de  # noqa: E402
 from app.services.orchestrator import Orchestrator  # noqa: E402

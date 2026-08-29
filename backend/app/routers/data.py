@@ -36,7 +36,7 @@ async def data_query(request: DataQueryRequest, db: AsyncSession = Depends(get_d
             engine.smart_query(db, request.question, llm=orchestrator._llm, user_id=request.user_id),
             timeout=45.0,
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning("智能数据查询超时(45s)，返回目录摘要")
         result = await engine.catalog(db)
         return {"answer_summary": "查询处理超时，先为您返回湖仓数据资产目录。", "catalog": result}

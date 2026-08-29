@@ -18,7 +18,7 @@ import os
 import re
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy import text
 
@@ -219,7 +219,7 @@ def build_nl2sql_prompt(question: str) -> str:
     )
 
 
-def extract_sql_from_llm(response: str) -> Optional[str]:
+def extract_sql_from_llm(response: str) -> str | None:
     """从 LLM 回答中提取 SQL（兼容 ```sql 代码块包裹）。"""
     if not response:
         return None
@@ -236,7 +236,7 @@ def extract_sql_from_llm(response: str) -> Optional[str]:
 # 模板匹配（降级方案）
 # ============================================================
 
-def match_template(message: str) -> tuple[Optional[dict[str, Any]], int]:
+def match_template(message: str) -> tuple[dict[str, Any] | None, int]:
     """按关键词命中数为自然语言问题匹配预置查询模板。"""
     best, best_score = None, 0
     for tpl in QUERY_TEMPLATES:
@@ -300,7 +300,7 @@ async def execute_query(session, sql: str) -> dict[str, Any]:
     return {"columns": columns, "rows": rows, "row_count": len(rows)}
 
 
-async def _count_rows(session, table: str) -> Optional[int]:
+async def _count_rows(session, table: str) -> int | None:
     """统计表行数（表不存在/查询失败返回 None）。"""
     try:
         result = await session.execute(text(f"SELECT COUNT(*) FROM {table}"))

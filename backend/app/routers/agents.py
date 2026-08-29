@@ -18,8 +18,7 @@ from app import crud
 from app.auth import require_api_key
 from app.database import get_db
 from app.schemas import ChatRequest
-from app.services import orchestrator
-from app.services import claims_engine
+from app.services import claims_engine, orchestrator
 from app.services.body import extractor as body_extractor
 
 logger = logging.getLogger(__name__)

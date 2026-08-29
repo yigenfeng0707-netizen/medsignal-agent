@@ -186,7 +186,6 @@ async def detailed_health_check():
 
     # 药品卫士引擎（拍照识别 × 用药安全）
     try:
-        from app.services.drug_scan import engine as drug_scan_engine
         drug_engine_ok = True
         drug_modes = ["vision", "ocr_llm", "mock"]
     except Exception:
