@@ -8,7 +8,7 @@
  * - 演示用户（user-switcher）不走此模块，两套体系并存
  */
 
-import { API_BASE } from "./api";
+import { API_BASE, timeoutSignal } from "./api";
 import type { UserInfo } from "./mock-data";
 
 const TOKEN_KEY = "medsignal_user_token";
@@ -60,7 +60,7 @@ async function authFetch<T>(path: string, body: unknown): Promise<T> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(30000),
+    signal: timeoutSignal(30000),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -91,7 +91,7 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
   try {
     const res = await fetch(`${API_BASE}/api/auth/me`, {
       headers: authHeaders(),
-      signal: AbortSignal.timeout(15000),
+      signal: timeoutSignal(15000),
     });
     if (!res.ok) return null;
     const data = (await res.json()) as { user: AuthUser };

@@ -38,7 +38,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { API_BASE } from "@/lib/api";
+import { API_BASE, timeoutSignal } from "@/lib/api";
 
 const TOKEN_KEY = "medsignal_admin_token";
 
@@ -160,7 +160,7 @@ export default function AdminPage() {
       try {
         return await fetch(`${API_BASE}${path}`, {
           headers: { "X-Admin-Token": token },
-          signal: AbortSignal.timeout(30000),
+          signal: timeoutSignal(30000),
         });
       } catch {
         return null;
@@ -216,7 +216,7 @@ export default function AdminPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
-        signal: AbortSignal.timeout(15000),
+        signal: timeoutSignal(15000),
       });
       if (res.ok) {
         const body = await res.json();

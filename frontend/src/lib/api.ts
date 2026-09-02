@@ -47,6 +47,23 @@ export const API_BASE =
       : ""
     : _rawApiBase.trim().replace(/\/+$/, "");
 
+// ==================== 超时 signal 兼容层 ====================
+
+/**
+ * 兼容旧移动端 WebView 的超时 signal。
+ * AbortSignal.timeout() 需要较新浏览器（Chrome 103+ / Safari 16+），
+ * 旧内核（iOS Safari < 16、旧微信 X5 等）缺失该静态方法会直接抛
+ * TypeError，导致请求发不出去（线上已复现），因此降级用 AbortController 实现。
+ */
+export function timeoutSignal(ms: number): AbortSignal {
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    return AbortSignal.timeout(ms);
+  }
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
+}
+
 // ==================== API 状态检测 ====================
 
 let _apiReachable: boolean | null = null;
@@ -56,7 +73,7 @@ export async function getApiStatus(): Promise<boolean> {
   try {
     const res = await fetch(`${API_BASE}/api/health`, {
       method: "GET",
-      signal: AbortSignal.timeout(60000),
+      signal: timeoutSignal(60000),
     });
     _apiReachable = res.ok;
   } catch {
@@ -83,7 +100,7 @@ async function apiFetch<T>(
         "Content-Type": "application/json",
         ...options?.headers,
       },
-      signal: options?.signal ?? AbortSignal.timeout(90000),
+      signal: options?.signal ?? timeoutSignal(90000),
     });
     if (!res.ok) return null;
     // 防止 Render 冷启动返回 HTML 插页导致 JSON 解析失败
@@ -105,7 +122,7 @@ async function apiUpload<T>(
     const res = await fetch(`${API_BASE}${path}`, {
       method: "POST",
       body: form,
-      signal: AbortSignal.timeout(120000),
+      signal: timeoutSignal(120000),
     });
     if (!res.ok) return null;
     const contentType = res.headers.get("content-type") || "";
@@ -287,7 +304,7 @@ export async function uploadBodyDocument(
       method: "POST",
       body: form,
       // 后端 45s 处理超时 + OCR/视觉转录耗时，预留 120s
-      signal: AbortSignal.timeout(120000),
+      signal: timeoutSignal(120000),
     });
     if (!res.ok) return null;
     const contentType = res.headers.get("content-type") || "";
@@ -347,7 +364,7 @@ export async function scanDrug(userId: string, file: File): Promise<DrugScanResu
         method: "POST",
         body: form,
         // 后端 45s 识别超时 + 视觉模型耗时，预留 120s
-        signal: AbortSignal.timeout(120000),
+        signal: timeoutSignal(120000),
       },
     );
     if (!res.ok) return null;
@@ -490,7 +507,7 @@ export async function sendComplexChat(
     method: "POST",
     body: JSON.stringify(req),
     // 多智能体并行 + 融合在线模式耗时较长（后端总预算 220s），预留 240s 中断时限
-    signal: AbortSignal.timeout(240000),
+    signal: timeoutSignal(240000),
   });
   if (data) return data;
   // 降级到普通 chat
@@ -661,7 +678,7 @@ export async function importEEGFile(
       {
         method: "POST",
         body: form,
-        signal: AbortSignal.timeout(120000),
+        signal: timeoutSignal(120000),
       },
     );
     if (!res.ok) return null;
