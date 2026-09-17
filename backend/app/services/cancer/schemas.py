@@ -1,6 +1,6 @@
 """肿瘤风险预测 - Pydantic 数据模型"""
+
 from pydantic import BaseModel, Field
-from typing import List
 
 
 class CancerRiskRequest(BaseModel):
@@ -19,7 +19,7 @@ class CancerRiskItem(BaseModel):
 
 
 class CancerRiskResponse(BaseModel):
-    risks: List[CancerRiskItem]
+    risks: list[CancerRiskItem]
     top_cancer: str
     recommendation: str
     message: str = "肿瘤风险初筛完成"

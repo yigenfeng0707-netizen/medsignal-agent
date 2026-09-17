@@ -1,5 +1,5 @@
 """肿瘤风险预测 - 规则引擎（Demo 级初筛，非临床诊断）"""
-from .schemas import CancerRiskRequest, CancerRiskItem, CancerRiskResponse
+from .schemas import CancerRiskItem, CancerRiskRequest, CancerRiskResponse
 
 
 class CancerEngine:
