@@ -147,6 +147,9 @@ export default function HomePage() {
     };
     setMessages((prev) => [...prev, userMsg]);
 
+    // P2-1：复合意图走多智能体协作，单意图走普通 chat
+    const isMulti = detectMultiIntent(content);
+
     const loadingId = (Date.now() + 1).toString();
     const loadingMsg: Message = {
       id: loadingId,
@@ -160,9 +163,25 @@ export default function HomePage() {
     setMessages((prev) => [...prev, loadingMsg]);
     setIsSending(true);
 
+    // P2-1：多智能体路径耗时较长（线上实测约 1~2 分钟），分阶段更新等待文案管理预期
+    const startedAt = Date.now();
+    const progressTimer = isMulti
+      ? setInterval(() => {
+          const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+          let stage: string;
+          if (elapsed < 15) stage = "已调度多个智能体，正在并行分析...";
+          else if (elapsed < 45) stage = "智能体正在分析您的健康数据，通常需要 1~2 分钟...";
+          else if (elapsed < 90) stage = "分析进行中，编排智能体正在汇总各专业意见...";
+          else stage = "即将完成，正在生成最终建议...";
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === loadingId && m.isLoading ? { ...m, content: `${stage}（已等待 ${elapsed}s）` } : m,
+            ),
+          );
+        }, 1000)
+      : undefined;
+
     try {
-      // P2-1：复合意图走多智能体协作，单意图走普通 chat
-      const isMulti = detectMultiIntent(content);
       const res = isMulti
         ? await sendComplexChat({ message: content, user_id: userId, conversation_id: conversationId, history })
         : await sendChatMessage({ message: content, user_id: userId, conversation_id: conversationId, history });
@@ -627,7 +646,7 @@ function ChatBubble({ message, onRetry, previousUserMessage, onDrugDecision }: {
           </Badge>
           <div className="rounded-2xl rounded-tl-sm px-4 py-2.5 bg-white border border-border shadow-sm flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-            <span className="text-sm text-muted-foreground">正在思考中...</span>
+            <span className="text-sm text-muted-foreground">{message.content || "正在思考中..."}</span>
           </div>
         </div>
       </div>
