@@ -43,7 +43,13 @@ class Settings(BaseSettings):
     YIBAO_SESSION_SECRET: str = "please-change-this"
     CORS_ORIGINS: str = "*"
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        # 忽略 docker-compose 根 .env / 系统环境中的无关变量
+        # （如 POSTGRES_PORT/BACKEND_PORT 等），避免 extra_forbidden 报错
+        "extra": "ignore",
+    }
 
 
 settings = Settings()

@@ -14,6 +14,7 @@ from app.routers import (
     auth,
     body,
     body_archive,
+    cancer,
     claims,
     coverage,
     data,
@@ -76,6 +77,7 @@ app.include_router(body.router)
 app.include_router(body_archive.router)
 app.include_router(users.router)
 app.include_router(drugs.router)
+app.include_router(cancer.router)
 
 # 数字人体 3D 查看器（静态资源，前端 /body-archive 页面 iframe 嵌入）
 _digital_body_dir = Path(__file__).resolve().parent / "static" / "digital-body"
