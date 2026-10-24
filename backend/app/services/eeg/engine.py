@@ -314,10 +314,33 @@ def extract_band_powers(
     return band_powers, avg_powers
 
 
+def _highpass(signal: np.ndarray, fs: int, fc: float = 0.5) -> np.ndarray:
+    """零相位一阶高通（前向+反向各滤一遍），去除直流偏移与电极漂移/汗液伪影。
+
+    真实设备（Emotiv X / Muse）原始信号含显著 <0.5Hz 漂移，不做高通时该能量
+    会经 Welch PSD 全部泄漏进 δ 频段（δ 下限即 0.5Hz），导致 δ 相对功率虚高。
+    纯 numpy 实现（一阶 IIR），不引入 scipy 依赖。
+    """
+    a = 1.0 / (1.0 + 2.0 * 3.141592653589793 * fc / fs)
+
+    def _pass(x: np.ndarray) -> np.ndarray:
+        y = np.empty_like(x)
+        prev_x, prev_y = x[0], x[0]
+        for i in range(len(x)):
+            prev_y = a * (prev_y + x[i] - prev_x)
+            y[i] = prev_y
+            prev_x = x[i]
+        return y
+
+    return _pass(_pass(signal)[::-1])[::-1]
+
+
 def _compute_channel_powers(signal: np.ndarray, sample_rate: int) -> dict[str, float]:
     """单通道五频段功率计算（Welch PSD + 频段积分）。"""
     # 去均值
     signal = signal - np.mean(signal)
+    # 高通去漂移：防止 <0.5Hz 漂移能量泄漏进 δ 频段（真实设备数据必需）
+    signal = _highpass(signal, sample_rate)
     n = len(signal)
     if n < 256:
         return dict.fromkeys(BANDS, 0.0)
@@ -348,7 +371,11 @@ def _welch(signal: np.ndarray, fs: int, nperseg: int = 256) -> tuple[np.ndarray,
     count = 0
 
     for start in range(0, n - nperseg + 1, step):
-        seg = signal[start:start + nperseg] * window
+        seg = signal[start:start + nperseg]
+        # 分段线性去趋势，抑制段内漂移的频谱泄漏（Welch 标准做法）
+        t_idx = np.arange(nperseg, dtype=np.float64)
+        slope, intercept = np.polyfit(t_idx, seg, 1)
+        seg = (seg - (slope * t_idx + intercept)) * window
         # FFT 功率谱
         fft = np.fft.rfft(seg)
         psd = (np.abs(fft) ** 2) / (fs * np.sum(window ** 2))
