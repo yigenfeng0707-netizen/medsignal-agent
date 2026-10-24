@@ -383,7 +383,11 @@ async def list_real_studies(
             }
             for s in studies
         ],
-        "note": "真实公开数据集影像（脱敏科研用途），AI 检测结果仅供辅助参考，最终诊断须由持证医师复核。",
+        "note": (
+            "真实公开数据集影像（脱敏科研用途），AI 检测结果仅供辅助参考，最终诊断须由持证医师复核。"
+            if any(s.get("source") not in (None, "demo", "synthetic") for s in m.get("studies", []))
+            else "当前为合成脱敏影像（demo 集），仅用于检测链路演示，不构成科研验证结论；最终诊断须由持证医师复核。"
+        ),
     }
 
 
