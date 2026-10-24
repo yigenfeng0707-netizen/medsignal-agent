@@ -109,7 +109,9 @@ export function RealImagingPanel() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-semibold tracking-wide">真实公开数据集 · 影像科研验证</h3>
+              <h3 className="text-base font-semibold tracking-wide">
+                {realCount > 0 ? "真实公开数据集 · 影像科研验证" : "合成影像数据集 · 检测链路验证"}
+              </h3>
               {realCount > 0 && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
                   <CircleDot className="h-3 w-3 animate-pulse" />
@@ -118,7 +120,9 @@ export function RealImagingPanel() {
               )}
             </div>
             <p className="mt-0.5 text-xs text-slate-400">
-              公开胸片数据集（脱敏科研用途）· AI 病灶检测 → IoU 评估 → 医保政策联动
+              {realCount > 0
+                ? "公开胸片数据集（脱敏科研用途）· AI 病灶检测 → IoU 评估 → 医保政策联动"
+                : "当前为合成脱敏影像（demo 集）· AI 病灶检测 → IoU 评估 → 医保政策联动，真实数据集接入后在此展示"}
             </p>
           </div>
         </div>
@@ -200,7 +204,7 @@ export function RealImagingPanel() {
       <div className="relative border-t border-slate-700/60 px-5 py-2.5">
         <p className="flex items-center gap-1.5 text-[10px] text-slate-500">
           <FlaskConical className="h-3 w-3" />
-          {list.note || "真实公开数据集影像（脱敏科研用途），AI 检测仅供辅助参考。"}
+          {list.note || "AI 检测结果仅供辅助参考，最终诊断须由持证医师复核。"}
         </p>
       </div>
 

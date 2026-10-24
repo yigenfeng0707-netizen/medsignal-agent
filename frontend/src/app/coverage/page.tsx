@@ -30,6 +30,8 @@ import { CanvasRenderer } from "echarts/renderers";
 import { getCoverageSummary } from "@/lib/api";
 import { useUser } from "@/lib/user-context";
 import type { CoverageSummary } from "@/lib/mock-data";
+
+const RETIRE_REQUIRED_YEARS = 25;
 import { ApiStatusIndicator } from "@/components/api-status-indicator";
 import { BrandedPageHeader } from "@/components/branded-page-header";
 
@@ -106,6 +108,10 @@ export default function CoveragePage() {
   }, [userId]);
 
   const paymentData = data?.payment_history || [];
+  const monthLabels =
+    data?.payment_history_labels && data.payment_history_labels.length === paymentData.length
+      ? data.payment_history_labels
+      : months;
   const recentActivities = data?.recent_activities || [];
 
   const barChartOption = {
@@ -122,7 +128,7 @@ export default function CoveragePage() {
     grid: { top: 20, right: 20, bottom: 30, left: 50 },
     xAxis: {
       type: "category" as const,
-      data: months,
+      data: monthLabels,
       axisLine: { lineStyle: { color: "#e5e7eb" } },
       axisLabel: { color: "#9ca3af", fontSize: 11 },
       axisTick: { show: false },
@@ -165,6 +171,18 @@ export default function CoveragePage() {
   const user = data?.user;
   const outpatientPct = Math.round((data?.outpatient_ratio || 0.85) * 100);
   const inpatientPct = Math.round((data?.inpatient_ratio || 0.90) * 100);
+
+  const paidMonths = data?.payment_months ?? 0;
+  const retireProgress = Math.min(100, Math.round((paidMonths / (RETIRE_REQUIRED_YEARS * 12)) * 100));
+  const balanceValues = paymentData;
+  const lastDeposit = balanceValues[balanceValues.length - 1] ?? 0;
+  const prevDeposit = balanceValues[balanceValues.length - 2] ?? 0;
+  const depositDelta = lastDeposit - prevDeposit;
+  const depositDeltaPct = prevDeposit ? (depositDelta / prevDeposit) * 100 : 0;
+  const balanceText = (data?.account_balance ?? 0).toLocaleString("zh-CN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   return (
     <div className="didayi-page space-y-5">
@@ -228,13 +246,13 @@ export default function CoveragePage() {
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground mb-1">缴费年限</p>
-              <p className="text-2xl font-bold text-foreground">{data?.payment_years || "15年"}<span className="text-base font-normal text-muted-foreground">3个月</span></p>
+              <p className="text-2xl font-bold text-foreground">{data?.payment_years || "—"}</p>
               <div className="mt-3">
                 <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                  <span>退休需缴满25年</span>
-                  <span>61%</span>
+                  <span>退休需缴满{RETIRE_REQUIRED_YEARS}年</span>
+                  <span>{retireProgress}%</span>
                 </div>
-                <Progress value={61} className="h-1.5" />
+                <Progress value={retireProgress} className="h-1.5" />
               </div>
             </CardContent>
           </Card>
@@ -247,16 +265,22 @@ export default function CoveragePage() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50">
                   <Wallet className="h-5 w-5 text-green-500" />
                 </div>
-                <div className="flex items-center gap-1 text-xs text-green-600">
-                  <ArrowUpRight className="h-3 w-3" />
-                  +2.3%
+                <div className={`flex items-center gap-1 text-xs ${depositDelta >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  {depositDelta >= 0 ? (
+                    <ArrowUpRight className="h-3 w-3" />
+                  ) : (
+                    <ArrowDownRight className="h-3 w-3" />
+                  )}
+                  {prevDeposit ? `${depositDelta >= 0 ? "+" : ""}${depositDeltaPct.toFixed(1)}%` : "—"}
                 </div>
               </div>
               <p className="text-sm text-muted-foreground mb-1">账户余额</p>
-              <p className="text-2xl font-bold text-foreground">¥{(data?.account_balance || 8562).toLocaleString()}<span className="text-base font-normal text-muted-foreground">.30</span></p>
+              <p className="text-2xl font-bold text-foreground">¥{balanceText}</p>
               <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
                 <TrendingUp className="h-3 w-3 text-green-500" />
-                较上月增加 ¥340.00
+                {prevDeposit
+                  ? `最近一期入账 ¥${lastDeposit.toFixed(2)}，较上期${depositDelta >= 0 ? "增加" : "减少"} ¥${Math.abs(depositDelta).toFixed(2)}`
+                  : "暂无入账记录"}
               </div>
             </CardContent>
           </Card>
@@ -305,7 +329,9 @@ export default function CoveragePage() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-semibold">缴费记录</CardTitle>
-                <Badge variant="secondary" className="text-xs">近12个月</Badge>
+                <Badge variant="secondary" className="text-xs">
+                  {paymentData.length > 0 ? `共 ${paymentData.length} 期` : "暂无记录"}
+                </Badge>
               </div>
             </CardHeader>
             <CardContent>

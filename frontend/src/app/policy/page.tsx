@@ -44,7 +44,7 @@ export default function PolicyPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPolicy, setSelectedPolicy] = useState<MatchedPolicy | null>(null);
-  const { userId } = useUser();
+  const { userId, currentUser } = useUser();
 
   useEffect(() => {
     setLoading(true);
@@ -56,6 +56,10 @@ export default function PolicyPage() {
 
   const policies = data?.policies || [];
   const totalSavings = data?.total_savings || 0;
+  const evidence = data?.evidence;
+  const chronicText = evidence?.chronic_diseases?.length
+    ? evidence.chronic_diseases.join(" · ")
+    : "无已登记慢病";
 
   const filteredPolicies = policies.filter(
     (p) =>
@@ -98,9 +102,12 @@ export default function PolicyPage() {
                 <Users className="h-6 w-6 text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-bold">演示用户 · 职工医保</h3>
+                <h3 className="text-lg font-bold">
+                  {currentUser?.name || "演示用户"} · {evidence?.insurance_type || "职工医保"}
+                </h3>
                 <p className="text-sm text-white/80 mt-0.5">
-                  糖尿病 · 高血压 | 缴费15年3个月 | 已匹配 {policies.length} 项政策
+                  {chronicText}
+                  {evidence?.age ? ` | ${evidence.age}岁` : ""} | 已匹配 {policies.length} 项政策
                 </p>
               </div>
               <div className="text-left sm:text-right">

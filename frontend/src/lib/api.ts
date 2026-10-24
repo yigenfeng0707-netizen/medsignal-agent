@@ -182,15 +182,17 @@ export async function sendChatMessage(
 export async function getCoverageSummary(
   userId: string,
 ): Promise<CoverageSummary> {
-  const data = await apiFetch<CoverageSummary & { payment_history_values?: number[] }>(
-    `/api/coverage/${userId}`,
-  );
+  const data = await apiFetch<
+    CoverageSummary & { payment_history_values?: number[] }
+  >(`/api/coverage/${userId}`);
   if (data) {
     // 后端真实返回的是对象数组，前端柱状图需要 number[]，做兼容转换
     const ph = data.payment_history as unknown;
     if (Array.isArray(ph) && ph.length > 0 && typeof ph[0] === "object") {
-      data.payment_history = (ph as { personal_amount?: number }[]).map(
-        (p) => p.personal_amount ?? 0,
+      const rows = ph as { year?: number; month?: number; personal_amount?: number }[];
+      data.payment_history = rows.map((p) => p.personal_amount ?? 0);
+      data.payment_history_labels = rows.map(
+        (p) => `${p.year ?? ""}.${String(p.month ?? "").padStart(2, "0")}`,
       );
     } else if (data.payment_history_values && Array.isArray(data.payment_history_values)) {
       data.payment_history = data.payment_history_values as unknown as number[];

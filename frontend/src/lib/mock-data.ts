@@ -32,10 +32,12 @@ export interface Activity {
 export interface CoverageSummary {
   user: UserInfo;
   payment_years: string;
+  payment_months?: number;
   account_balance: number;
   outpatient_ratio: number;
   inpatient_ratio: number;
   payment_history: number[];
+  payment_history_labels?: string[];
   recent_activities: Activity[];
 }
 
@@ -144,6 +146,13 @@ export interface MatchedPolicy {
 export interface PolicyMatch {
   total_savings: number;
   policies: MatchedPolicy[];
+  matched_count?: number;
+  evidence?: {
+    chronic_diseases?: string[];
+    insurance_type?: string;
+    age?: number;
+    annual_medical_cost?: number;
+  };
 }
 
 export interface AuthEntry {

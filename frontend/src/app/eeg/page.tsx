@@ -95,7 +95,7 @@ const BAND_META: Record<string, { label: string; color: string; desc: string }> 
 };
 
 function getScoreColor(score: number, reverse = false): string {
-  // reverse=true：分数越低越危险（如睡眠质量）
+  // reverse=true：分数越高越危险（如压力指数、各类风险值）
   const s = reverse ? 100 - score : score;
   if (s >= 70) return "#22c55e";
   if (s >= 40) return "#f59e0b";
@@ -693,10 +693,10 @@ export default function EEGPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <MetricRing score={metrics.stress_index} label="压力指数" icon={Zap} />
+                <MetricRing score={metrics.stress_index} label="压力指数" icon={Zap} reverse />
                 <MetricRing score={metrics.attention_index} label="注意力" icon={Eye} />
-                <MetricRing score={metrics.sleep_quality} label="睡眠质量" icon={Moon} reverse />
-                <MetricRing score={metrics.cognitive_load} label="认知负荷" icon={Brain} />
+                <MetricRing score={metrics.sleep_quality} label="睡眠质量" icon={Moon} />
+                <MetricRing score={metrics.cognitive_load} label="认知负荷" icon={Brain} reverse />
               </div>
               {/* ⭐ 赛道7核心：脑血管风险 + 认知衰退 + 精神状态 */}
               <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
