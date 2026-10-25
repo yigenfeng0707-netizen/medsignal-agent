@@ -244,23 +244,36 @@ class LLMService:
                     base_url=settings.VISION_BASE_URL.rstrip("/"),
                 )
             client = self._vision_client
+            model = settings.VISION_MODEL
         if client is None:
             client = self._fallback_client if self._fallback_initialized else None
             model = settings.DASHSCOPE_VL_MODEL
-        else:
-            model = settings.VISION_MODEL
         if client is None and self._initialized and "dashscope" in self._base_url:
             client = self._client
             model = settings.DASHSCOPE_VL_MODEL
         if client is None:
             raise RuntimeError("视觉模型不可用：未配置 VISION_API_KEY 或 DASHSCOPE_API_KEY")
 
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=2048,
-        )
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=2048,
+            )
+        except Exception:
+            # VISION_* 不可用时自动回落（避免单一 key 失效弄坏视觉链路）
+            if client is self._vision_client and self._fallback_initialized:
+                client = self._fallback_client
+                model = settings.DASHSCOPE_VL_MODEL
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=2048,
+                )
+            else:
+                raise
         return (response.choices[0].message.content or "").strip()
 
     async def chat_with_rag(
