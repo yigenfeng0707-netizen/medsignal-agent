@@ -105,6 +105,7 @@ class LLMService:
         self._fallback_model = fallback_model
         self._fallback_client = None
         self._fallback_initialized = False
+        self._vision_client = None
 
         self._init_client()
         if fallback_api_key and not self._is_placeholder_key(fallback_api_key):
@@ -233,14 +234,29 @@ class LLMService:
         """
         from app.config import settings
 
-        client = self._fallback_client if self._fallback_initialized else None
+        # 视觉优先走独立 VISION_* 客户端（灵汐 Qwen2_5_VL_7B）；
+        # 未配置时回落 fallback 客户端（DashScope qwen-vl）
+        client = None
+        if settings.VISION_API_KEY and settings.VISION_BASE_URL:
+            if self._vision_client is None:
+                self._vision_client = OpenAI(
+                    api_key=settings.VISION_API_KEY,
+                    base_url=settings.VISION_BASE_URL.rstrip("/"),
+                )
+            client = self._vision_client
+        if client is None:
+            client = self._fallback_client if self._fallback_initialized else None
+            model = settings.DASHSCOPE_VL_MODEL
+        else:
+            model = settings.VISION_MODEL
         if client is None and self._initialized and "dashscope" in self._base_url:
             client = self._client
+            model = settings.DASHSCOPE_VL_MODEL
         if client is None:
-            raise RuntimeError("视觉模型不可用：未配置 DASHSCOPE_API_KEY")
+            raise RuntimeError("视觉模型不可用：未配置 VISION_API_KEY 或 DASHSCOPE_API_KEY")
 
         response = client.chat.completions.create(
-            model=settings.DASHSCOPE_VL_MODEL,
+            model=model,
             messages=messages,
             temperature=temperature,
             max_tokens=2048,

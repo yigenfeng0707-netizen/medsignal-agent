@@ -132,15 +132,16 @@ class Orchestrator:
             self._services_initialized = True
             return
 
-        # 初始化 LLM 服务（主力：aiping 网关 Kimi-K3，备选：阿里云 DashScope）
+        # 初始化 LLM 服务（主力：灵汐类脑云 Qwen3_8B；
+        #  备选：LLM_FALLBACK_*（阶跃 step_plan），未配置时回落 DASHSCOPE_*）
         try:
             self._llm = LLMService(
                 api_key=settings.LLM_API_KEY,
                 base_url=settings.LLM_BASE_URL,
                 model=settings.LLM_MODEL,
-                fallback_api_key=settings.DASHSCOPE_API_KEY,
-                fallback_base_url=settings.DASHSCOPE_BASE_URL,
-                fallback_model=settings.DASHSCOPE_MODEL,
+                fallback_api_key=settings.LLM_FALLBACK_API_KEY or settings.DASHSCOPE_API_KEY,
+                fallback_base_url=settings.LLM_FALLBACK_BASE_URL or settings.DASHSCOPE_BASE_URL,
+                fallback_model=settings.LLM_FALLBACK_MODEL or settings.DASHSCOPE_MODEL,
             )
             if self._llm.is_available:
                 logger.info("LLM 服务初始化成功")

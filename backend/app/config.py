@@ -10,14 +10,20 @@ class Settings(BaseSettings):
     LLM_BASE_URL: str = "https://aiping.cn/api/v1"
     LLM_MODEL: str = "Kimi-K3"
 
-    # 备选 LLM：阿里云 DashScope（通义千问）
+    # 备选 LLM 槽位 1：LLM_FALLBACK_*（优先级更高；当前接入阶跃 step_plan）
+    LLM_FALLBACK_API_KEY: str = ""
+    LLM_FALLBACK_BASE_URL: str = ""
+    LLM_FALLBACK_MODEL: str = ""
+
+    # 备选 LLM 槽位 2：阿里云 DashScope（LLM_FALLBACK_* 未配置时回落到此；
+    # DASHSCOPE_VL_MODEL 同时供视觉链路兜底）
     DASHSCOPE_API_KEY: str = ""
     DASHSCOPE_BASE_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     DASHSCOPE_MODEL: str = "qwen-plus"
     # 阿里云多模态（视觉）模型：档案管家转录上传的报告图片
     DASHSCOPE_VL_MODEL: str = "qwen-vl-plus"
 
-    # 视觉模型：aiping 网关（GLM-4.6V，供影像/图文理解扩展使用）
+    # 视觉模型（影像/图文理解；当前接入灵汐 Qwen2_5_VL_7B）
     VISION_API_KEY: str = ""
     VISION_BASE_URL: str = "https://aiping.cn/api/v1"
     VISION_MODEL: str = "GLM-4.6V"
