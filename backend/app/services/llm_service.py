@@ -237,6 +237,8 @@ class LLMService:
         # 视觉优先走独立 VISION_* 客户端（灵汐 Qwen2_5_VL_7B）；
         # 未配置时回落 fallback 客户端（DashScope qwen-vl）
         client = None
+        from openai import OpenAI
+
         if settings.VISION_API_KEY and settings.VISION_BASE_URL:
             if self._vision_client is None:
                 self._vision_client = OpenAI(
