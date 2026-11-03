@@ -126,7 +126,7 @@ python -m pytest tests/ -v
 |---|---|
 | 前端 | Next.js 14 + React 18 + TypeScript + TailwindCSS + shadcn/ui + ECharts + Framer Motion |
 | 后端 | FastAPI + SQLAlchemy 2.0 (async) + Pydantic v2 |
-| AI/LLM | OpenAI 兼容 API（aiping 网关 Kimi-K3 主力 + 阿里 DashScope 备选 + GLM-4.6V 视觉模型） |
+| AI/LLM | OpenAI 兼容 API（主办方类脑云 Qwen3_8B 主力 + 阿里 DashScope qwen-plus 备选 + Qwen2_5_VL_7B 视觉模型） |
 | 向量库 | ChromaDB + sentence-transformers（离线嵌入，无网络依赖） |
 | 脑电分析 | numpy（FFT/Welch PSD 频域分析 + 合成 EEG 信号生成） |
 | 医学影像 | 确定性病灶生成 + SVG 影像渲染 + bbox 叠加 + 医生复核工作流 |
@@ -178,9 +178,9 @@ medsignal/
 ## 🔐 环境变量
 
 见 `.env.example`。关键项：
-- `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` — 主力 LLM（aiping 网关 Kimi-K3）
-- `VISION_API_KEY` / `VISION_BASE_URL` / `VISION_MODEL` — 视觉模型（aiping 网关 GLM-4.6V，医学影像解读，可选）
-- `DASHSCOPE_API_KEY` / `DASHSCOPE_MODEL` — 备选 LLM（阿里）
+- `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` — 主力 LLM（主办方类脑云 `https://ainfra.lynxicloud.com/v1`，模型 `Qwen3_8B`）
+- `VISION_API_KEY` / `VISION_BASE_URL` / `VISION_MODEL` — 视觉模型（同一类脑云端点，模型 `Qwen2_5_VL_7B`，医学影像解读，可选）
+- `DASHSCOPE_API_KEY` / `DASHSCOPE_MODEL` — 备选 LLM（阿里云 DashScope `qwen-plus`，主力不可用时自动回落）
 - `OCR_API_KEY` — OCR.space
 - `YIBAO_API_KEY` — API 鉴权（可选，不配则开放）
 
@@ -190,15 +190,22 @@ medsignal/
 
 项目使用 OpenAI 兼容协议，代码入口位于 `backend/app/services/llm_service.py`：
 
-- 主调用：`LLM_BASE_URL` + `LLM_API_KEY` + `LLM_MODEL`，示例默认是 aiping 网关的 `Kimi-K3`。
-- 备用调用：`DASHSCOPE_BASE_URL` + `DASHSCOPE_API_KEY` + `DASHSCOPE_MODEL`，示例默认是阿里云 DashScope 的 `qwen-plus`。
-- 视觉解读：`VISION_BASE_URL` + `VISION_API_KEY` + `VISION_MODEL`，为可选能力。
+- 主调用：`LLM_BASE_URL` + `LLM_API_KEY` + `LLM_MODEL`，当前配置为主办方类脑云（灵汐云）的 `Qwen3_8B`。该服务同时提供 `Qwen2_5_7B`（文本）与 `Qwen2_5_VL_7B`（多模态）两个模型，均为 OpenAI 兼容接口。
+- 视觉解读：`VISION_BASE_URL` + `VISION_API_KEY` + `VISION_MODEL`，当前为类脑云的 `Qwen2_5_VL_7B`，为可选能力。
+- 备用调用：`DASHSCOPE_BASE_URL` + `DASHSCOPE_API_KEY` + `DASHSCOPE_MODEL`，示例默认是阿里云 DashScope 的 `qwen-plus`；主力不可用或凭据过期时自动回落。
 - 当 `DEMO_OFFLINE=true` 时，后端会主动跳过 LLM 和知识库初始化，因此即使填了 Key 也不会调用大模型。
+
+### 各环境的主力模型
+
+| 环境 | 主力模型 | 配置来源 |
+|---|---|---|
+| 本地开发 | 类脑云 `Qwen3_8B` | `backend/.env` 直连 `https://ainfra.lynxicloud.com/v1` |
+| 魔搭创空间（在线 Demo） | 类脑云 `Qwen3_8B` | GitHub Actions 同步 `LLM_BASE_URL` / `LLM_MODEL`；令牌由 Secrets 注入，不落仓库 |
 
 ## 🛡️ 容错降级
 
 三级降级保证 Demo 绝不翻车：
-1. **LLM**：Kimi-K3 → DashScope → 关键词匹配 + 规则引擎
+1. **LLM**：类脑云 Qwen3_8B → DashScope qwen-plus → 关键词匹配 + 规则引擎
 2. **知识库**：API Embedding → ChromaDB 默认嵌入 → mock
 3. **前端**：后端 API → 本地 mock-data.ts
 
