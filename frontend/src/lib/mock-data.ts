@@ -141,6 +141,31 @@ export interface MatchedPolicy {
   requirements: string[];
   benefits: string[];
   deadline: string;
+  region?: string;
+}
+
+export type Region = "浙江" | "上海" | "江苏" | "安徽";
+
+export const REGION_OPTIONS: Region[] = ["浙江", "上海", "江苏", "安徽"];
+
+const CITY_REGION_MAP: Record<string, Region> = {
+  杭州: "浙江", 宁波: "浙江", 温州: "浙江", 嘉兴: "浙江", 湖州: "浙江", 绍兴: "浙江",
+  金华: "浙江", 衢州: "浙江", 舟山: "浙江", 台州: "浙江", 丽水: "浙江",
+  上海: "上海", 浦东: "上海", 青浦: "上海", 嘉定: "上海", 松江: "上海", 闵行: "上海",
+  南京: "江苏", 苏州: "江苏", 无锡: "江苏", 常州: "江苏", 南通: "江苏", 徐州: "江苏",
+  扬州: "江苏", 盐城: "江苏", 泰州: "江苏", 镇江: "江苏", 淮安: "江苏", 连云港: "江苏", 宿迁: "江苏",
+  合肥: "安徽", 芜湖: "安徽", 蚌埠: "安徽", 淮南: "安徽", 马鞍山: "安徽", 淮北: "安徽",
+  铜陵: "安徽", 安庆: "安徽", 黄山: "安徽", 滁州: "安徽", 阜阳: "安徽", 宿州: "安徽",
+  六安: "安徽", 亳州: "安徽", 池州: "安徽", 宣城: "安徽",
+};
+
+/** 按参保城市推断省级参保地（长三角四地），默认浙江 */
+export function regionFromCity(city?: string): Region {
+  if (!city) return "浙江";
+  for (const [name, region] of Object.entries(CITY_REGION_MAP)) {
+    if (city.includes(name)) return region;
+  }
+  return "浙江";
 }
 
 export interface PolicyMatch {
@@ -148,6 +173,8 @@ export interface PolicyMatch {
   policies: MatchedPolicy[];
   matched_count?: number;
   evidence?: {
+    region?: string;
+    city?: string;
     chronic_diseases?: string[];
     insurance_type?: string;
     age?: number;
@@ -353,22 +380,22 @@ export interface EEGMentalState {
 // ==================== 用户数据 ====================
 
 export const mockUsers: UserInfo[] = [
-  { id: 1, name: "张阿姨", age: 58, gender: "女", city: "南京", insurance_type: "职工医保", employee_status: "退休", conditions: ["糖尿病", "高血压"] },
-  { id: 2, name: "李大爷", age: 72, gender: "男", city: "苏州", insurance_type: "居民医保", employee_status: "退休", conditions: ["冠心病"] },
-  { id: 3, name: "王先生", age: 35, gender: "男", city: "南京", insurance_type: "职工医保", employee_status: "在职", conditions: [] },
-  { id: 4, name: "赵女士", age: 42, gender: "女", city: "无锡", insurance_type: "职工医保", employee_status: "在职", conditions: ["甲状腺结节"] },
-  { id: 5, name: "陈同学", age: 22, gender: "男", city: "南京", insurance_type: "居民医保", employee_status: "学生", conditions: [] },
-  { id: 6, name: "刘阿姨", age: 65, gender: "女", city: "常州", insurance_type: "职工医保", employee_status: "退休", conditions: ["糖尿病", "骨质疏松"] },
-  { id: 7, name: "周先生", age: 50, gender: "男", city: "南京", insurance_type: "职工医保", employee_status: "在职", conditions: ["胃病"] },
-  { id: 8, name: "吴女士", age: 28, gender: "女", city: "苏州", insurance_type: "职工医保", employee_status: "在职", conditions: [] },
-  { id: 9, name: "孙大爷", age: 78, gender: "男", city: "南通", insurance_type: "居民医保", employee_status: "退休", conditions: ["高血压", "关节炎", "白内障"] },
-  { id: 10, name: "郑先生", age: 45, gender: "男", city: "南京", insurance_type: "灵活就业医保", employee_status: "灵活就业", conditions: ["腰椎间盘突出"] },
+  { id: 1, name: "张阿姨", age: 58, gender: "女", city: "杭州", insurance_type: "职工医保", employee_status: "退休", conditions: ["糖尿病", "高血压"] },
+  { id: 2, name: "李大爷", age: 72, gender: "男", city: "上海", insurance_type: "居民医保", employee_status: "退休", conditions: ["冠心病"] },
+  { id: 3, name: "王先生", age: 35, gender: "男", city: "杭州", insurance_type: "职工医保", employee_status: "在职", conditions: [] },
+  { id: 4, name: "赵女士", age: 42, gender: "女", city: "南京", insurance_type: "职工医保", employee_status: "在职", conditions: ["甲状腺结节"] },
+  { id: 5, name: "陈同学", age: 22, gender: "男", city: "合肥", insurance_type: "居民医保", employee_status: "学生", conditions: [] },
+  { id: 6, name: "刘阿姨", age: 65, gender: "女", city: "宁波", insurance_type: "职工医保", employee_status: "退休", conditions: ["糖尿病", "骨质疏松"] },
+  { id: 7, name: "周先生", age: 50, gender: "男", city: "苏州", insurance_type: "职工医保", employee_status: "在职", conditions: ["胃病"] },
+  { id: 8, name: "吴女士", age: 28, gender: "女", city: "上海", insurance_type: "职工医保", employee_status: "在职", conditions: [] },
+  { id: 9, name: "孙大爷", age: 78, gender: "男", city: "合肥", insurance_type: "居民医保", employee_status: "退休", conditions: ["高血压", "关节炎", "白内障"] },
+  { id: 10, name: "郑先生", age: 45, gender: "男", city: "温州", insurance_type: "灵活就业医保", employee_status: "灵活就业", conditions: ["腰椎间盘突出"] },
 ];
 
 // ==================== 权益全景 ====================
 
 export const mockCoverageSummary: CoverageSummary = {
-  user: { id: 1, name: "张明", age: 45, gender: "男", city: "南京市", insurance_type: "职工医保", employee_status: "在职", conditions: ["糖尿病", "高血压"] },
+  user: { id: 1, name: "张明", age: 45, gender: "男", city: "杭州市", insurance_type: "职工医保", employee_status: "在职", conditions: ["糖尿病", "高血压"] },
   payment_years: "15年3个月",
   account_balance: 8562.30,
   outpatient_ratio: 0.85,
@@ -489,98 +516,212 @@ export const mockClaimsPreReview: ClaimsPreReview = {
   ],
 };
 
-// ==================== 政策匹配 ====================
+// ==================== 政策匹配（长三角四地） ====================
 
-export const mockPolicyMatch: PolicyMatch = {
-  total_savings: 7600,
-  policies: [
+const CROSS_REGION_POLICY: MatchedPolicy = {
+  id: "cross-region",
+  title: "跨省异地就医直接结算（含长三角一体化）",
+  savings: "预计每年节省 ¥800",
+  savingsAmount: 800,
+  matchReason: "备案后异地就医可直接结算；长三角沪苏浙皖门诊、住院费用均已实现跨省直接结算",
+  matchScore: 72,
+  category: "异地就医",
+  description: "参保人办理异地就医备案后，可在就医地开通直接结算的定点医疗机构刷卡（码）结算，执行“就医地目录、参保地政策”。长三角三省一市门诊、住院费用均已实现跨省直接结算，2022年10月起门诊慢特病费用跨省结算互联互通。",
+  requirements: ["已办理异地就医备案", "就医医院已开通跨省直接结算", "持社保卡或医保电子凭证"],
+  benefits: ["异地就医直接刷卡结算", "无需垫付大额医疗费用", "门急诊、住院、门诊慢特病均支持长三角跨省结算"],
+  deadline: "长期有效",
+};
+
+const REGIONAL_POLICIES: Record<Region, MatchedPolicy[]> = {
+  浙江: [
     {
-      id: "1",
-      title: "门诊慢病待遇",
+      id: "zj-chronic",
+      title: "门诊慢特病待遇（糖尿病）",
       savings: "预计每年节省 ¥3,600",
       savingsAmount: 3600,
-      matchReason: "您符合糖尿病门诊慢病认定条件",
+      matchReason: "您符合杭州市糖尿病门诊慢特病认定条件",
       matchScore: 95,
       category: "门诊保障",
-      description: "门诊慢病待遇是指将部分慢性病、特殊疾病的门诊治疗费用纳入医保统筹基金支付范围的政策。糖尿病患者经认定后，门诊治疗费用可按住院标准报销。",
-      requirements: [
-        "已参加南京市职工基本医疗保险",
-        "经二级以上医院确诊为糖尿病",
-        "近6个月内有规律治疗记录",
-        "糖化血红蛋白检测报告",
-      ],
-      benefits: [
-        "门诊费用按住院比例报销（90%）",
-        "年度报销限额提高至8万元",
-        "指定药品享受零差价",
-        "免起付线，直接按比例报销",
-      ],
-      deadline: "2026-03-31",
+      description: "经认定后，糖尿病门诊治疗费用按住院比例报销，报销比例较普通门诊明显提高，并在定点机构直接结算。",
+      requirements: ["已参加杭州市职工基本医疗保险", "经二级以上医院确诊为糖尿病", "近6个月内有规律治疗记录"],
+      benefits: ["门诊费用按住院比例报销，社区医疗机构可达90%-95%", "年度支付限额5000元", "定点机构直接结算"],
+      deadline: "2026-12-31",
     },
     {
-      id: "2",
+      id: "zj-hypertension",
       title: "高血压门诊用药保障",
       savings: "预计每年节省 ¥1,200",
       savingsAmount: 1200,
-      matchReason: "您正在服用高血压相关药物，符合保障条件",
+      matchReason: "您正在服用降压药物，符合高血压门诊用药保障条件",
       matchScore: 88,
       category: "用药保障",
-      description: "高血压门诊用药保障政策为高血压患者提供门诊用药费用报销，降低长期用药经济负担。",
-      requirements: [
-        "已参加南京市职工基本医疗保险",
-        "经确诊为高血压（I级及以上）",
-        "正在使用降压药物治疗",
-      ],
-      benefits: [
-        "指定降压药品报销比例提高至85%",
-        "年度用药限额1.5万元",
-        "可享受长处方（最长12周）",
-      ],
+      description: "为高血压患者提供门诊用药费用报销，支持长处方，降低长期用药负担。",
+      requirements: ["已参加浙江省基本医疗保险", "经确诊为高血压", "正在使用降压药物治疗"],
+      benefits: ["指定降压药品报销比例提高", "可享受最长12周长处方", "定点药店购药按规定报销"],
       deadline: "2026-06-30",
     },
     {
-      id: "3",
-      title: "异地就医直接结算",
-      savings: "预计每年节省 ¥800",
-      savingsAmount: 800,
-      matchReason: "您有异地就医需求，可享受直接结算便利",
-      matchScore: 72,
-      category: "异地就医",
-      description: "异地就医直接结算政策允许参保人员在异地就医时直接刷卡结算，无需垫付费用后回参保地报销。",
-      requirements: [
-        "已参加南京市职工基本医疗保险",
-        "已办理异地就医备案",
-        "就医医院已开通异地结算",
-      ],
-      benefits: [
-        "异地就医直接刷卡结算",
-        "无需垫付大额医疗费用",
-        "报销比例与参保地一致",
-      ],
+      id: "zj-big-insurance",
+      title: "大病保险待遇",
+      savings: "预计每年节省 ¥2,000",
+      savingsAmount: 2000,
+      matchReason: "年度医疗费用超过大病保险起付线后可自动享受分段报销",
+      matchScore: 70,
+      category: "大病保障",
+      description: "对基本医保报销后个人负担的合规医疗费用，超过大病保险起付线的部分分段报销。",
+      requirements: ["已参加浙江省基本医疗保险", "年度合规医疗费用超过大病保险起付线（1.5万元）"],
+      benefits: ["起付线以上分段报销60%-90%", "不设封顶线", "达到起付线后系统自动结算"],
+      deadline: "长期有效",
+    },
+    CROSS_REGION_POLICY,
+  ],
+  上海: [
+    {
+      id: "sh-outpatient-major",
+      title: "门诊大病（门慢门特）登记待遇",
+      savings: "预计每年节省 ¥4,200",
+      savingsAmount: 4200,
+      matchReason: "办理门诊大病登记后，相关门诊治疗可按住院标准支付",
+      matchScore: 94,
+      category: "门诊保障",
+      description: "上海市对恶性肿瘤门诊化疗放疗、尿毒症透析、肾移植术后抗排异、精神障碍等门诊大病实行登记管理，登记后按住院标准支付。",
+      requirements: ["已参加上海市职工基本医疗保险", "在定点医疗机构办理门诊大病登记", "在门诊进行认定病种相关治疗"],
+      benefits: ["按住院标准支付，不设普通门诊自负段", "减负后在职自负10%、退休自负5%", "可使用历年个人账户资金支付自负部分"],
       deadline: "长期有效",
     },
     {
-      id: "4",
-      title: "大病保险补充保障",
-      savings: "预计每年节省 ¥2,000",
-      savingsAmount: 2000,
-      matchReason: "您的医疗费用已接近大病保险起付线",
-      matchScore: 65,
-      category: "大病保障",
-      description: "大病保险是对基本医保的补充，当个人年度自付医疗费用超过起付线后，超出部分由大病保险按比例报销。",
-      requirements: [
-        "已参加南京市职工基本医疗保险",
-        "年度自付费用超过起付线（1.5万元）",
-      ],
-      benefits: [
-        "起付线以上部分按60%-80%报销",
-        "年度报销限额40万元",
-        "特殊药品纳入保障范围",
-      ],
+      id: "sh-outpatient",
+      title: "职工医保门急诊统筹待遇",
+      savings: "预计每年节省 ¥1,800",
+      savingsAmount: 1800,
+      matchReason: "在职职工门急诊超过500元自负段后，可按医疗机构等级报销",
+      matchScore: 85,
+      category: "门诊保障",
+      description: "上海市在职职工门急诊设置500元自负段，超过部分由统筹基金按医疗机构等级支付，2025医保年度统筹基金最高支付限额65万元。",
+      requirements: ["已参加上海市职工基本医疗保险", "在定点医疗机构门急诊就医", "持社保卡或医保电子凭证"],
+      benefits: ["自负段500元后一级80%、二级75%、三级70%", "2025年度统筹基金最高支付限额65万元", "最高支付限额以上由地方附加医疗保险基金支付80%"],
+      deadline: "2025-12-31",
+    },
+    {
+      id: "sh-demo-zone",
+      title: "长三角示范区医保同城化",
+      savings: "预计每年节省 ¥1,000",
+      savingsAmount: 1000,
+      matchReason: "青浦—吴江—嘉善示范区已实现区域就医免备案与慢特病结算通",
+      matchScore: 78,
+      category: "长三角一体化",
+      description: "上海青浦、江苏吴江、浙江嘉善自2020年8月起推动医保一体化“五件事”，示范区内门急诊就医免备案，慢特病费用可直接结算。",
+      requirements: ["示范区内参保或就医", "在示范区定点医疗机构就诊", "持医保电子凭证或社保卡"],
+      benefits: ["区域就医免备案", "门诊慢特病直接结算", "住院刷卡探索享受本地报销待遇"],
       deadline: "长期有效",
     },
+    CROSS_REGION_POLICY,
+  ],
+  江苏: [
+    {
+      id: "js-chronic",
+      title: "门诊慢特病待遇（高血压）",
+      savings: "预计每年节省 ¥1,200",
+      savingsAmount: 1200,
+      matchReason: "您符合江苏省高血压门诊慢特病认定条件",
+      matchScore: 90,
+      category: "门诊保障",
+      description: "江苏省门诊慢特病分为慢性病和特殊病两类管理，认定后在定点机构门诊治疗可按较高比例报销。",
+      requirements: ["已参加江苏省基本医疗保险", "经二级以上医院确诊", "完成门诊慢特病待遇认定"],
+      benefits: ["报销比例较普通门诊提高5个百分点", "年度支付限额5000元", "定点机构直接结算"],
+      deadline: "2026-12-31",
+    },
+    {
+      id: "js-special",
+      title: "门诊特殊病待遇（恶性肿瘤放化疗）",
+      savings: "预计每年节省 ¥6,000",
+      savingsAmount: 6000,
+      matchReason: "恶性肿瘤放化疗属于江苏省门诊特殊病保障范围",
+      matchScore: 92,
+      category: "门诊保障",
+      description: "恶性肿瘤放疗、化疗、介入治疗、靶向治疗等纳入门诊特殊病范围，起付标准600元，起付以上按住院比例报销。",
+      requirements: ["已参加江苏省基本医疗保险", "经确诊为恶性肿瘤", "办理门诊特殊病待遇认定"],
+      benefits: ["起付标准600元，起付以上按住院比例报销", "特殊病种年度限额可适当提高", "定点机构直接结算"],
+      deadline: "长期有效",
+    },
+    {
+      id: "js-big-insurance",
+      title: "大病保险待遇",
+      savings: "预计每年节省 ¥2,500",
+      savingsAmount: 2500,
+      matchReason: "年度医疗费用超过大病保险起付线后可自动享受分段报销",
+      matchScore: 75,
+      category: "大病保障",
+      description: "江苏省大病保险起付线1.5万元，起付以上分段报销，不设封顶线。",
+      requirements: ["已参加江苏省基本医疗保险", "年度合规医疗费用超过大病保险起付线（1.5万元）"],
+      benefits: ["起付线以上分段报销60%-90%", "不设封顶线", "达到起付线后系统自动结算"],
+      deadline: "长期有效",
+    },
+    CROSS_REGION_POLICY,
+  ],
+  安徽: [
+    {
+      id: "ah-chronic",
+      title: "门诊慢特病待遇（83种）",
+      savings: "预计每年节省 ¥3,000",
+      savingsAmount: 3000,
+      matchReason: "安徽省门诊慢特病病种已扩至83种，认定后可参照住院规定报销",
+      matchScore: 90,
+      category: "门诊保障",
+      description: "安徽省执行统一的病种编码、认定标准和基金年度最高支付限额，参保患者经认定后，一个年度内门诊慢特病费用参照一次住院的规定报销。",
+      requirements: ["已参加安徽省基本医疗保险", "经临床专家鉴定符合病种认定标准", "在定点机构就医购药"],
+      benefits: ["83种门诊慢特病纳入保障", "年度内参照一次住院规定报销", "定点机构直接结算"],
+      deadline: "2026-12-31",
+    },
+    {
+      id: "ah-hypertension",
+      title: "高血压门诊慢特病用药保障",
+      savings: "预计每年节省 ¥1,200",
+      savingsAmount: 1200,
+      matchReason: "高血压属于安徽省门诊慢特病病种，可享受用药保障",
+      matchScore: 86,
+      category: "用药保障",
+      description: "高血压认定后可享受门诊慢特病待遇，省直医保年度支付限额3600元，定点药店购药按规定报销。",
+      requirements: ["已参加安徽省基本医疗保险", "完成高血压门诊慢特病认定", "在定点机构或定点药店购药"],
+      benefits: ["省直医保高血压年度限额3600元", "定点药店购药可报销", "支持长处方"],
+      deadline: "长期有效",
+    },
+    {
+      id: "ah-big-insurance",
+      title: "大病保险与医疗救助",
+      savings: "预计每年节省 ¥2,000",
+      savingsAmount: 2000,
+      matchReason: "基本医保报销后个人负担较重，可享大病保险与医疗救助",
+      matchScore: 72,
+      category: "大病保障",
+      description: "安徽省大病保险对基本医保报销后个人负担的合规医疗费用分段报销，困难人员可叠加医疗救助。",
+      requirements: ["已参加安徽省基本医疗保险", "合规医疗费用超过大病保险起付线", "困难人员可申请医疗救助"],
+      benefits: ["大病保险分段报销", "困难人员起付线降低、报销比例提高", "医疗救助托底"],
+      deadline: "长期有效",
+    },
+    CROSS_REGION_POLICY,
   ],
 };
+
+const REGION_EVIDENCE: Record<Region, { city: string; insurance_type: string; chronic_diseases: string[] }> = {
+  浙江: { city: "杭州市", insurance_type: "职工医保", chronic_diseases: ["糖尿病", "高血压"] },
+  上海: { city: "上海市", insurance_type: "职工医保", chronic_diseases: ["冠心病"] },
+  江苏: { city: "南京市", insurance_type: "职工医保", chronic_diseases: ["高血压"] },
+  安徽: { city: "合肥市", insurance_type: "职工医保", chronic_diseases: ["高血压"] },
+};
+
+/** 按参保地返回离线兜底的政策匹配结果 */
+export function getMockPolicyMatch(region: Region = "浙江"): PolicyMatch {
+  const policies = REGIONAL_POLICIES[region].map((p) => ({ ...p, region }));
+  return {
+    total_savings: policies.reduce((sum, p) => sum + p.savingsAmount, 0),
+    matched_count: policies.length,
+    policies,
+    evidence: { region, ...REGION_EVIDENCE[region] },
+  };
+}
+
+export const mockPolicyMatch: PolicyMatch = getMockPolicyMatch("浙江");
 
 // ==================== 数据授权 ====================
 

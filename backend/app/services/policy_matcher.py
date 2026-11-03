@@ -23,6 +23,50 @@ _POLICY_PATH = os.path.join(
 )
 _POLICY_CACHE: list | None = None
 
+# 参保地区与政策来源
+REGIONS = ("浙江", "上海", "江苏", "安徽")
+REGION_SOURCE = {
+    "浙江": "浙江省医疗保障局",
+    "上海": "上海市医疗保障局",
+    "江苏": "江苏省医疗保障局",
+    "安徽": "安徽省医疗保障局",
+}
+# 国家/长三角层面政策对四地均适用
+REGION_COMMON = ("国家", "长三角")
+
+CITY_REGION = {
+    # 浙江
+    "杭州": "浙江", "宁波": "浙江", "温州": "浙江", "嘉兴": "浙江", "湖州": "浙江",
+    "绍兴": "浙江", "金华": "浙江", "衢州": "浙江", "舟山": "浙江", "台州": "浙江", "丽水": "浙江",
+    # 上海
+    "上海": "上海", "浦东": "上海", "青浦": "上海", "嘉定": "上海", "松江": "上海",
+    "闵行": "上海", "徐汇": "上海", "静安": "上海", "黄浦": "上海", "长宁": "上海",
+    "虹口": "上海", "杨浦": "上海", "宝山": "上海", "金山": "上海", "奉贤": "上海", "崇明": "上海",
+    # 江苏
+    "南京": "江苏", "苏州": "江苏", "无锡": "江苏", "常州": "江苏", "南通": "江苏",
+    "徐州": "江苏", "扬州": "江苏", "盐城": "江苏", "泰州": "江苏", "镇江": "江苏",
+    "淮安": "江苏", "连云港": "江苏", "宿迁": "江苏",
+    # 安徽
+    "合肥": "安徽", "芜湖": "安徽", "蚌埠": "安徽", "淮南": "安徽", "马鞍山": "安徽",
+    "淮北": "安徽", "铜陵": "安徽", "安庆": "安徽", "黄山": "安徽", "滁州": "安徽",
+    "阜阳": "安徽", "宿州": "安徽", "六安": "安徽", "亳州": "安徽", "池州": "安徽", "宣城": "安徽",
+}
+
+
+def province_from_city(city: str) -> str:
+    """根据参保城市推断省级参保地，默认浙江（演示主场景）。"""
+    if not city:
+        return "浙江"
+    for name, region in CITY_REGION.items():
+        if name in city:
+            return region
+    return "浙江"
+
+
+def _applicable(region: str, policy_region: str) -> bool:
+    """地区政策 + 国家/长三角通用政策 对参保人均适用。"""
+    return not policy_region or policy_region in (region, *REGION_COMMON)
+
 
 def load_policies() -> list:
     """加载政策知识库（带缓存）。"""
@@ -52,11 +96,13 @@ class PolicyMatch:
     steps: list[str]
     evidence: list[dict]        # 数据依据
     source: str = ""
+    region: str = ""
 
     def to_dict(self) -> dict:
         return {
             "id": self.id,
             "title": self.title,
+            "region": self.region,
             "match_score": round(self.match_score, 2),
             "annual_savings": self.annual_savings,
             "match_reason": self.match_reason,
@@ -98,15 +144,17 @@ class MatchReport:
         }
 
 
-def match(profile: dict) -> MatchReport:
+def match(profile: dict, region: str | None = None) -> MatchReport:
     """主入口：基于用户画像匹配政策。
 
     Args:
         profile: crud.get_user_health_profile() 返回的画像
+        region: 参保地区（浙江/上海/江苏/安徽）；为空时按用户城市推断
     """
     if not profile or not profile.get("found"):
         return MatchReport(user_id="", total_savings=0, matched_count=0, policies=[], evidence={})
 
+    region = region if region in REGIONS else province_from_city(profile.get("city", ""))
     chronic = profile.get("chronic_diseases", [])
     ins_type = profile.get("insurance_type", "职工医保")
     age = profile.get("age", 55)
@@ -119,31 +167,31 @@ def match(profile: dict) -> MatchReport:
 
     # ---- 规则 1：门诊慢病待遇（核心省钱政策）----
     for disease in chronic:
-        m = _match_chronic_disease(disease, annual_drug, ins_type, name)
+        m = _match_chronic_disease(disease, annual_drug, ins_type, name, region)
         if m:
             matches.append(m)
 
     # ---- 规则 2：大病保险（高支出用户）----
     if annual_med > 8000:
-        m = _match_big_insurance(annual_med, ins_type, name)
+        m = _match_big_insurance(annual_med, ins_type, name, region)
         if m:
             matches.append(m)
 
     # ---- 规则 3：跨省异地就医直接结算 ----
-    m = _match_cross_region(profile, name)
+    m = _match_cross_region(profile, name, region)
     if m:
         matches.append(m)
 
     # ---- 规则 4：老年人免费体检 ----
     if age >= 65:
-        matches.append(_match_elderly_checkup(age, name))
+        matches.append(_match_elderly_checkup(age, name, region))
 
     # ---- 规则 5：退休人员医保待遇提升 ----
     if "退休" in emp_status:
-        matches.append(_match_retiree_benefit(emp_status, ins_type, name))
+        matches.append(_match_retiree_benefit(emp_status, ins_type, name, region))
 
     # ---- 规则 6：从 policy_knowledge.json 补充匹配（基于 tags 关键词）----
-    kb_matches = _match_from_knowledge_base(chronic, ins_type, age, annual_med)
+    kb_matches = _match_from_knowledge_base(chronic, ins_type, age, annual_med, region)
     existing_titles = {m.title for m in matches}
     for m in kb_matches:
         if m.title not in existing_titles:
@@ -162,6 +210,8 @@ def match(profile: dict) -> MatchReport:
         matched_count=len(matches),
         policies=matches,
         evidence={
+            "region": region,
+            "city": profile.get("city", ""),
             "chronic_diseases": chronic,
             "insurance_type": ins_type,
             "age": age,
@@ -175,7 +225,7 @@ def match(profile: dict) -> MatchReport:
 # 规则匹配函数
 # ============================================================
 
-def _match_chronic_disease(disease: str, annual_drug: float, ins_type: str, name: str) -> PolicyMatch | None:
+def _match_chronic_disease(disease: str, annual_drug: float, ins_type: str, name: str, region: str) -> PolicyMatch | None:
     """门诊慢病待遇匹配（糖尿病/高血压/冠心病等）"""
     chronic_diseases_map = {
         "糖尿病": {"score": 0.95, "base_savings": 3600, "drug_keyword": "降糖"},
@@ -212,11 +262,12 @@ def _match_chronic_disease(disease: str, annual_drug: float, ins_type: str, name
             {"type": "chronic_disease", "disease": disease},
             {"type": "drug_cost", "annual": annual_drug, "estimated_savings": savings},
         ],
-        source="浙江省医疗保障局",
+        source=REGION_SOURCE.get(region, "省级医疗保障部门"),
+        region=region,
     )
 
 
-def _match_big_insurance(annual_med: float, ins_type: str, name: str) -> PolicyMatch | None:
+def _match_big_insurance(annual_med: float, ins_type: str, name: str, region: str) -> PolicyMatch | None:
     """大病保险匹配（年度医疗支出较高的用户）"""
     # 大病起付线 15000，分段报销
     over = max(0, annual_med - 15000)
@@ -245,34 +296,36 @@ def _match_big_insurance(annual_med: float, ins_type: str, name: str) -> PolicyM
             {"type": "annual_cost", "amount": annual_med, "over_threshold": over},
         ],
         source="国家医疗保障局",
+        region=region,
     )
 
 
-def _match_cross_region(profile: dict, name: str) -> PolicyMatch:
+def _match_cross_region(profile: dict, name: str, region: str) -> PolicyMatch:
     """跨省异地就医直接结算"""
     return PolicyMatch(
         id="cross_region",
-        title="跨省异地就医直接结算",
+        title="跨省异地就医直接结算（含长三角一体化）",
         match_score=0.72,
         annual_savings=800,
         match_reason=(
-            f"备案后异地就医可直接结算，无需垫付资金。"
+            f"备案后异地就医可直接结算，无需垫付资金；长三角沪苏浙皖门诊、住院费用均已实现跨省直接结算。"
             f"为{name}省去来回报销的交通、时间和资金占用成本，预计年节省约 800 元（含间接成本）。"
         ),
         category="异地就医政策",
         deadline=None,
         steps=[
             "通过'国家医保服务平台'APP 或小程序线上备案",
-            "选择就医地统筹区（支持全国 31 省）",
+            "选择就医地统筹区（长三角及全国 31 省）",
             "持社保卡/医保电子凭证就医",
             "出院时直接结算，无需回参保地报销",
         ],
-        evidence=[{"type": "general_benefit", "indirect_savings": 800}],
+        evidence=[{"type": "general_benefit", "indirect_savings": 800, "region": region}],
         source="国家医疗保障局",
+        region="长三角",
     )
 
 
-def _match_elderly_checkup(age: int, name: str) -> PolicyMatch:
+def _match_elderly_checkup(age: int, name: str, region: str) -> PolicyMatch:
     """老年人免费体检"""
     return PolicyMatch(
         id="elderly_checkup",
@@ -293,10 +346,11 @@ def _match_elderly_checkup(age: int, name: str) -> PolicyMatch:
         ],
         evidence=[{"type": "age", "value": age, "benefit_value": 300}],
         source="国家卫生健康委",
+        region=region,
     )
 
 
-def _match_retiree_benefit(emp_status: str, ins_type: str, name: str) -> PolicyMatch:
+def _match_retiree_benefit(emp_status: str, ins_type: str, name: str, region: str) -> PolicyMatch:
     """退休人员医保待遇提升"""
     return PolicyMatch(
         id="retiree_benefit",
@@ -311,11 +365,14 @@ def _match_retiree_benefit(emp_status: str, ins_type: str, name: str) -> PolicyM
         deadline=None,
         steps=["退休后自动享受，无需申请", "报销比例在结算时自动应用"],
         evidence=[{"type": "employee_status", "status": emp_status, "boost": 0.05}],
-        source="省级医疗保障部门",
+        source=REGION_SOURCE.get(region, "省级医疗保障部门"),
+        region=region,
     )
 
 
-def _match_from_knowledge_base(chronic: list, ins_type: str, age: int, annual_med: float) -> list[PolicyMatch]:
+def _match_from_knowledge_base(
+    chronic: list, ins_type: str, age: int, annual_med: float, region: str
+) -> list[PolicyMatch]:
     """从 policy_knowledge.json 基于关键词匹配补充政策"""
     policies = load_policies()
     matches = []
@@ -332,6 +389,8 @@ def _match_from_knowledge_base(chronic: list, ins_type: str, age: int, annual_me
         user_keywords.add("大病")
 
     for p in policies:
+        if not _applicable(region, p.get("region", "")):
+            continue
         title = p.get("title", "")
         tags = p.get("tags", "")
         key_points = " ".join(p.get("key_points", []))
@@ -361,16 +420,19 @@ def _match_from_knowledge_base(chronic: list, ins_type: str, age: int, annual_me
             steps=["查看政策详情了解申请条件", "咨询当地医保经办机构"],
             evidence=[{"type": "policy_keyword_match", "hits": hits, "keywords": list(user_keywords)}],
             source=p.get("source", ""),
+            region=p.get("region", ""),
         ))
 
     return matches
 
 
-def search(query: str, category: str | None = None, top_k: int = 10) -> list[dict]:
+def search(query: str, category: str | None = None, top_k: int = 10, region: str | None = None) -> list[dict]:
     """政策关键词搜索（供 policy.py:/search 调用，不依赖向量库的兜底）"""
     policies = load_policies()
     results = []
     for p in policies:
+        if region and not _applicable(region, p.get("region", "")):
+            continue
         title = p.get("title", "")
         summary = p.get("summary", "")
         tags = p.get("tags", "")
@@ -397,6 +459,7 @@ def search(query: str, category: str | None = None, top_k: int = 10) -> list[dic
                 "publish_date": p.get("publish_date", ""),
                 "summary": summary[:200],
                 "source": p.get("source", ""),
+                "region": p.get("region", ""),
                 "score": round(min(score, 1.0), 4),
             })
 

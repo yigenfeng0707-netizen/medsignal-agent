@@ -106,6 +106,36 @@ class TestRetiree:
         assert any("退休" in t for t in titles)
 
 
+class TestRegionSupport:
+    """长三角四地参保地支持"""
+
+    def test_province_from_city(self):
+        assert policy_matcher.province_from_city("杭州市") == "浙江"
+        assert policy_matcher.province_from_city("上海市") == "上海"
+        assert policy_matcher.province_from_city("南京市") == "江苏"
+        assert policy_matcher.province_from_city("合肥市") == "安徽"
+        assert policy_matcher.province_from_city("") == "浙江"
+
+    def test_match_uses_region_source(self):
+        p = _profile(chronic=["糖尿病"])
+        p["city"] = "上海市"
+        r = policy_matcher.match(p)
+        assert r.evidence["region"] == "上海"
+        assert any(m.source == "上海市医疗保障局" for m in r.policies)
+
+    def test_match_region_override(self):
+        p = _profile(chronic=["糖尿病"])
+        p["city"] = "杭州市"
+        r = policy_matcher.match(p, region="江苏")
+        assert r.evidence["region"] == "江苏"
+        assert any(m.region == "长三角" for m in r.policies)
+
+    def test_search_filters_by_region(self):
+        results = policy_matcher.search("门诊大病", region="上海", top_k=10)
+        assert results
+        assert all(r["region"] in ("上海", "国家", "长三角") for r in results)
+
+
 class TestOutput:
     """输出格式"""
 

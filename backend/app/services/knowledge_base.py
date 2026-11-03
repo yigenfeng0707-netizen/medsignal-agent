@@ -195,6 +195,7 @@ class KnowledgeBase:
             "effective_date": effective_date,
             "tags": ",".join(tags) if isinstance(tags, list) else str(tags),
             "applicable_to": applicable_to,
+            "region": doc.get("region", ""),
         }
 
         # ---- 块类型 1：摘要块 ----
@@ -342,6 +343,7 @@ class KnowledgeBase:
         top_k: int = 5,
         category: str = None,
         min_score: float = 0.5,
+        region: str = None,
     ) -> list[SearchResult]:
         """混合检索：向量相似度 + 关键词匹配
 
@@ -350,6 +352,7 @@ class KnowledgeBase:
             top_k: 返回最相关的 K 条结果
             category: 按政策分类过滤（如 "门诊慢病政策"）
             min_score: 最低相关度阈值（0-1），低于此值的结果被过滤
+            region: 参保地区（浙江/上海/江苏/安徽），同时返回国家/长三角通用政策
 
         Returns:
             按相关度降序排列的 SearchResult 列表
@@ -361,11 +364,11 @@ class KnowledgeBase:
         # 嵌入生成（首次含 ONNX 模型下载）是重同步 IO，必须放线程池，
         # 否则会阻塞事件循环（曾引发线上 chat 504）。
         vector_results = await asyncio.to_thread(
-            self._vector_search, query, top_k * 2, category
+            self._vector_search, query, top_k * 2, category, region
         )
 
         # 2. 关键词检索
-        keyword_results = self._keyword_search(query, top_k * 2, category)
+        keyword_results = self._keyword_search(query, top_k * 2, category, region)
 
         # 3. 合并去重，融合排序
         merged = self._merge_results(vector_results, keyword_results, query)
@@ -376,7 +379,19 @@ class KnowledgeBase:
 
         return final[:top_k]
 
-    def _vector_search(self, query: str, n_results: int, category: str = None) -> list[SearchResult]:
+    @staticmethod
+    def _build_where(category: str = None, region: str = None) -> dict | None:
+        """组合分类与地区过滤条件（国家/长三角政策对所有地区通用）"""
+        conditions = []
+        if category:
+            conditions.append({"category": category})
+        if region:
+            conditions.append({"region": {"$in": [region, "国家", "长三角"]}})
+        if not conditions:
+            return None
+        return conditions[0] if len(conditions) == 1 else {"$and": conditions}
+
+    def _vector_search(self, query: str, n_results: int, category: str = None, region: str = None) -> list[SearchResult]:
         """向量相似度检索"""
         try:
             query_embedding = self._generate_embeddings([query])[0]
@@ -384,9 +399,7 @@ class KnowledgeBase:
             logger.error("查询嵌入生成失败: %s", e)
             return []
 
-        where_filter = None
-        if category:
-            where_filter = {"category": category}
+        where_filter = self._build_where(category, region)
 
         try:
             results = self._collection.query(
@@ -401,16 +414,14 @@ class KnowledgeBase:
 
         return self._parse_chroma_results(results, score_type="vector")
 
-    def _keyword_search(self, query: str, n_results: int, category: str = None) -> list[SearchResult]:
+    def _keyword_search(self, query: str, n_results: int, category: str = None, region: str = None) -> list[SearchResult]:
         """关键词检索（利用 ChromaDB 的 where_document 过滤）"""
         # 提取查询中的关键词（简单分词：去除停用词，按字/词切分）
         keywords = self._extract_keywords(query)
         if not keywords:
             return []
 
-        where_filter = None
-        if category:
-            where_filter = {"category": category}
+        where_filter = self._build_where(category, region)
 
         search_results: list[SearchResult] = []
 
@@ -494,6 +505,7 @@ class KnowledgeBase:
                     "publish_date": meta.get("publish_date", ""),
                     "effective_date": meta.get("effective_date", ""),
                     "applicable_to": meta.get("applicable_to", ""),
+                    "region": meta.get("region", ""),
                     "score_type": score_type,
                 },
             ))

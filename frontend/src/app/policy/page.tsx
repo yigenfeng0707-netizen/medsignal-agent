@@ -29,7 +29,7 @@ import {
 import { motion } from "framer-motion";
 import { getPolicyMatches } from "@/lib/api";
 import { useUser } from "@/lib/user-context";
-import type { PolicyMatch, MatchedPolicy } from "@/lib/mock-data";
+import { REGION_OPTIONS, regionFromCity, type PolicyMatch, type MatchedPolicy, type Region } from "@/lib/mock-data";
 import { ApiStatusIndicator } from "@/components/api-status-indicator";
 import { BrandedPageHeader } from "@/components/branded-page-header";
 
@@ -45,14 +45,19 @@ export default function PolicyPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPolicy, setSelectedPolicy] = useState<MatchedPolicy | null>(null);
   const { userId, currentUser } = useUser();
+  const [region, setRegion] = useState<Region>(() => regionFromCity(currentUser?.city));
+
+  useEffect(() => {
+    if (currentUser?.city) setRegion(regionFromCity(currentUser.city));
+  }, [currentUser?.city]);
 
   useEffect(() => {
     setLoading(true);
-    getPolicyMatches(userId).then((result) => {
+    getPolicyMatches(userId, region).then((result) => {
       setData(result);
       setLoading(false);
     });
-  }, [userId]);
+  }, [userId, region]);
 
   const policies = data?.policies || [];
   const totalSavings = data?.total_savings || 0;
@@ -103,10 +108,10 @@ export default function PolicyPage() {
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold">
-                  {currentUser?.name || "演示用户"} · {evidence?.insurance_type || "职工医保"}
+                  {currentUser?.name || "演示用户"} · {currentUser?.city || evidence?.city || region} · {evidence?.insurance_type || "职工医保"}
                 </h3>
                 <p className="text-sm text-white/80 mt-0.5">
-                  {chronicText}
+                  参保地：{region} | {chronicText}
                   {evidence?.age ? ` | ${evidence.age}岁` : ""} | 已匹配 {policies.length} 项政策
                 </p>
               </div>
@@ -117,6 +122,30 @@ export default function PolicyPage() {
             </div>
           </CardContent>
         </Card>
+      </motion.div>
+
+      {/* Region Switch */}
+      <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.12 }}>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted-foreground">参保地：</span>
+          {REGION_OPTIONS.map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setRegion(r)}
+              className={`rounded-full px-4 py-1.5 text-sm transition-colors ${
+                region === r
+                  ? "bg-[#0876a8] text-white shadow-sm"
+                  : "border border-gray-200 bg-white text-muted-foreground hover:border-cyan-300 hover:text-cyan-700"
+              }`}
+            >
+              {r}
+            </button>
+          ))}
+          <span className="text-xs text-muted-foreground sm:ml-auto">
+            国家及长三角一体化政策（跨省结算、门诊慢特病互通）已自动纳入
+          </span>
+        </div>
       </motion.div>
 
       {/* Search Bar */}
@@ -163,6 +192,11 @@ export default function PolicyPage() {
                       <Badge variant="secondary" className="text-xs bg-cyan-50 text-cyan-600">
                         {policy.category}
                       </Badge>
+                      {policy.region && (
+                        <Badge variant="secondary" className="text-xs bg-amber-50 text-amber-700">
+                          {policy.region}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground mb-2">{policy.matchReason}</p>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -231,17 +265,19 @@ export default function PolicyPage() {
                 </div>
 
                 {/* Benefits */}
-                <div>
-                  <h4 className="text-sm font-semibold text-foreground mb-2">保障内容</h4>
-                  <div className="space-y-2">
-                    {selectedPolicy.benefits.map((benefit, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                        <span className="text-sm text-muted-foreground">{benefit}</span>
-                      </div>
-                    ))}
+                {selectedPolicy.benefits.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground mb-2">保障内容</h4>
+                    <div className="space-y-2">
+                      {selectedPolicy.benefits.map((benefit, i) => (
+                        <div key={i} className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                          <span className="text-sm text-muted-foreground">{benefit}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Requirements */}
                 <div>

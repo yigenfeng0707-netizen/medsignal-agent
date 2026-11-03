@@ -22,13 +22,16 @@ router = APIRouter(prefix="/api/policy", tags=["政策解读"])
 
 
 @router.get("/match/{user_id}")
-async def match_policies(user_id: str, db: AsyncSession = Depends(get_db)):
-    """基于用户画像精准匹配医保政策（P1-3：policy_matcher 引擎）"""
+async def match_policies(user_id: str, region: str | None = None, db: AsyncSession = Depends(get_db)):
+    """基于用户画像精准匹配医保政策（P1-3：policy_matcher 引擎）
+
+    region 可选（浙江/上海/江苏/安徽）；为空时按用户参保城市推断。
+    """
     profile = await crud.get_user_health_profile(db, user_id)
     if not profile.get("found"):
         raise HTTPException(status_code=404, detail=f"用户 {user_id} 不存在")
 
-    report = policy_matcher.match(profile)
+    report = policy_matcher.match(profile, region=region)
     return report.to_dict()
 
 
@@ -37,13 +40,14 @@ async def search_policies(request: PolicySearchRequest):
     """政策搜索：优先用 KnowledgeBase 向量检索，降级用 policy_matcher 关键词搜索"""
     query = request.query
     category = request.category
+    region = request.region
 
     results = []
     # 优先向量检索
     kb = orchestrator._kb
     if kb is not None:
         try:
-            search_results = await kb.search(query, top_k=10, min_score=0.2, category=category)
+            search_results = await kb.search(query, top_k=10, min_score=0.2, category=category, region=region)
             results = [
                 {
                     "policy_id": i + 1,
@@ -52,6 +56,7 @@ async def search_policies(request: PolicySearchRequest):
                     "publish_date": "",
                     "summary": r.content[:200] if r.content else "",
                     "source": r.source,
+                    "region": r.metadata.get("region", ""),
                     "score": round(r.score, 4),
                 }
                 for i, r in enumerate(search_results)
@@ -61,9 +66,9 @@ async def search_policies(request: PolicySearchRequest):
 
     # 降级：关键词搜索
     if not results:
-        results = policy_matcher.search(query, category=category, top_k=10)
+        results = policy_matcher.search(query, category=category, top_k=10, region=region)
 
-    return {"keyword": query, "results": results, "total": len(results)}
+    return {"keyword": query, "region": region or "", "results": results, "total": len(results)}
 
 
 @router.get("/{policy_id}")

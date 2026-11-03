@@ -15,6 +15,7 @@ from app.config import settings
 from app.services.body import taxonomy as body_taxonomy
 from app.services.knowledge_base import KnowledgeBase, SearchResult
 from app.services.llm_service import LLMService
+from app.services.policy_matcher import province_from_city
 
 logger = logging.getLogger(__name__)
 
@@ -675,10 +676,11 @@ class Orchestrator:
 
         # 1. 知识库检索（含嵌入生成，首次可能触发模型下载；超时/失败降级为无 RAG 上下文）
         search_results: list[SearchResult] = []
+        region = province_from_city(user_profile.get("city", "")) if user_profile else None
         if self._kb is not None:
             try:
                 search_results = await asyncio.wait_for(
-                    self._kb.search(search_query, top_k=5, min_score=0.3),
+                    self._kb.search(search_query, top_k=5, min_score=0.3, region=region),
                     timeout=10.0,
                 )
                 logger.info("知识库检索到 %d 条相关结果", len(search_results))
@@ -834,15 +836,16 @@ class Orchestrator:
             search_query = f"{message}（用户：{ins_type}/{emp}）"
 
         # 尝试从知识库获取报销相关信息（超时/失败降级为无 RAG 上下文，防嵌入模型拖慢请求）
+        region = province_from_city(user_profile.get("city", "")) if user_profile else None
         if self._kb is not None:
             try:
                 search_results = await asyncio.wait_for(
-                    self._kb.search(search_query, top_k=3, category="职工医保/居民医保基本政策", min_score=0.3),
+                    self._kb.search(search_query, top_k=3, category="职工医保/居民医保基本政策", min_score=0.3, region=region),
                     timeout=10.0,
                 )
                 if not search_results:
                     search_results = await asyncio.wait_for(
-                        self._kb.search(search_query, top_k=3, min_score=0.3),
+                        self._kb.search(search_query, top_k=3, min_score=0.3, region=region),
                         timeout=10.0,
                     )
 

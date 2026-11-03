@@ -6,7 +6,7 @@ import {
   mockHealthProfile,
   mockPreReviewResult,
   mockClaimsPreReview,
-  mockPolicyMatch,
+  getMockPolicyMatch,
   mockSecurityOverview,
   mockChatResponses,
   type CoverageSummary,
@@ -16,6 +16,8 @@ import {
   type OCRResult,
   type PreReviewResult,
   type PolicyMatch,
+  type MatchedPolicy,
+  type Region,
   type SecurityOverview,
   type EEGSession,
   type EEGHistory,
@@ -390,32 +392,86 @@ export async function registerDrug(
   });
 }
 
-/** 获取政策匹配 */
+interface BackendMatchedPolicy {
+  id: string;
+  title: string;
+  region?: string;
+  match_score?: number;
+  matchScore?: number;
+  annual_savings?: number;
+  savingsAmount?: number;
+  match_reason?: string;
+  matchReason?: string;
+  category?: string;
+  deadline?: string | null;
+  steps?: string[];
+}
+
+interface BackendPolicyReport {
+  total_savings?: number;
+  matched_count?: number;
+  policies?: BackendMatchedPolicy[];
+  evidence?: PolicyMatch["evidence"];
+}
+
+/** 将后端 snake_case 匹配结果转换为前端展示结构 */
+function mapPolicyReport(report: BackendPolicyReport, region: Region): PolicyMatch {
+  const policies: MatchedPolicy[] = (report.policies ?? []).map((p) => {
+    const rawScore = p.matchScore ?? p.match_score ?? 0;
+    const score = rawScore <= 1 ? Math.round(rawScore * 100) : Math.round(rawScore);
+    const amount = p.savingsAmount ?? p.annual_savings ?? 0;
+    const reason = p.matchReason ?? p.match_reason ?? "";
+    return {
+      id: String(p.id),
+      title: p.title,
+      savings: `预计每年节省 ¥${amount.toLocaleString()}`,
+      savingsAmount: amount,
+      matchReason: reason,
+      matchScore: score,
+      category: p.category ?? "综合",
+      description: reason,
+      requirements: p.steps ?? [],
+      benefits: [],
+      deadline: p.deadline ?? "长期有效",
+      region: p.region ?? region,
+    };
+  });
+  return {
+    total_savings: report.total_savings ?? policies.reduce((sum, p) => sum + p.savingsAmount, 0),
+    matched_count: report.matched_count ?? policies.length,
+    policies,
+    evidence: report.evidence,
+  };
+}
+
+/** 获取政策匹配（region 指定参保地：浙江/上海/江苏/安徽） */
 export async function getPolicyMatches(
   userId: string,
+  region: Region = "浙江",
 ): Promise<PolicyMatch> {
-  const data = await apiFetch<PolicyMatch>(
-    `/api/policy/match/${userId}`,
+  const data = await apiFetch<BackendPolicyReport>(
+    `/api/policy/match/${userId}?region=${encodeURIComponent(region)}`,
   );
-  if (data) return data;
-  return mockPolicyMatch;
+  if (data) return mapPolicyReport(data, region);
+  return getMockPolicyMatch(region);
 }
 
 /** 搜索政策 */
-export async function searchPolicies(query: string): Promise<PolicyMatch> {
-  const data = await apiFetch<PolicyMatch>("/api/policy/search", {
+export async function searchPolicies(query: string, region: Region = "浙江"): Promise<PolicyMatch> {
+  const data = await apiFetch<{ results?: BackendMatchedPolicy[] }>("/api/policy/search", {
     method: "POST",
-    body: JSON.stringify({ keyword: query }),
+    body: JSON.stringify({ query, region }),
   });
-  if (data) return data;
-  // 降级：在模拟数据中过滤
-  const filtered = mockPolicyMatch.policies.filter(
+  if (data?.results) return mapPolicyReport({ policies: data.results }, region);
+  // 降级：在对应参保地的模拟数据中过滤
+  const fallback = getMockPolicyMatch(region);
+  const filtered = fallback.policies.filter(
     (p) =>
       p.title.includes(query) ||
       p.category.includes(query) ||
       p.matchReason.includes(query),
   );
-  return { ...mockPolicyMatch, policies: filtered };
+  return { ...fallback, policies: filtered, matched_count: filtered.length };
 }
 
 /** 获取数据授权总览 */

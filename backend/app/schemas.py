@@ -40,6 +40,7 @@ class DrugRegisterRequest(BaseModel):
 class PolicySearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500)
     category: str | None = None
+    region: str | None = Field(default=None, pattern=r"^(浙江|上海|江苏|安徽)$")
 
 
 class AuthorizationRequest(BaseModel):
