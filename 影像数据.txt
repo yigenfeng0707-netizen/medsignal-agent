@@ -1,0 +1,21 @@
+影像数据入口：
+https://github.com/TCIA/data-retriever?utm_source=chatgpt.com
+
+
+https://www.cancerimagingarchive.net/collection/cmb-pca/?utm_source=chatgpt.com
+
+
+https://www.cancerimagingarchive.net/collection/ct-org/?utm_source=chatgpt.com
+
+
+https://github.com/TCIA/data-retriever/blob/main/pathdb-test.csv
+
+https://wiki.cancerimagingarchive.net/pages/viewpage.action?navigatingVersions=true&pageId=145754270&utm_source=chatgpt.com
+
+https://www.cancerimagingarchive.net/collection/cmb-gec/
+
+https://github.com/TheLion-ai/UMIE_datasets?utm_source=chatgpt.com
+
+https://github.com/openmedlab/Awesome-Medical-Dataset?utm_source=chatgpt.com
+
+中科院 https://ngdc.cncb.ac.cn/obia/browse

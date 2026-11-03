@@ -1,0 +1,9 @@
+
+npx skills add https://www.modelscope.cn/collections/modelscope/ModelScope-Skills
+
+
+pip install --upgrade modelscope
+modelscope download --collection modelscope/ModelScope-Skills
+
+
+curl -fsSL https://www.modelscope.cn/skills/install.sh | bash -s -- --collection modelscope/ModelScope-Skills
