@@ -151,3 +151,6 @@ video-demo/remake/output/
 # ==================== ä¼šè¯äº§ç‰©é˜²è¯¯æäº¤ ====================
 .env.bak*
 *.part
+
+# local reference material (competition doc, not for repo)
+/data-demand.docx
